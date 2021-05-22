@@ -24,7 +24,7 @@ def randomHexGen():
 ##
 
 bot = commands.Bot(command_prefix=get_prefix, description=description)
-# bot.remove_command('help')
+bot.remove_command('help')
 
 #➥ on ready command
 @bot.event
