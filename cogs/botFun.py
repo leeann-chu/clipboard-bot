@@ -70,13 +70,12 @@ class extraCommands(commands.Cog):
 
         try: 
             msg = await self.bot.wait_for('message', check = check, timeout = 15)
+            if (msg.content) == 'hello':
+                await ctx.send(f"Hello {msg.author.display_name}!")   
+            else:
+                await ctx.send("rude!")  
         except asyncio.TimeoutError:
-            await ctx.send(f"{msg.author.display_name} did not respond in time!", delete_after = 5)
-        
-        if (msg.content) == 'hello':
-            await ctx.send(f"Hello {msg.author.display_name}!")   
-        else:
-            await ctx.send("rude!")     
+            await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)   
 ##
 
 #➥ Repeat Command
