@@ -141,7 +141,7 @@ async def info(ctx):
     await ctx.send(embed=embed)
 ##
 
-#➥ server prefix set command
+#➥ Server prefix set command
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def prefix(ctx):
@@ -168,7 +168,7 @@ async def prefix_error(ctx, error):
 ##
 
 #➥ loading and unloading
-@bot.command()
+@bot.command(name="reload")
 async def reload(ctx, extension):
     bot.unload_extension(f'cogs.{extension}')
     bot.load_extension(f'cogs.{extension}')
@@ -179,6 +179,14 @@ for filename in os.listdir("./cogs"):
     if filename.endswith('.py'):
         #takes .py files and cuts off their extension
         bot.load_extension(f'cogs.{filename[:-3]}')
+
+# @reload.error
+# async def reload_error(ctx, error):
+#     print("reload error")
+#     extensionErrors = (commands.ExtensionNotLoaded, commands.ExtensionNotFound, )
+#     if isinstance(error, extensionErrors):
+#         await ctx.send(f"Unrecognized Extension!")
+
 ##
 
 bot.run(BOT_TOKEN)
