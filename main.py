@@ -30,7 +30,7 @@ bot.remove_command('help')
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Activity(type= discord.ActivityType.listening, name="you forget your milk"))
-    print("We have logged in as {0.user}".format(bot))
+    print("Logged in as {0.user}".format(bot))
     print("------------------------------")
 ##
 
@@ -53,37 +53,47 @@ async def on_guild_remove(guild):
         json.dump(prefixes, f, indent = 4)
 ##
 
-#➥ command_error
+#➥ Prefix Checker
 @bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Unknown Command. Type ~help for list of commands")
+async def on_message(message):
+    prefix = get_prefix(bot, message)
+    if message.author == bot.user:
+        return
+    if message.content.startswith('~help'):
+        await message.channel.send(f'To bring up help menu type `{prefix}chelp` <:blush:845843091146539008>')
+    await bot.process_commands(message)
 ##
 
 #➥ Help command
 @bot.command()
 async def chelp(ctx):
     await ctx.trigger_typing()
+
+    # Get server prefix
+    prefix = get_prefix(bot, ctx)
+
     member = ctx.message.author
     embed = discord.Embed(
         description = "Help menu for all your clipboard commands",
         color = randomHexGen(),
         timestamp = datetime.utcnow()
     )
+
     embed.set_author(name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
-    embed.add_field(name="<:gear:845597637877039106> Useful Commands", 
-        value=(f"""`~ping` ⇀ Returns ping
-                 [`~clear x`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: delete, purge") ⇀ Clears x number of messages (defaults to 10)
-                 `~joined` ⇀ Returns info about when user joined
-                 `~avatar` ⇀ Returns user's avatar, also works with nicknames ex: `~avatar {member.display_name}`
-                 `~info` ⇀ Tells you more about this bot
+    embed.add_field(name="<a:settings:845834409869180938> Useful Commands", 
+        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "Works with nicknames ex: {prefix}avatar {member.display_name}") ⇀ Returns user's avatar
+                   [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: delete, purge") ⇀ Clears x number of messages (defaults to 10)
+                    `{prefix}info` ⇀ Tells you more about this bot
+                    `{prefix}joined` ⇀ Returns info about when user joined
+                    `{prefix}ping` ⇀ Returns ping
+                    `{prefix}prefix` ⇀ Edit the prefix used for commands on this server
                  """), 
-                 inline=False)
+                 inline=True)
     embed.add_field(name="<a:partyParrot:845597006898659328> Fun Commands", 
-        value="""[`~8ball`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: 8b") ⇀ Ask <:8ball:845546744665735178> questions
-                 `~add` ⇀ Adds two numbers together ex: `~add 3 4`      
+        value=f"""`{prefix}add` ⇀ Adds two numbers together ex: `{prefix}add 3 4` 
+                 [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: 8b") ⇀ Ask <:8ball:845546744665735178> questions   
                 """,        
-                inline=False)
+                inline=True)
 
     await ctx.send(embed=embed)
 ##    
@@ -106,7 +116,7 @@ async def clear_error(ctx, error):
         await ctx.send(f"sorry {member.display_name}, you do not have permission to clear messages!", delete_after = 3)
 ##
 
-#➥ info command
+#➥ Info command
 @bot.command()
 async def info(ctx):
     await ctx.trigger_typing()
@@ -115,11 +125,15 @@ async def info(ctx):
     member = await ctx.guild.fetch_member("364536918362554368")
     pfp = member.avatar_url
 
+    # Get server prefix
+    prefix = get_prefix(bot, ctx)
+
     # Create Embed
     embed = discord.Embed(
         title = "📋 Clipboard Bot Information", 
-        description = description, 
-        color = randomHexGen())
+        description = description + f"\nThis server's prefix is `{prefix}`", 
+        color = randomHexGen()
+    )
     #embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
     embed.add_field(name="__Functionalities__", value="• timer to send a reminder \n• check things off the list \n• create sticky reminders \n• create persistent reminders", inline=False)
     embed.set_footer(text="Created by GracefulLion", icon_url=pfp)
@@ -129,21 +143,36 @@ async def info(ctx):
 
 #➥ server prefix set command
 @bot.command()
-async def prefix(ctx, prefix):
+@commands.has_permissions(manage_guild=True)
+async def prefix(ctx):
+    prefix = get_prefix(bot, ctx)
+    embed = discord.Emed(
+        title = "<a:settings:845834409869180938> Changing Server Prefix",
+        description = f"The **current** standard prefix is `{prefix}`\n\nPlease enter the new prefix:",
+        color = randomHexGen()
+    )
+
     with open("prefixes.json", 'r') as f:
-        prefixes = json.load(f)
-   # await ctx.send(f"The **current** standard prefix is {prefixes.peek(str(ctx.guild.id))}")
-    prefixes[str(guild.id)] = prefix
+        prefixes = json.load(f) 
+    prefixes[str(ctx.guild.id)] = prefix
     with open("prefixes.json", 'w') as f:
         json.dump(prefixes, f, indent = 4)
 
-    await ctx.send(f"Successfully changed **standard prefix** to: {prefix}!")
-    
+    await ctx.send(f"Successfully changed **standard prefix** to: `{prefix}`")
+
+@prefix.error
+async def prefix_error(ctx, error):
+    member = ctx.message.author
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(f"sorry {member.display_name}, you do not have permission edit server prefix!", delete_after = 3)
+##
+
 #➥ loading and unloading
 @bot.command()
 async def reload(ctx, extension):
     bot.unload_extension(f'cogs.{extension}')
     bot.load_extension(f'cogs.{extension}')
+    print(f'{extension} is reloaded!')
     await ctx.send(f'{extension} is reloaded!')
 
 for filename in os.listdir("./cogs"):

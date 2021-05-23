@@ -9,3 +9,5 @@ __pycache__/
 cogs/__pycache__/
 *.py[cod]
 *$py.class
+
+requirements.txt

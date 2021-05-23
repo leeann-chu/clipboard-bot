@@ -1,6 +1,7 @@
 import discord
 import random
 from discord.ext import commands
+import asyncio
 
 class extraCommands(commands.Cog):
     def __init__(self, bot):
@@ -57,6 +58,25 @@ class extraCommands(commands.Cog):
                     "Outlook not so good.",
                     "Very doubtful." ]
         await ctx.send(f"{member.display_name}: {question}\n<:8ball:845546744665735178> says {random.choice(responses)}")
+##
+
+#➥ Wait for Response
+    @commands.command()
+    async def hello(self, ctx):
+        await ctx.send("Say hello!")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+
+        try: 
+            msg = await self.bot.wait_for('message', check = check, timeout = 15)
+        except asyncio.TimeoutError:
+            await ctx.send(f"{msg.author.display_name} did not respond in time!", delete_after = 5)
+        
+        if (msg.content) == 'hello':
+            await ctx.send(f"Hello {msg.author.display_name}!")   
+        else:
+            await ctx.send("rude!")     
 ##
 
 def setup(bot):
