@@ -79,6 +79,18 @@ class extraCommands(commands.Cog):
             await ctx.send("rude!")     
 ##
 
+#➥ Repeat Command
+    @commands.command(name='repeat', aliases=['mimic', 'copy'])
+    async def repeat(self, ctx, *, inp: str):
+        await ctx.send(inp)
+
+    @repeat.error
+    async def repeat_handler(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            if error.param.name == 'inp':
+                await ctx.send("You forgot to give me input to repeat!")
+##
+
 def setup(bot):
     bot.add_cog(extraCommands(bot))
 
