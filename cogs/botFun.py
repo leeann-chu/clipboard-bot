@@ -1,6 +1,8 @@
 import discord
 import random
+import math
 from discord.ext import commands
+from main import randomHexGen
 import asyncio
 
 class extraCommands(commands.Cog):
@@ -14,9 +16,15 @@ class extraCommands(commands.Cog):
 
     # Commands
     @commands.command()
-    async def add(self, ctx, left: int, right: int):
-    #Adds two numbers together
-        await ctx.send(left + right)
+    async def add(self, ctx, *nums):
+        eq = " + ".join(nums)
+        summation = sum([int(i) for i in nums])
+        embed = discord.Embed (
+            title = "Summation",
+            description = f"{eq} = {summation}",
+            color = randomHexGen()
+        )
+        await ctx.send(embed = embed)
 
     @commands.command()
     async def avatar(self, ctx, *, member : discord.Member=None):
@@ -60,14 +68,12 @@ class extraCommands(commands.Cog):
         await ctx.send(f"{member.display_name}: {question}\n<:8ball:845546744665735178> says {random.choice(responses)}")
 ##
 
-#➥ Wait for Response
+#➥ Hello Command
     @commands.command()
     async def hello(self, ctx):
         await ctx.send("Say hello!")
-
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel
-
         try: 
             msg = await self.bot.wait_for('message', check = check, timeout = 15)
             if (msg.content) == 'hello':

@@ -27,6 +27,7 @@ class CommandErrorHandler(commands.Cog):
         ignored = (commands.CommandNotFound, )
         error = getattr(error, 'original', error)
         message = ctx.message
+        member = ctx.message.author
 
         if isinstance(error, ignored):
             if message.content.startswith('~help'):
@@ -37,7 +38,9 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.BadArgument):
             if ctx.command.qualified_name == 'tag list':
                 await ctx.send('I could not find that member. Please try again.')
-
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"{member.display_name} you forgot to include a parameter!" + " Type `{0.prefix}chelp` for list of commands".format(ctx))
+    
         else:
             print('This is a different error message {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
