@@ -2,10 +2,14 @@ import discord
 import os
 import random
 import json
+import asyncio
 import asyncpg
 from API_KEYS import *
 from discord.ext import commands
 from datetime import datetime
+
+description = "I can store long term, short term, and immediate goals!"
+credentials = {"user": USERNAME, "password": PASSWORD, "database": DATABASE, "host": "127.0.0.1"}
 
 #➥ randomHexGen
 def randomHexGen():
@@ -21,10 +25,10 @@ def get_prefix(bot, message):
             prefixes = json.load(f)
         return prefixes[str(message.guild.id)]
     
-description = "I can store long term, short term, and immediate goals!"
-bot = commands.Bot(command_prefix=get_prefix, description=description)
-credentials = {"user": USERNAME, "password": PASSWORD, "database": DATABASE, "host": "127.0.0.1"}
-db = bot.loop.run_until_complete(asyncpg.create_pool(**credentials))
+loop = asyncio.get_event_loop()
+db = loop.run_until_complete(asyncpg.create_pool(**credentials))
+bot = commands.Bot(command_prefix=get_prefix, description=description, db=db)   
+
 
 #➥ on ready command
 @bot.event
@@ -69,7 +73,7 @@ async def chelp(ctx, argument = None):
     await ctx.trigger_typing()
 
     # Get server prefix
-    prefix = get_prefix(bot, ctx)
+    prefix = ctx.prefix
     member = ctx.message.author
     m = ctx.message
     
@@ -155,7 +159,7 @@ async def info(ctx):
     pfp = member.avatar_url
 
     # Get server prefix
-    prefix = get_prefix(bot, ctx)
+    prefix = ctx.prefix
 
     # Create Embed
     embed = discord.Embed(
