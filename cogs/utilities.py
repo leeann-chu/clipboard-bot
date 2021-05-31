@@ -1,7 +1,7 @@
 import discord
 import json
 from discord.ext import commands
-from main import randomHexGen, get_prefix
+from main import randomHexGen
 import asyncio
 
 class utilities(commands.Cog):
@@ -19,10 +19,9 @@ class utilities(commands.Cog):
     async def prefix(self, ctx):
         await ctx.trigger_typing()
         
-        prefix = get_prefix(self, ctx)
         embed = discord.Embed(
             title = "Changing Server Prefix",
-            description = f"The **current** standard prefix is `{prefix}`\n\nPlease enter the new prefix:",
+            description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
             color = randomHexGen()
         )
         embed.set_footer(text="Enter \"cancel\" to close menu!")
@@ -54,7 +53,7 @@ class utilities(commands.Cog):
     ##
         
     #➥ Clear Command and Error
-    @commands.command(name="clear", aliases=["purge", "delete"])
+    @commands.command(aliases=["purge", "delete"])
     @commands.has_permissions(manage_guild=True)
     async def clear(self, ctx, amount=10):
         await ctx.channel.purge(limit=amount)

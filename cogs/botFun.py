@@ -85,7 +85,7 @@ class extraCommands(commands.Cog):
 ##
 
 #➥ Repeat Command
-    @commands.command(name='repeat', aliases=['mimic', 'copy'])
+    @commands.command(aliases=['mimic', 'copy'])
     async def repeat(self, ctx, *, inp: str):
         await ctx.send(inp)
 
