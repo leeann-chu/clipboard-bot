@@ -53,7 +53,7 @@ class utilities(commands.Cog):
     ##
         
     #➥ Clear Command and Error
-    @commands.command(aliases=["purge", "delete"])
+    @commands.command(aliases=["purge"])
     @commands.has_permissions(manage_guild=True)
     async def clear(self, ctx, amount=10):
         await ctx.channel.purge(limit=amount)
