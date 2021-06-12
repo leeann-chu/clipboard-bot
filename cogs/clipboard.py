@@ -64,15 +64,15 @@ class clipboard(commands.Cog):
         else:
             await ctx.send("What would you like the title of your note to be?" + 
                            f"\nYou can type `{ctx.prefix}cancel` at any point to cancel the note making process.")
-            title = await self.botwaitPlease(ctx, 50)
+            title = await self.waitCheck(ctx, 50)
             if title is None: return
                 
             await ctx.send(f"Would you like to label your note with any categories? Shopping, Homework, CS101...")
-            tag = await self.botwaitPlease(ctx, 50)
+            tag = await self.waitCheck(ctx, 50)
             if tag is None: return
         
         await ctx.send ("What would you like to remember?")
-        msg = await self.botwaitPlease(ctx, 400)
+        msg = await self.waitCheck(ctx, 400)
         if msg is None: return
         await self.make_embed(ctx, title, tag, msg)
 ##
@@ -87,14 +87,17 @@ class clipboard(commands.Cog):
         )
         embed.add_field(name="Category: " + tag, value = msg)
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        await ctx.send("Does this look about right to you? y/n") # Make this a reaction too
-        await ctx.send(embed = embed)
-        await self.create_note(ctx, title, msg, tag, timestamp)
+        embed.set_footer(text="React with ❌ or ✅")
+        await ctx.send("Does this look about right to you?")
+        yn = await ctx.send(embed = embed)
+        confirmation = await self.reactCheck(ctx, yn, 50, reactions = ['<:cancel:851278899270909993>', '<:confirm:851278899832684564>'])
+        if confirmation == "y":
+            await self.create_note(ctx, title, msg, tag, timestamp)      
 ##
 
 #➥ waitfor command
     @note.command()
-    async def botwaitPlease(self, ctx, timeout):
+    async def waitCheck(self, ctx, timeout):
         def check(msg):
             return msg.author == ctx.author and ctx.channel == msg.channel
         try: 
@@ -109,6 +112,30 @@ class clipboard(commands.Cog):
         except asyncio.TimeoutError:
             return await ctx.send("You took too long, try again!", delete_after = 5)          
 ##
+#➥ reaction command
+    @note.command()
+    async def reactCheck(self, ctx, msg, timeout, reactions):
+        for emoji in reactions:
+            await msg.add_reaction(emoji)
+
+        def check(reaction, user):
+            return str(reaction.emoji) in reactions and user != self.bot.user
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', check = check, timeout = timeout)
+            if str(reaction) == reactions[0]:
+                await ctx.channel.purge(limit = 1)
+                await ctx.send("Canceled", delete_after = 2)
+                return 'n'
+            else:
+                await msg.clear_reactions() 
+                return 'y'
+                  
+        except asyncio.TimeoutError:
+            await ctx.send("You did not respond in time!")
+            await msg.clear_reactions()
+                
+##        
 
 #➥ Cancel is a real command I swear
     @commands.command()
@@ -129,7 +156,6 @@ class clipboard(commands.Cog):
         rows = await self.db.fetch(query)
         return rows
 ##
-
 #➥ get_tag by title
     @note.command()
     async def get_tag(self, title):
@@ -137,21 +163,20 @@ class clipboard(commands.Cog):
         rows = await self.db.fetch(query)
         return rows
 ##
-
-# #➥ get_content by title
-#     @note.command()
-#     async def get_content(self, ctx, title):
-#         bypass_owner_check = ctx.author.id == self.bot.owner_id
-        
-#         if bypass_owner_check:
-#             args = [title]
-#         else:
-#             args = [title, str(ctx.author.id)]
-#             user = f'title = $1 AND user_id = $2'
+#➥ get_content by title
+    @note.command()
+    async def get_content(self, ctx, title):
+        bypass_owner_check = ctx.author.id == self.bot.owner_id
+        clause = 'title = $1'
+        if bypass_owner_check:
+            args = [title]
+        else:
+            args = [title, str(ctx.author.id)]
+            clause = f'{clause} AND user_id = $2'
             
-#         query = f'SELECT content FROM notes WHERE {user};'
-#         return await self.db.fetch(query, *args)
-# ##
+        query = f'SELECT content FROM notes WHERE {clause};'
+        return await self.db.fetch(query, *args)
+##
     
 #➥ del_note
     @note.command()
@@ -175,22 +200,62 @@ class clipboard(commands.Cog):
                 color = randomHexGen()
             )
             embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/519350010706395157/850574601623961640/full_cross.png")
-            embed.set_footer(text=f"You can type {ctx.prefix}cancel to cancel option selection.")
+            embed.set_footer(text="React with ❌ to cancel option selection")
             
             content = [content for (content,) in contentRows]
             optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
             for noteContent, option, tag in zip(content, optionList, tags):
                 embed.add_field(name = "Option: " + option + "\nCategory: " + tag, value = formatContent(noteContent))
-            await ctx.send(embed = embed)
-            ##
-            selOption = await self.botwaitPlease(ctx, 100)
-            if selOption is None: return
+        
+        #➥ Allow to wait for both a message AND a reaction
+            yn = await ctx.send(embed = embed) 
+            cancel = '<:cancel:851278899270909993>'
+            await yn.add_reaction(cancel)
+            #➥ Individual Checks
+            def checkEmoji(reaction, user):
+                return str(reaction.emoji) in cancel and user != self.bot.user
             
-            optionIndex = int(selOption.content) - 1
-            # Create an error handler for entering things that are not 1-9
-            note_Id = note_id[optionIndex]
-            await self.del_noteId(ctx, note_Id)
-                    
+            def checkMsg(msg):
+                return msg.author == ctx.author and ctx.channel == msg.channel
+            ##
+            # asyncio magic?
+            done, pending = await asyncio.wait([self.bot.wait_for('message', check = checkMsg), 
+                                                self.bot.wait_for('reaction_add', check = checkEmoji)], 
+                                                timeout = 20,
+                                                return_when = asyncio.FIRST_COMPLETED)
+            
+            try:
+                stuff = done.pop().result()
+                try: 
+                    selOption = int(stuff.content)
+                    optionIndex = selOption - 1
+                    try: 
+                        selNote_id = note_id[optionIndex]
+                        await self.del_noteId(ctx, selNote_id)
+                    except IndexError:
+                        await ctx.send("Choose a number from the options presented!", delete_after = 3)
+                    await yn.clear_reactions()
+                except ValueError: 
+                    await ctx.send("Please enter a number 1-9!", delete_after = 3) 
+                    await yn.clear_reactions()
+                
+                except:
+                    if stuff[0].emoji.name == 'cancel':
+                        await ctx.channel.purge(limit = 1)
+                        await ctx.send("Canceled", delete_after = 2)
+                
+            except KeyError:
+                await ctx.send("You did not respond in time!")
+                await yn.clear_reactions()
+            except Exception as e: 
+                print(e)                
+                
+            for future in done:
+                print("more errors?")
+                future.exception()
+            for future in pending:
+                future.cancel()
+        ##            
         elif len(contentRows) == 0:
             await ctx.send("You do not own any note with this name!")
 ##
@@ -200,7 +265,7 @@ class clipboard(commands.Cog):
     async def remove(self, ctx, title = None):
         if title is None:
             await ctx.send("What is the name of the note you would like to delete?")
-            title = await self.botwaitPlease(ctx, 50)
+            title = await self.waitCheck(ctx, 50)
             if title is None: return            
             
         await self.del_note(ctx, title)

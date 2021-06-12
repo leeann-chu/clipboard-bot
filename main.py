@@ -27,13 +27,12 @@ def get_prefix(bot, message):
     
 loop = asyncio.get_event_loop()
 db = loop.run_until_complete(asyncpg.create_pool(**credentials))
-bot = commands.Bot(command_prefix=get_prefix, description=description, db=db)   
+bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(type= discord.ActivityType.listening, name="you forget your milk"), db=db)   
 
 
 #➥ on ready command
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type= discord.ActivityType.listening, name="you forget your milk"))
     print(f"Logged in as {bot.user}")
     print("------------------------------")
 ##
@@ -137,6 +136,7 @@ async def chelp(ctx, argument = None):
 @bot.command()
 async def quit(ctx):
     if await bot.is_owner(ctx.author):
+        await bot.change_presence(status = discord.Status.offline)
         await db.close()
         await bot.logout()
     else:
@@ -176,6 +176,7 @@ async def info(ctx):
 
 #➥ loading and unloading
 @bot.command(name="reload")
+@commands.is_owner()
 async def reload(ctx, extension):
     bot.unload_extension(f'cogs.{extension}')
     bot.load_extension(f'cogs.{extension}')
