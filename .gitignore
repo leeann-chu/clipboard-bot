@@ -4,7 +4,7 @@ utils/
 
 # Ignore vs code specific files
 .vscode/
-
+*.code-workspace
 # Byte-compiled / optimized / DLL files
 __pycache__/
 cogs/__pycache__/
