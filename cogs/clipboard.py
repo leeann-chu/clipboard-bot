@@ -1,15 +1,29 @@
 import discord
 import asyncio
 import re
-from discord.ext import commands
+from discord.ext import commands, menus
 from datetime import datetime
 from main import randomHexGen, db, get_prefix
 
+#➥ format content
 def formatContent(data):
     items = (re.sub('- |-|• |•', '', data))
     itemList = items.split("\n")
     itemString = "\n• ".join(itemList)
     return "• " + itemString
+##
+
+#➥ Setting up Menu
+class ViewNotesMenu(menus.ListPageSource):
+    async def format_page(self, menu, option, title, tag):
+        embed = discord.Embed(
+            title = "Your Notes:",
+            description = "Enter a number to view selected note",
+            color = randomHexGen()
+        )
+        embed.add_field(name = option + "Title: " + title, value = tag)
+        return embed
+##
 
 #➥ Setting up Cog   
 class clipboard(commands.Cog):
@@ -22,13 +36,29 @@ class clipboard(commands.Cog):
     async def on_ready(self):
         print("clipboard is Ready")
         
-    # Create Note (Step-by-step, Interactive) Command Group
     @commands.group()
     async def note(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}note create` \nSee `{ctx.prefix}note help` for a list of examples!")
 ##
-    
+
+#➥ view_notes
+    @note.command(aliases=["b", "browse", "v"])
+    async def view(self, ctx):
+        # Get note_id by ctx.author  
+        noteidRows = await self.get_noteId(ctx)  
+        note_id = [note_id for (note_id,) in noteidRows]
+
+        # Option List as Emojis
+        optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
+        
+        tagList = await self.get_tag(ctx)
+        titleList = await self.get_title(ctx)
+        
+        menu = menus.MenuPages(ViewNotesMenu(option = optionList, title = titleList, tag = tagList, per_page=9))
+        await menu.start(ctx)
+##
+
 #➥ create_note
     @note.command()
     async def create_note(self, ctx, title, content, tags, timestamp):
@@ -47,8 +77,7 @@ class clipboard(commands.Cog):
         await self.db.release(connection)
         await ctx.send("Database updated!")
 ##
-
-#➥ Full Interactive make_note
+#➥ Full Interactive make_note (Step by Step)
     @note.command(aliases=["create"])
     async def make(self, ctx, *, args = None):
         if args is not None:
@@ -119,7 +148,7 @@ class clipboard(commands.Cog):
             await msg.add_reaction(emoji)
 
         def check(reaction, user):
-            return str(reaction.emoji) in reactions and user != self.bot.user
+            return str(reaction.emoji) in reactions and user != self.bot.user and user == ctx.author
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', check = check, timeout = timeout)
@@ -142,27 +171,59 @@ class clipboard(commands.Cog):
     async def cancel(self, ctx):
         print("Canceled note")
 ##
+
+#➥ get_noteId
+    @note.command()
+    async def get_noteId(self, ctx, title = None):
+        user_id = str(ctx.author.id)
+        if title is None:
+            query = f"SELECT note_id FROM notes WHERE user_id= $1;"
+            rows = await self.db.fetch(query, user_id)
+            return rows
+        else:
+            query = f"SELECT note_id FROM notes WHERE title= $1;"
+            rows = await self.db.fetch(query, title)
+            return rows
+##
+#➥ get_title
+    @note.command()
+    async def get_title(self, ctx, note_id = None):
+        user_id = str(ctx.author.id)
+        if note_id is None:
+            query = """SELECT title FROM notes WHERE user_id= $1;"""
+            rows = await self.db.fetch(query, user_id)
+            return rows
+        else:
+            query = """SELECT title FROM notes WHERE note_id= $1;"""
+            rows = await self.db.fetch(query, note_id)
+            return rows
+##
+#➥ get_tag
+    @note.command()
+    async def get_tag(self, ctx, title = None, note_id = None):
+        user_id = str(ctx.author.id)
+        if title is None:
+            query = """SELECT tags FROM notes WHERE user_id= $1;"""
+            rows = await self.db.fetch(query, user_id)
+            return rows
+        elif note_id is None:
+            query = """SELECT tags FROM notes_tags WHERE title= $1;"""
+            rows = await self.db.fetch(query, title)
+            return rows
+        elif title is None:
+            query = """SELECT tags FROM notes_tags WHERE note_id= $1;"""
+            rows = await self.db.fetch(query, note_id)
+            return rows
+##    
+#➥ get title and tag by id
+    @note.command()
+    async def get_titleTag(self, ctx, note_id):
+        user_id = str(ctx.author.id)
+        query = """SELECT title, tags FROM notes_tags WHERE note_id=$1;"""
+        rows = await self.db.fetchrow(query, note_id)
+        return rows
+##
     
-#➥ del_note by noteId
-    @note.command()
-    async def del_noteId(self, ctx, note_id):
-        await self.db.execute(f'DELETE FROM notes WHERE note_id={note_id};')
-        await ctx.send("Note successfully deleted!")
-##
-#➥ get_noteId by title
-    @note.command()
-    async def get_noteId(self, title):
-        query = f"SELECT note_id FROM notes WHERE title='{title}';"
-        rows = await self.db.fetch(query)
-        return rows
-##
-#➥ get_tag by title
-    @note.command()
-    async def get_tag(self, title):
-        query = f"SELECT tags FROM notes_tags WHERE title='{title}';"
-        rows = await self.db.fetch(query)
-        return rows
-##
 #➥ get_content by title
     @note.command()
     async def get_content(self, ctx, title):
@@ -185,18 +246,18 @@ class clipboard(commands.Cog):
         #➥ Sending Note Options
         if len(contentRows) > 0:
             
-            noteidRows = await self.get_noteId(title)
+            noteidRows = await self.get_noteId(ctx, title)
             note_id = [note_id for (note_id,) in noteidRows]
             
-            tagRows = await self.get_tag(title)
+            tagRows = await self.get_tag(ctx, title)
             tags = [tags for (tags,) in tagRows]
             
             if len(contentRows) > 1:
                 await ctx.send("You have multiple notes with this name! \nWhich would you like to delete?")
                          
             embed = discord.Embed(
-                title = "Selected Note(s) to be Deleted",
-                description = "Enter a number to choose",
+                title = f"Selected Note(s) to be Deleted: \n{title}",
+                description = "Enter a number to delete selected note",
                 color = randomHexGen()
             )
             embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/519350010706395157/850574601623961640/full_cross.png")
@@ -205,7 +266,7 @@ class clipboard(commands.Cog):
             content = [content for (content,) in contentRows]
             optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
             for noteContent, option, tag in zip(content, optionList, tags):
-                embed.add_field(name = "Option: " + option + "\nCategory: " + tag, value = formatContent(noteContent))
+                embed.add_field(name = "Option: " + option + "\n__" + tag + "__", value = formatContent(noteContent))
         
         #➥ Allow to wait for both a message AND a reaction
             yn = await ctx.send(embed = embed) 
@@ -213,7 +274,7 @@ class clipboard(commands.Cog):
             await yn.add_reaction(cancel)
             #➥ Individual Checks
             def checkEmoji(reaction, user):
-                return str(reaction.emoji) in cancel and user != self.bot.user
+                return str(reaction.emoji) in cancel and user != self.bot.user and user == ctx.author
             
             def checkMsg(msg):
                 return msg.author == ctx.author and ctx.channel == msg.channel
@@ -221,7 +282,7 @@ class clipboard(commands.Cog):
             # asyncio magic?
             done, pending = await asyncio.wait([self.bot.wait_for('message', check = checkMsg), 
                                                 self.bot.wait_for('reaction_add', check = checkEmoji)], 
-                                                timeout = 20,
+                                                timeout = 40,
                                                 return_when = asyncio.FIRST_COMPLETED)
             
             try:
@@ -259,10 +320,11 @@ class clipboard(commands.Cog):
         elif len(contentRows) == 0:
             await ctx.send("You do not own any note with this name!")
 ##
-
+##
 #➥ Interactive Delete by Title
-    @note.command(aliases=["delete"])
-    async def remove(self, ctx, title = None):
+    @note.command(aliases=["remove"])
+    async def delete(self, ctx, *, inp : str = None):
+        title = inp
         if title is None:
             await ctx.send("What is the name of the note you would like to delete?")
             title = await self.waitCheck(ctx, 50)
@@ -270,6 +332,29 @@ class clipboard(commands.Cog):
             
         await self.del_note(ctx, title)
 ##
+#➥ del_note by noteId
+    @note.command()
+    async def del_noteId(self, ctx, note_id):
+        query = """DELETE FROM notes WHERE note_id= $1"""
+        await self.db.execute(query, note_id)
+        await ctx.send("Note successfully deleted!")
+##
+
+#➥ view notes
+    # @note.command(aliases=["b", "browse", "v"])
+    # async def view(self, ctx):
+    #     # Get note_id by ctx.author   
+    #     noteidRows = await self.get_noteId(ctx)  
+    #     note_id = [note_id for (note_id,) in noteidRows]
+        
+    #     for _id in note_id:
+    #         currentInfo = await self.get_titleTag(ctx, _id)
+    #         title = currentInfo['title']
+    #         tag = currentInfo['tags']
+    #         embed.add_field(name = title, value = tag, inline = False)
             
+    #     await ctx.send(embed = embed)            
+##
+
 def setup(bot):
     bot.add_cog(clipboard(bot))

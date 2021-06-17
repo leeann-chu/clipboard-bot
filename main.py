@@ -80,6 +80,7 @@ async def chelp(ctx, argument = None):
     with open("helpmenu.json", 'r') as f:
         helpmenu = json.load(f)
 
+    # These are variables because formatting deal with it
     avatar = helpmenu["avatar"]
     clear = helpmenu["clear"]
     add = helpmenu["add"]
