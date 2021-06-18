@@ -178,11 +178,13 @@ async def info(ctx):
 #➥ loading and unloading
 @bot.command(name="reload")
 @commands.is_owner()
-async def reload(ctx, extension):
-    bot.unload_extension(f'cogs.{extension}')
-    bot.load_extension(f'cogs.{extension}')
-    print(f'{extension} is reloaded!')
-    await ctx.send(f'Extension {extension} is reloaded!')
+async def reload(ctx, *, extension: str):
+    eList = extension.split(" ")
+    for extension in eList:
+        bot.unload_extension(f'cogs.{extension}')
+        bot.load_extension(f'cogs.{extension}')
+        print(f'{extension} is reloaded!')
+        await ctx.send(f'Extension {extension} is reloaded!')
 
 for filename in os.listdir("./cogs"):
     if filename.endswith('.py'):

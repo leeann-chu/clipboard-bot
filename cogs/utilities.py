@@ -1,6 +1,7 @@
 import discord
 import json
 from discord.ext import commands
+from cogs.menusUtil import Confirm
 from main import randomHexGen
 import asyncio
 
@@ -17,33 +18,28 @@ class utilities(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def prefix(self, ctx):
-        await ctx.trigger_typing()
+        await ctx.trigger_typing()        
         
         embed = discord.Embed(
             title = "Changing Server Prefix",
             description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
             color = randomHexGen()
         )
-        embed.set_footer(text="Enter \"cancel\" to close menu!")
-        
-        delEmbed = await ctx.send(embed = embed)
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-        
+        embed.set_footer(text="React with ❌ to close the menu!")
+        prefixEmbed = await ctx.send(embed = embed)
+        stuff = await self.bot.get_command('reactRespond')(ctx, prefixEmbed, 50, ['<:cancel:851278899270909993>'])        
         try: 
-            newPrefix = await self.bot.wait_for('message', check = check, timeout = 20)
-            
-            if (newPrefix.content) == 'cancel':
-                await delEmbed.delete()
-            else:
-                with open("prefixes.json", 'r') as f:
-                    prefixes = json.load(f) 
-                prefixes[str(ctx.guild.id)] = newPrefix.content
-                with open("prefixes.json", 'w') as f:
-                    json.dump(prefixes, f, indent = 4)
-                await ctx.send(f"Successfully changed **standard prefix** to: `{newPrefix.content}`")
-        except asyncio.TimeoutError:
-            await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)
+            newPrefix = stuff.content
+            with open("prefixes.json", 'r') as f:
+                prefixes = json.load(f) 
+            prefixes[str(ctx.guild.id)] = newPrefix
+            with open("prefixes.json", 'w') as f:
+                json.dump(prefixes, f, indent = 4)
+            await ctx.send(f"Successfully changed **standard prefix** to: `{newPrefix}`")
+        except:
+            if stuff[0].emoji.name == 'cancel':
+                    await ctx.channel.purge(limit = 1)
+                    await ctx.send("Canceled", delete_after = 2)
         
     @prefix.error
     async def prefix_error(self, ctx, error):
@@ -55,9 +51,15 @@ class utilities(commands.Cog):
     #➥ Clear Command and Error
     @commands.command(aliases=["purge"])
     @commands.has_permissions(manage_guild=True)
-    async def clear(self, ctx, amount=10):
-        await ctx.channel.purge(limit=amount)
-        await ctx.send(f"Cleared {amount} messages!", delete_after = 5)
+    async def clear(self, ctx, amount = 10, override = None):                    
+        if override is None:
+            confirm = await Confirm(f'Clear {amount} messages?').prompt(ctx)
+            if confirm:
+                await ctx.channel.purge(limit = amount + 1)
+                await ctx.send(f"Cleared {amount} messages!", delete_after = 3)
+        else:
+            await ctx.channel.purge(limit = amount + 1)
+            await ctx.send(f"Cleared {amount} messages!", delete_after = 3)     
 
     @clear.error
     async def clear_error(self, ctx, error):
