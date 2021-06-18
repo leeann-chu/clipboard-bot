@@ -2,8 +2,9 @@ import discord
 import asyncio
 import re
 from discord.ext import commands, menus
+from cogs.menusUtil import Confirm, ViewNotes
 from datetime import datetime
-from main import randomHexGen, db, get_prefix
+from main import randomHexGen, db
 
 #➥ format content
 def formatContent(data):
@@ -11,18 +12,6 @@ def formatContent(data):
     itemList = items.split("\n")
     itemString = "\n• ".join(itemList)
     return "• " + itemString
-##
-
-#➥ Setting up Menu
-class ViewNotesMenu(menus.ListPageSource):
-    async def format_page(self, menu, option, title, tag):
-        embed = discord.Embed(
-            title = "Your Notes:",
-            description = "Enter a number to view selected note",
-            color = randomHexGen()
-        )
-        embed.add_field(name = option + "Title: " + title, value = tag)
-        return embed
 ##
 
 #➥ Setting up Cog   
@@ -36,7 +25,7 @@ class clipboard(commands.Cog):
     async def on_ready(self):
         print("clipboard is Ready")
         
-    @commands.group()
+    @commands.group(aliases = ["notes"])
     async def note(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}note create` \nSee `{ctx.prefix}note help` for a list of examples!")
@@ -55,23 +44,26 @@ class clipboard(commands.Cog):
         tagList = await self.get_tag(ctx)
         titleList = await self.get_title(ctx)
         
-        menu = menus.MenuPages(ViewNotesMenu(option = optionList, title = titleList, tag = tagList, per_page=9))
+        #Somehow should use multiple pages with heading list to be able to page throught collection of notes
+        
+        menu = menus.MenuPages(ViewNotes(titleList, optionList, tagList), clear_reactions_after = True)
         await menu.start(ctx)
 ##
 
 #➥ create_note
     @note.command()
+    @commands.is_owner()
     async def create_note(self, ctx, title, content, tags, timestamp):
         connection = await self.db.acquire()
         async with connection.transaction():
             query = """ WITH notes_insert AS (
-                        INSERT INTO notes (title, content, user_id, date_created, date_modified)
-                        VALUES ($1, $2, $3, $5, $5)
+                        INSERT INTO notes (title, tags, content, user_id, date_created, date_modified)
+                        VALUES ($1, $4, $2, $3, $5, $5)
                         RETURNING note_id
                         )
                         INSERT INTO notes_tags (note_id, title, tags)
                         VALUES ((SELECT note_id FROM notes_insert), $1, $4);
-                    """  
+                    """   
             user_id = str(ctx.author.id)
             await self.db.execute(query, title, content, user_id, tags, timestamp)
         await self.db.release(connection)
@@ -119,9 +111,11 @@ class clipboard(commands.Cog):
         embed.set_footer(text="React with ❌ or ✅")
         await ctx.send("Does this look about right to you?")
         yn = await ctx.send(embed = embed)
-        confirmation = await self.reactCheck(ctx, yn, 50, reactions = ['<:cancel:851278899270909993>', '<:confirm:851278899832684564>'])
-        if confirmation == "y":
+        confirm = await Confirm(yn).prompt(ctx)
+        if confirm:
             await self.create_note(ctx, title, msg, tag, timestamp)      
+        else:
+            await ctx.send("Note Canceled", delete_after = 2)
 ##
 
 #➥ waitfor command
@@ -166,6 +160,42 @@ class clipboard(commands.Cog):
                 
 ##        
 
+#➥ reactRespond
+    @commands.command()
+    @commands.is_owner()
+    async def reactRespond(self, ctx, msg, timeout, reactions):
+        for emoji in reactions:
+            await msg.add_reaction(emoji)
+        
+        #➥ Individual Checks
+        def checkEmoji(reaction, user):
+            return str(reaction.emoji) in reactions and user != self.bot.user and user == ctx.author
+        
+        def checkMsg(msg):
+            return msg.author == ctx.author and ctx.channel == msg.channel
+        ##
+        
+        # asyncio magic?
+        done, pending = await asyncio.wait([self.bot.wait_for('message', check = checkMsg), 
+                                            self.bot.wait_for('reaction_add', check = checkEmoji)], 
+                                            timeout = timeout,
+                                            return_when = asyncio.FIRST_COMPLETED)
+        try:
+            stuff = done.pop().result()
+            return stuff
+        except KeyError:
+                await ctx.send("You did not respond in time!")
+                await msg.clear_reactions()
+        except Exception as e: 
+            print(e) 
+            
+        for future in done:
+            print("more errors?")
+            future.exception()
+        for future in pending:
+            future.cancel()
+##
+
 #➥ Cancel is a real command I swear
     @commands.command()
     async def cancel(self, ctx):
@@ -207,11 +237,11 @@ class clipboard(commands.Cog):
             rows = await self.db.fetch(query, user_id)
             return rows
         elif note_id is None:
-            query = """SELECT tags FROM notes_tags WHERE title= $1;"""
+            query = """SELECT tags FROM notes WHERE title= $1;"""
             rows = await self.db.fetch(query, title)
             return rows
         elif title is None:
-            query = """SELECT tags FROM notes_tags WHERE note_id= $1;"""
+            query = """SELECT tags FROM notes WHERE note_id= $1;"""
             rows = await self.db.fetch(query, note_id)
             return rows
 ##    
@@ -219,7 +249,7 @@ class clipboard(commands.Cog):
     @note.command()
     async def get_titleTag(self, ctx, note_id):
         user_id = str(ctx.author.id)
-        query = """SELECT title, tags FROM notes_tags WHERE note_id=$1;"""
+        query = """SELECT title, tags FROM notes WHERE note_id=$1;"""
         rows = await self.db.fetchrow(query, note_id)
         return rows
 ##
@@ -241,9 +271,10 @@ class clipboard(commands.Cog):
     
 #➥ del_note
     @note.command()
+    @commands.is_owner()
     async def del_note(self, ctx, title):
         contentRows = await self.get_content(ctx, title)
-        #➥ Sending Note Options
+    #➥ Sending Note Options
         if len(contentRows) > 0:
             
             noteidRows = await self.get_noteId(ctx, title)
@@ -269,58 +300,32 @@ class clipboard(commands.Cog):
                 embed.add_field(name = "Option: " + option + "\n__" + tag + "__", value = formatContent(noteContent))
         
         #➥ Allow to wait for both a message AND a reaction
-            yn = await ctx.send(embed = embed) 
-            cancel = '<:cancel:851278899270909993>'
-            await yn.add_reaction(cancel)
-            #➥ Individual Checks
-            def checkEmoji(reaction, user):
-                return str(reaction.emoji) in cancel and user != self.bot.user and user == ctx.author
-            
-            def checkMsg(msg):
-                return msg.author == ctx.author and ctx.channel == msg.channel
-            ##
-            # asyncio magic?
-            done, pending = await asyncio.wait([self.bot.wait_for('message', check = checkMsg), 
-                                                self.bot.wait_for('reaction_add', check = checkEmoji)], 
-                                                timeout = 40,
-                                                return_when = asyncio.FIRST_COMPLETED)
-            
-            try:
-                stuff = done.pop().result()
+            yn = await ctx.send(embed = embed)
+            stuff = await self.reactRespond(ctx, yn, 40, ['<:cancel:851278899270909993>'])
+            try: 
+                selOption = int(stuff.content)
+                optionIndex = selOption - 1
                 try: 
-                    selOption = int(stuff.content)
-                    optionIndex = selOption - 1
-                    try: 
-                        selNote_id = note_id[optionIndex]
-                        await self.del_noteId(ctx, selNote_id)
-                    except IndexError:
-                        await ctx.send("Choose a number from the options presented!", delete_after = 3)
-                    await yn.clear_reactions()
-                except ValueError: 
-                    await ctx.send("Please enter a number 1-9!", delete_after = 3) 
-                    await yn.clear_reactions()
-                
-                except:
-                    if stuff[0].emoji.name == 'cancel':
-                        await ctx.channel.purge(limit = 1)
-                        await ctx.send("Canceled", delete_after = 2)
-                
-            except KeyError:
-                await ctx.send("You did not respond in time!")
+                    selNote_id = note_id[optionIndex]
+                    await self.del_noteId(ctx, selNote_id)
+                except IndexError:
+                    await ctx.send("Choose a number from the options presented!", delete_after = 3)
                 await yn.clear_reactions()
-            except Exception as e: 
-                print(e)                
+            except ValueError: 
+                await ctx.send("Please enter a number 1-9!", delete_after = 3) 
+                await yn.clear_reactions()
+            
+            except:
+                if stuff[0].emoji.name == 'cancel':
+                    await ctx.channel.purge(limit = 1)
+                    await ctx.send("Canceled", delete_after = 2)
                 
-            for future in done:
-                print("more errors?")
-                future.exception()
-            for future in pending:
-                future.cancel()
         ##            
         elif len(contentRows) == 0:
             await ctx.send("You do not own any note with this name!")
+    ##
 ##
-##
+
 #➥ Interactive Delete by Title
     @note.command(aliases=["remove"])
     async def delete(self, ctx, *, inp : str = None):
@@ -335,8 +340,10 @@ class clipboard(commands.Cog):
 #➥ del_note by noteId
     @note.command()
     async def del_noteId(self, ctx, note_id):
+        connection = await self.db.acquire()
         query = """DELETE FROM notes WHERE note_id= $1"""
         await self.db.execute(query, note_id)
+        await self.db.release(connection)
         await ctx.send("Note successfully deleted!")
 ##
 
