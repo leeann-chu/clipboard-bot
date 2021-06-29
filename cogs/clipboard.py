@@ -1,10 +1,24 @@
 import discord
 import asyncio
 import re
+from itertools import cycle
 from discord.ext import commands, menus
-from cogs.menusUtil import Confirm, ViewNotes
+from cogs.menusUtil import *
 from datetime import datetime
 from main import randomHexGen, db
+
+class MiniNotes:
+    def __init__(self, option, title, tag):
+        self.option = option
+        self.title = title
+        self.tag = tag
+        
+class Notes:
+    def __init__(self, option, title, tag, content):
+        self.option = option
+        self.title = title
+        self.tag = tag
+        self.content = content
 
 #➥ format content
 def formatContent(data):
@@ -34,19 +48,19 @@ class clipboard(commands.Cog):
 #➥ view_notes
     @note.command(aliases=["b", "browse", "v"])
     async def view(self, ctx):
-        # Get note_id by ctx.author  
-        noteidRows = await self.get_noteId(ctx)  
-        note_id = [note_id for (note_id,) in noteidRows]
+        tagRows = await self.get_tag(ctx)
+        tags = [tags for (tags,) in tagRows]
+        titleRows = await self.get_title(ctx)
+        titles = [title for (title,) in titleRows]
 
         # Option List as Emojis
-        optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
+        optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]   
         
-        tagList = await self.get_tag(ctx)
-        titleList = await self.get_title(ctx)
+        notesList = []
+        for title, tag, option in zip(titles, tags, cycle(optionList)):
+            notesList.append(MiniNotes(option, title, tag))
         
-        #Somehow should use multiple pages with heading list to be able to page throught collection of notes
-        
-        menu = menus.MenuPages(ViewNotes(titleList, optionList, tagList), clear_reactions_after = True)
+        menu = menus.MenuPages(ViewNotes(notesList), timeout = 120, clear_reactions_after = True)
         await menu.start(ctx)
 ##
 
@@ -56,13 +70,8 @@ class clipboard(commands.Cog):
     async def create_note(self, ctx, title, content, tags, timestamp):
         connection = await self.db.acquire()
         async with connection.transaction():
-            query = """ WITH notes_insert AS (
-                        INSERT INTO notes (title, tags, content, user_id, date_created, date_modified)
-                        VALUES ($1, $4, $2, $3, $5, $5)
-                        RETURNING note_id
-                        )
-                        INSERT INTO notes_tags (note_id, title, tags)
-                        VALUES ((SELECT note_id FROM notes_insert), $1, $4);
+            query = """ INSERT INTO notes (title, tags, content, user_id, date_created, date_modified)
+                        VALUES ($1, $4, $2, $3, $5, $5);
                     """   
             user_id = str(ctx.author.id)
             await self.db.execute(query, title, content, user_id, tags, timestamp)
@@ -182,6 +191,7 @@ class clipboard(commands.Cog):
                                             return_when = asyncio.FIRST_COMPLETED)
         try:
             stuff = done.pop().result()
+            await msg.clear_reactions()
             return stuff
         except KeyError:
                 await ctx.send("You did not respond in time!")
@@ -285,40 +295,49 @@ class clipboard(commands.Cog):
             
             if len(contentRows) > 1:
                 await ctx.send("You have multiple notes with this name! \nWhich would you like to delete?")
-                         
-            embed = discord.Embed(
-                title = f"Selected Note(s) to be Deleted: \n{title}",
-                description = "Enter a number to delete selected note",
-                color = randomHexGen()
-            )
-            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/519350010706395157/850574601623961640/full_cross.png")
-            embed.set_footer(text="React with ❌ to cancel option selection")
             
             content = [content for (content,) in contentRows]
             optionList = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
-            for noteContent, option, tag in zip(content, optionList, tags):
-                embed.add_field(name = "Option: " + option + "\n__" + tag + "__", value = formatContent(noteContent))
-        
-        #➥ Allow to wait for both a message AND a reaction
-            yn = await ctx.send(embed = embed)
-            stuff = await self.reactRespond(ctx, yn, 40, ['<:cancel:851278899270909993>'])
-            try: 
-                selOption = int(stuff.content)
-                optionIndex = selOption - 1
-                try: 
-                    selNote_id = note_id[optionIndex]
-                    await self.del_noteId(ctx, selNote_id)
-                except IndexError:
-                    await ctx.send("Choose a number from the options presented!", delete_after = 3)
-                await yn.clear_reactions()
-            except ValueError: 
-                await ctx.send("Please enter a number 1-9!", delete_after = 3) 
-                await yn.clear_reactions()
             
-            except:
-                if stuff[0].emoji.name == 'cancel':
-                    await ctx.channel.purge(limit = 1)
-                    await ctx.send("Canceled", delete_after = 2)
+            delNotes = []
+            for noteContent, option, tag in zip(content, cycle(optionList), tags):
+                delNotes.append(Notes(option, title, tag, formatContent(noteContent)))
+                
+            totalNotes = len(delNotes)                    
+            if totalNotes <= 2:
+                per_page = 2
+            elif totalNotes > 2:
+                per_page = totalNotes - 1
+            else:
+                per_page = 9
+            pages = await DeleteNotes(EmbedFormatSource(delNotes, per_page)).start(ctx)
+
+            
+        #➥ Allow to wait for both a message AND a reaction   
+            # yn = await DeleteNotes(delNotes)
+            # if yn:
+            #     print("cancel")
+            # else:
+            #     print("no")
+            
+            # stuff = await self.reactRespond(ctx, yn, 60, ['<:cancel:851278899270909993>'])
+            # try: 
+            #     selOption = int(stuff.content)
+            #     optionIndex = selOption - 1
+            #     try: 
+            #         selNote_id = note_id[optionIndex]
+            #         await self.del_noteId(ctx, selNote_id)
+            #     except IndexError:
+            #         await ctx.send("Choose a number from the options presented!", delete_after = 3)
+            #     await yn.clear_reactions()
+            # except ValueError: 
+            #     await ctx.send("Please enter a number 1-9!", delete_after = 3) 
+            #     await yn.clear_reactions()
+            
+            # except:
+            #     if stuff[0].emoji.name == 'cancel':
+            #         await ctx.channel.purge(limit = 1)
+            #         await ctx.send("Canceled", delete_after = 2)
                 
         ##            
         elif len(contentRows) == 0:
@@ -345,22 +364,6 @@ class clipboard(commands.Cog):
         await self.db.execute(query, note_id)
         await self.db.release(connection)
         await ctx.send("Note successfully deleted!")
-##
-
-#➥ view notes
-    # @note.command(aliases=["b", "browse", "v"])
-    # async def view(self, ctx):
-    #     # Get note_id by ctx.author   
-    #     noteidRows = await self.get_noteId(ctx)  
-    #     note_id = [note_id for (note_id,) in noteidRows]
-        
-    #     for _id in note_id:
-    #         currentInfo = await self.get_titleTag(ctx, _id)
-    #         title = currentInfo['title']
-    #         tag = currentInfo['tags']
-    #         embed.add_field(name = title, value = tag, inline = False)
-            
-    #     await ctx.send(embed = embed)            
 ##
 
 def setup(bot):

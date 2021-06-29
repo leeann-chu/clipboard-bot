@@ -1,7 +1,7 @@
 import discord
 import json
 from discord.ext import commands
-from cogs.menusUtil import Confirm
+from cogs.menusUtil import *
 from main import randomHexGen
 import asyncio
 
@@ -36,6 +36,7 @@ class utilities(commands.Cog):
             with open("prefixes.json", 'w') as f:
                 json.dump(prefixes, f, indent = 4)
             await ctx.send(f"Successfully changed **standard prefix** to: `{newPrefix}`")
+            
         except:
             if stuff[0].emoji.name == 'cancel':
                     await ctx.channel.purge(limit = 1)
@@ -51,9 +52,10 @@ class utilities(commands.Cog):
     #➥ Clear Command and Error
     @commands.command(aliases=["purge"])
     @commands.has_permissions(manage_guild=True)
-    async def clear(self, ctx, amount = 10, override = None):                    
+    async def clear(self, ctx, amount = 10, override = None):          
         if override is None:
-            confirm = await Confirm(f'Clear {amount} messages?').prompt(ctx)
+            msg = await ctx.send(f"Clear {amount} messages?")
+            confirm = await Confirm(msg).prompt(ctx)
             if confirm:
                 await ctx.channel.purge(limit = amount + 1)
                 await ctx.send(f"Cleared {amount} messages!", delete_after = 3)
