@@ -4,7 +4,7 @@ import json
 import asyncio
 import asyncpg
 from API_KEYS import *
-from discord.ext import commands
+from discord.ext import commands, menus
 from datetime import datetime
 
 description = "I can store long term, short term, and immediate goals!"
@@ -190,7 +190,7 @@ async def reload(ctx, *, extension: str):
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
 
-cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities"]
+cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "reminder"]
 for cog in cogsList:
     bot.load_extension(f'cogs.{cog}')
 
