@@ -315,6 +315,7 @@ class clipboard(commands.Cog):
             
         #➥ Allow to wait for both a message AND a reaction   
             # yn = await DeleteNotes(delNotes)
+            # # object DeleteNotes cannot be used in an 'await' expression
             # if yn:
             #     print("cancel")
             # else:
