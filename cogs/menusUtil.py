@@ -46,12 +46,13 @@ class ViewNotes(menus.ListPageSource):
     async def format_page(self, menu, entries): 
         embed = discord.Embed(
             title = "Your Saved Notes",
-            description = "Enter a number to view selected note",
+            description = "Enter a number to view your selected note",
             color = randomHexGen()
         )
         embed.set_footer(text = f'\nPage {menu.current_page + 1}/{self.get_max_pages()}' + " | React with ❌ to cancel option selection")
         for entry in entries:
             embed.add_field(name = entry.option + " " + entry.title, value = entry.tag)        
+        
         return embed
 ##
         

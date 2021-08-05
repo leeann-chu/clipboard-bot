@@ -190,7 +190,7 @@ async def reload(ctx, *, extension: str):
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
 
-cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "reminder"]
+cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "reminder", "voting"]
 for cog in cogsList:
     bot.load_extension(f'cogs.{cog}')
 

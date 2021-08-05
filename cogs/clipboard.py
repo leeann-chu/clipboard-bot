@@ -46,7 +46,7 @@ class clipboard(commands.Cog):
 ##
 
 #➥ view_notes
-    @note.command(aliases=["b", "browse", "v"])
+    @note.command(aliases=["b", "browse", "v", "list"])
     async def view(self, ctx):
         tagRows = await self.get_tag(ctx)
         tags = [tags for (tags,) in tagRows]
@@ -62,6 +62,20 @@ class clipboard(commands.Cog):
         
         menu = menus.MenuPages(ViewNotes(notesList), timeout = 120, clear_reactions_after = True)
         await menu.start(ctx)
+        
+        
+        #'menu' object has no attribute 'add_reaction'
+        #no idea how to get around this problem without making up my own menu system
+        
+        # stuff = await self.reactRespond(ctx, menuEmbed, 50, ['<:cancel:851278899270909993>'])
+        
+        # try:
+        #     selected = stuff.content
+        #     ctx.send(selected)
+        # except:
+        #     if stuff[0].emoji.name == 'cancel':
+        #             await ctx.channel.purge(limit = 1)
+        #             await ctx.send("Canceled", delete_after = 2)
 ##
 
 #➥ create_note
@@ -92,7 +106,7 @@ class clipboard(commands.Cog):
                 return     
             ##
         else:
-            await ctx.send("What would you like the title of your note to be?" + 
+            await ctx.send("What would you like the **Title** of your note to be?" + 
                            f"\nYou can type `{ctx.prefix}cancel` at any point to cancel the note making process.")
             title = await self.waitCheck(ctx, 50)
             if title is None: return
@@ -107,28 +121,35 @@ class clipboard(commands.Cog):
         await self.make_embed(ctx, title, tag, msg)
 ##
 #➥ Make Note Embed
-    @note.command()
-    async def make_embed(self, ctx, title, tag, msg):
+    @commands.command()
+    @commands.is_owner()
+    async def make_embed(self, ctx, title, tag, msg, category = True, reactions = True):
         timestamp = datetime.utcnow()
         embed = discord.Embed(
             title = title,
             color = randomHexGen(), # Make this an option to set default to random
             timestamp = timestamp
         )
-        embed.add_field(name="Category: " + tag, value = msg)
+        if category: 
+            embed.add_field(name="Category: " + tag, value = msg)
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        embed.set_footer(text="React with ❌ or ✅")
-        await ctx.send("Does this look about right to you?")
-        yn = await ctx.send(embed = embed)
-        confirm = await Confirm(yn).prompt(ctx)
-        if confirm:
-            await self.create_note(ctx, title, msg, tag, timestamp)      
+        
+        if reactions:
+            embed.set_footer(text="React with ❌ or ✅")
+            await ctx.send("Does this look about right to you?")
+            yn = await ctx.send(embed = embed)
+            confirm = await Confirm(yn).prompt(ctx)
+            if confirm:
+                await self.create_note(ctx, title, msg, tag, timestamp)      
+            else:
+                await ctx.send("Note Canceled", delete_after = 2)
         else:
-            await ctx.send("Note Canceled", delete_after = 2)
+            return embed
 ##
 
 #➥ waitfor command
-    @note.command()
+    @commands.command()
+    @commands.is_owner()
     async def waitCheck(self, ctx, timeout):
         def check(msg):
             return msg.author == ctx.author and ctx.channel == msg.channel
@@ -145,7 +166,8 @@ class clipboard(commands.Cog):
             return await ctx.send("You took too long, try again!", delete_after = 5)          
 ##
 #➥ reaction command
-    @note.command()
+    @commands.command()
+    @commands.is_owner()
     async def reactCheck(self, ctx, msg, timeout, reactions):
         for emoji in reactions:
             await msg.add_reaction(emoji)
@@ -166,13 +188,12 @@ class clipboard(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send("You did not respond in time!")
             await msg.clear_reactions()
-                
 ##        
 
 #➥ reactRespond
     @commands.command()
     @commands.is_owner()
-    async def reactRespond(self, ctx, msg, timeout, reactions):
+    async def reactRespond(self, ctx, msg, timeout, reactions, multiple = False):
         for emoji in reactions:
             await msg.add_reaction(emoji)
         
@@ -191,8 +212,15 @@ class clipboard(commands.Cog):
                                             return_when = asyncio.FIRST_COMPLETED)
         try:
             stuff = done.pop().result()
-            await msg.clear_reactions()
-            return stuff
+            print(stuff)
+            print(stuff[0].emoji)
+            print(stuff[1].id)
+            if multiple:
+                await msg.remove_reaction(emoji = stuff[0].emoji, member = ctx.guild.get_member(stuff[1].id))
+                #return stuff[0].emoji
+            else:
+                await msg.clear_reactions()
+                return stuff
         except KeyError:
                 await ctx.send("You did not respond in time!")
                 await msg.clear_reactions()

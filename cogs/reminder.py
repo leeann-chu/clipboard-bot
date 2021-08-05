@@ -492,7 +492,7 @@ class reminder(commands.Cog):
                                                              created=ctx.message.created_at,
                                                              message_id=ctx.message.id)
         delta = human_timedelta(when.dt, source=timer.created_at)
-        await ctx.send(f"{ctx.author.mention}, I'll remind you in {delta}: {when.arg}")
+        await ctx.send(f"{ctx.author}, I'll remind you in {delta}: {when.arg}")
 
     @reminder.command(name='list', ignore_extra=False)
     async def reminder_list(self, ctx):
@@ -590,11 +590,13 @@ class reminder(commands.Cog):
         
         if message_id:
             embed = discord.Embed (
-                description = f"<@{author_id}>, I now remind you: {message} \n\n[Link](https://discord.com/channels/{guild_id}/{channel.id}/{message_id}) to original reminder",
+                title = "You asked me to remind you...",
+                description = f"{message} \n\n[Link](https://discord.com/channels/{guild_id}/{channel.id}/{message_id}) to original reminder",
                 color = randomHexGen()
             )
             
         try:
+            await channel.send(f" Hey <@{author_id}>!")
             await channel.send(embed = embed)
         except discord.HTTPException:
             return
