@@ -193,7 +193,7 @@ class clipboard(commands.Cog):
 #➥ reactRespond
     @commands.command()
     @commands.is_owner()
-    async def reactRespond(self, ctx, msg, timeout, reactions, multiple = False):
+    async def reactRespond(self, ctx, msg, timeout, reactions):
         for emoji in reactions:
             await msg.add_reaction(emoji)
         
@@ -212,15 +212,8 @@ class clipboard(commands.Cog):
                                             return_when = asyncio.FIRST_COMPLETED)
         try:
             stuff = done.pop().result()
-            print(stuff)
-            print(stuff[0].emoji)
-            print(stuff[1].id)
-            if multiple:
-                await msg.remove_reaction(emoji = stuff[0].emoji, member = ctx.guild.get_member(stuff[1].id))
-                #return stuff[0].emoji
-            else:
-                await msg.clear_reactions()
-                return stuff
+            await msg.clear_reactions()
+            return stuff
         except KeyError:
                 await ctx.send("You did not respond in time!")
                 await msg.clear_reactions()

@@ -1,8 +1,10 @@
 import discord
+import asyncio
 from main import db, randomHexGen
 from datetime import datetime
 from discord.ext import commands
 from collections import defaultdict
+import time
 import random
 import re
 
@@ -33,6 +35,25 @@ def humantimeTranslator(s):
         return 0
 ##
 
+#➥ VotingDictionary
+class VotingDictionary:
+    def __init__(self):
+        self.votes = {}
+    def addVote(self, member, reaction):
+        self.votes[member] = reaction
+        
+    def hasVoted(self, member):
+        print(member in self.votes)
+    def getVote(self, member):
+        print(self.votes.get(member))
+        
+    def removeVote(self, member):
+        del self.votes[member]
+        
+    def displayResults(self):
+        print(self.votes) 
+##
+
 #➥ formatContent
 def formatContent(options, emojis):
     pairedList = []
@@ -45,7 +66,7 @@ def formatContent(options, emojis):
     return "\n".join(pairedList)
 ##
 
-#➥ formatContent
+#➥ remove spaces
 def makeList_removeSpaces(string):
     spaceless = [s for s in string if s != ' ']
     spaceString = "".join(spaceless)
@@ -75,10 +96,12 @@ class voting(commands.Cog):
     async def help(self, ctx):
         await ctx.send("""
                        """)
+    ##
     
     #➥ create poll
     @vote.command(aliases = ["create"])
     async def make(self, ctx, *, title = None):
+        await ctx.trigger_typing() 
         pollAuthor = ctx.author
         
     #➥ Setting up the variables for the embed
@@ -102,24 +125,52 @@ class voting(commands.Cog):
             timestamp = timestamp
         )
         embed.add_field(name = "\u200b", value = "\u200b", inline = False)
-        embed.add_field(name = "Edit the Poll \n(creator only)", value = "➥ :pencil2:")
-        embed.add_field(name = "Clear your vote \n& Cast again", value = "➥ :repeat:")
+        embed.add_field(name = "Edit the Poll", value = "➥ :pencil2:")
+        embed.add_field(name = "Clear your vote \n& Cast Again", value = "➥ :repeat:")
         embed.add_field(name = "Change the timelimit \nDefault is 3 days", value = "➥ :alarm_clock:")
+        embed.add_field(name = "Check your vote", value = "➥ :grey_question:")
         embed.add_field(name = "Close the Poll \n& Show results", value = "➥ <:cancel:851278899270909993>")
         
         tips = ["Does not work with custom emojis.",
         "You can create polls using ~poll create <Title> to speed things up.",
         "You can set your cooldown using human words, like 1 week 2 days 3 hours.",
-        "This embed color has been randomly generated."]
-        embed.set_footer(text = random.choice(tips), icon_url=ctx.author.avatar_url)
-    ##    
-        pollEmbed = await ctx.send(embed = embed)
+        "This embed color has been randomly generated.",
+        "Only the poll creator can edit or close the poll",
+        "The default time limit for a poll is 3 days"]
         
+        # Get my current profile pic
+        member = ctx.guild.get_member(364536918362554368)
+        
+        embed.set_footer(text = random.choice(tips), icon_url = member.avatar_url)
+    ##    
+        pollEmbed = await ctx.send(embed = embed)    
+        #➥Timer Things
+        start = time.time()
+        wait_time = 10
+        time_left = wait_time - (time.time() - start)
+        ##
         emojiList = makeList_removeSpaces(emojis)
         
-        #Edit Poll
-        reactedEmoji = await self.bot.get_command('reactRespond')(ctx, pollEmbed, 180, emojiList, multiple = True)
-     
+        for emoji in emojiList:
+            await pollEmbed.add_reaction(emoji)
+        finalList = await self.add_settings(pollEmbed, emojiList)
+        
+        def checkEmoji(reaction, user):
+            return user != self.bot.user and str(reaction.emoji) in finalList
+
+        while time_left > 0:
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout = time_left, check = checkEmoji)            
+                print(reaction, user)
+                await pollEmbed.remove_reaction(reaction, user)                    
+            except asyncio.TimeoutError:
+                await pollEmbed.clear_reactions()
+                await ctx.send("This Poll has closed!")
+                
+            time_left = wait_time - (time.time() - start)
+        
+        print("Continued from while loop")
+         
         # if stuff[0].emoji.name == 'cancel':
         #         await ctx.channel.purge(limit = 1)
         #         await ctx.send("Canceled", delete_after = 2)
@@ -130,8 +181,6 @@ class voting(commands.Cog):
         #         pollEmbed.clear_reactions()
         #         stuff = await self.bot.get_command('reactRespond')(ctx, pollEmbed, timeout, emojiList)
                 
-        
-        
     @vote.command(aliases=["append"])
     async def add(self, ctx, embed):
         embed.edit(description = embed.description + "Fleas")
@@ -140,6 +189,18 @@ class voting(commands.Cog):
     @commands.command()
     async def timeConvert(self, ctx, *, inp: str):
         await ctx.send(humantimeTranslator(inp))
+    ##  
+    
+    #➥ addSettings
+    @commands.command()
+    @commands.is_owner()
+    async def add_settings(self, msg, emojiList):
+        settings = ['\U0000270f', '\U0001f501', '\U000023f0', '\U00002754', '<:cancel:851278899270909993>']
+        
+        for emoji in settings:
+            await msg.add_reaction(emoji)
+            
+        return emojiList + settings
     ##
         
 def setup(bot):
