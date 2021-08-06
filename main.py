@@ -27,8 +27,11 @@ def get_prefix(bot, message):
 
 loop = asyncio.get_event_loop()
 db = loop.run_until_complete(asyncpg.create_pool(**credentials))
+
+intents = discord.Intents.default()  # All but the two privileged ones
+intents.members = True  # Subscribe to the Members intent
 bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
-    type=discord.ActivityType.listening, name="you forget your milk"), db=db)
+    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
 
 # ➥ on ready command
 @bot.event
@@ -159,7 +162,7 @@ async def info(ctx):
     await ctx.trigger_typing()
 
     # Get my current profile pic
-    member = await ctx.guild.fetch_member("364536918362554368")
+    member = ctx.guild.get_member(364536918362554368)
     pfp = member.avatar_url
 
     # Get server prefix
