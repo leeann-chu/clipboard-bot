@@ -97,7 +97,7 @@ async def chelp(ctx, argument=None):
         embed = discord.Embed(
             description=f"Help menu for all your clipboard commands\nHover over the command to see more info or type `{prefix}chelp [command]` for more help",
             color=randomHexGen(),
-            timestamp=datetime.utcnow()
+            timestamp=discord.utils.utcnow()
         )
 
         embed.set_author(
@@ -139,13 +139,13 @@ async def chelp(ctx, argument=None):
 ##
 
 # ➥ Close Bot
-@bot.command()
+@bot.command(aliases = ["close"])
 async def quit(ctx):
     if await bot.is_owner(ctx.author):
         await bot.change_presence(status=discord.Status.offline)
         await ctx.send("Bot is Closed!")
-        await bot.logout()
         await db.close()
+        await bot.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
 ##
@@ -163,7 +163,7 @@ async def info(ctx):
 
     # Get my current profile pic
     member = ctx.guild.get_member(364536918362554368)
-    pfp = member.avatar_url
+    pfp = member.avatar.url
 
     # Get server prefix
     prefix = ctx.prefix
@@ -193,7 +193,7 @@ async def reload(ctx, *, extension: str):
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
 
-cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "reminder", "voting"]
+cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "voting"]
 for cog in cogsList:
     bot.load_extension(f'cogs.{cog}')
 

@@ -1,10 +1,10 @@
 import discord
 import asyncio
+import time
 from main import db, randomHexGen
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord.ext import commands
 from collections import defaultdict
-import time
 import random
 import re
 
@@ -43,15 +43,50 @@ class VotingDictionary:
         self.votes[member] = reaction
         
     def hasVoted(self, member):
-        print(member in self.votes)
+        return member in self.votes
+    
     def getVote(self, member):
-        print(self.votes.get(member))
+        return self.votes.get(member)
         
     def removeVote(self, member):
         del self.votes[member]
         
     def displayResults(self):
-        print(self.votes) 
+        return self.votes 
+##
+
+#➥ --To Remove: Count Class with Buttons 
+class Count(discord.ui.View):
+    @discord.ui.button(label = '0', style=discord.ButtonStyle.red)
+    async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = int(button.label) if button.label else 0
+        if number + 1 >= 5:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+        button.label = str(number + 1)
+
+        # Make sure to update the message with our updated selves
+        await interaction.response.edit_message(view=self)
+##
+
+#➥ Custom Button for Polls
+class PollButton(discord.ui.Button['VoteReaction']):
+    def __init__(self, emoji):
+        super().__init__(style=discord.ButtonStyle.gray, emoji = emoji)
+        self.emoji = emoji
+    
+    async def callback(self, interaction: discord.Interaction):
+        assert self.view is not None
+        view: PollButton = self.view
+        await interaction.response.send_message("You vote for..." + str(self.emoji), view=self, ephemeral=True)
+##
+
+#➥ Poll View Class
+class Poll(discord.ui.View):    
+    def __init__(self, emojiList):
+        super().__init__()
+        for emoji in emojiList:
+            self.add_item(PollButton(emoji))
 ##
 
 #➥ formatContent
@@ -78,7 +113,6 @@ def makeList_removeSpaces(string):
 class voting(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = db
         
     # Events
     @commands.Cog.listener()
@@ -98,8 +132,8 @@ class voting(commands.Cog):
                        """)
     ##
     
-    #➥ create poll
-    @vote.command(aliases = ["create"])
+#➥ ------------   Create Poll   ------------
+    @vote.command(aliases = ["create", "start", "new"])
     async def make(self, ctx, *, title = None):
         await ctx.trigger_typing() 
         pollAuthor = ctx.author
@@ -113,11 +147,17 @@ class voting(commands.Cog):
         msg = await self.bot.get_command('waitCheck')(ctx, 200)
         await ctx.send("Enter the emojis you wish to use for your poll seperated by new lines")
         emojis = await self.bot.get_command('waitCheck')(ctx, 300)
+        emojiList = makeList_removeSpaces(emojis)
+        if len(emojiList) > 25:
+            return await ctx.send("Polls may only have up to 25 options. Try again.")
     ##
-        pairedList = formatContent(msg, emojis)
+        
+        settings = ['\U0000270f', '\U0001f501', '\U000023f0', '\U00002754', '<:cancel:851278899270909993>']
+        finalList = emojiList + settings
         
     #➥ Forming the embed
-        timestamp = datetime.utcnow()
+        pairedList = formatContent(msg, emojis)
+        timestamp = discord.utils.utcnow()
         embed = discord.Embed(
             title = title,
             description = "React with the corresponding emote to cast a vote. \nVote only once.\n\n" + pairedList,
@@ -130,57 +170,52 @@ class voting(commands.Cog):
         embed.add_field(name = "Change the timelimit \nDefault is 3 days", value = "➥ :alarm_clock:")
         embed.add_field(name = "Check your vote", value = "➥ :grey_question:")
         embed.add_field(name = "Close the Poll \n& Show results", value = "➥ <:cancel:851278899270909993>")
-        
+        #➥ Footer
         tips = ["Does not work with custom emojis.",
         "You can create polls using ~poll create <Title> to speed things up.",
         "You can set your cooldown using human words, like 1 week 2 days 3 hours.",
         "This embed color has been randomly generated.",
         "Only the poll creator can edit or close the poll",
-        "The default time limit for a poll is 3 days"]
-        
+        "The default time limit for a poll is 3 days",
+        "If your reaction isn't automatically removed try again",
+        "The poll can only have 25 options"]
         # Get my current profile pic
         member = ctx.guild.get_member(364536918362554368)
-        
-        embed.set_footer(text = random.choice(tips), icon_url = member.avatar_url)
-    ##    
-        pollEmbed = await ctx.send(embed = embed)    
-        #➥Timer Things
-        start = time.time()
-        wait_time = 10
-        time_left = wait_time - (time.time() - start)
+        embed.set_footer(text = random.choice(tips), icon_url = member.avatar.url)
         ##
-        emojiList = makeList_removeSpaces(emojis)
+    ##  
+        newPoll = VotingDictionary()  
+        try:
+            pollEmbed = await ctx.send(embed = embed, view = Poll(finalList)) 
+        except Exception as e:
+            print(e)
+            return await ctx.send("One of your emojis is invalid! Try again.")
         
-        for emoji in emojiList:
-            await pollEmbed.add_reaction(emoji)
-        finalList = await self.add_settings(pollEmbed, emojiList)
-        
-        def checkEmoji(reaction, user):
-            return user != self.bot.user and str(reaction.emoji) in finalList
+    #➥ Timer Things - wait_time 10 seconds
+        start = datetime.utcnow()
+        wait_time = 10
+        time_left = wait_time - (datetime.utcnow() - start).seconds
+    ##
 
-        while time_left > 0:
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout = time_left, check = checkEmoji)            
-                print(reaction, user)
-                await pollEmbed.remove_reaction(reaction, user)                    
-            except asyncio.TimeoutError:
-                await pollEmbed.clear_reactions()
-                await ctx.send("This Poll has closed!")
+        while time_left > 0: 
+            time.sleep(1)
+            # try:
+            #     reaction, user = await self.bot.wait_for('reaction_add', timeout = time_left, check = checkEmoji)            
+            #     person = user.id
+            #     vote = str(reaction)
+            #➥ Record vote in dictionary
+                #newPoll.addVote(member.id, reaction)
+            ##                         
+            # except asyncio.TimeoutError:
+            #     await view.clear_items()
+            #     await ctx.send("This Poll has closed!")
                 
-            time_left = wait_time - (time.time() - start)
+            time_left = wait_time - (datetime.utcnow() - start).seconds
         
-        print("Continued from while loop")
-         
-        # if stuff[0].emoji.name == 'cancel':
-        #         await ctx.channel.purge(limit = 1)
-        #         await ctx.send("Canceled", delete_after = 2)
-        # elif emoji == 'alarm_clock':
-        #         await ctx.send("How long would you like your poll to be open for? \n(Format: `<number><length>` Examples: `1d`, `5h`, `30m`)")
-        #         humanTime = await self.bot.get_command('waitCheck')(ctx, 100)
-        #         timeout = humantimeTranslator(humanTime)
-        #         pollEmbed.clear_reactions()
-        #         stuff = await self.bot.get_command('reactRespond')(ctx, pollEmbed, timeout, emojiList)
-                
+        print(newPoll.displayResults())
+        await ctx.send("This Poll has closed!")
+##            
+    
     @vote.command(aliases=["append"])
     async def add(self, ctx, embed):
         embed.edit(description = embed.description + "Fleas")
@@ -190,18 +225,6 @@ class voting(commands.Cog):
     async def timeConvert(self, ctx, *, inp: str):
         await ctx.send(humantimeTranslator(inp))
     ##  
-    
-    #➥ addSettings
-    @commands.command()
-    @commands.is_owner()
-    async def add_settings(self, msg, emojiList):
-        settings = ['\U0000270f', '\U0001f501', '\U000023f0', '\U00002754', '<:cancel:851278899270909993>']
-        
-        for emoji in settings:
-            await msg.add_reaction(emoji)
-            
-        return emojiList + settings
-    ##
-        
+
 def setup(bot):
     bot.add_cog(voting(bot))

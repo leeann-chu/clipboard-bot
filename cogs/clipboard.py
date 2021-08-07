@@ -124,7 +124,7 @@ class clipboard(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def make_embed(self, ctx, title, tag, msg, category = True, reactions = True):
-        timestamp = datetime.utcnow()
+        timestamp = discord.utils.utcnow()
         embed = discord.Embed(
             title = title,
             color = randomHexGen(), # Make this an option to set default to random
@@ -140,7 +140,7 @@ class clipboard(commands.Cog):
             yn = await ctx.send(embed = embed)
             confirm = await Confirm(yn).prompt(ctx)
             if confirm:
-                await self.create_note(ctx, title, msg, tag, timestamp)      
+                await self.create_note(ctx, title, msg, tag, datetime.utcnow())      
             else:
                 await ctx.send("Note Canceled", delete_after = 2)
         else:
