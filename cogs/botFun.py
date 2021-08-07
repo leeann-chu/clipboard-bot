@@ -30,9 +30,8 @@ class extraCommands(commands.Cog):
     async def avatar(self, ctx, *, member : discord.Member=None):
         if not member:
             member = ctx.message.author
-        pfp = member.avatar_url
         embed = discord.Embed()
-        embed.set_image(url=pfp)
+        embed.set_image(url=member.avatar.url)
         await ctx.send(embed=embed)
 
     @commands.command()
