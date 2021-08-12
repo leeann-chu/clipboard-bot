@@ -48,8 +48,6 @@ class PollButton(discord.ui.Button['PollButton']):
 
     async def callback(self, interaction: discord.Interaction):
         newPoll = self.dictionary
-        numVotes = len(newPoll)
-
         if self.emoji.name == 'settings':
             #➥ Content
             if self.ctx.author.id == interaction.user.id: 
@@ -63,27 +61,26 @@ class PollButton(discord.ui.Button['PollButton']):
                 description = content,
                 color = randomHexGen()
             )
-            settingsEmbed.add_field(name = "Votes Recorded", value = numVotes)
             settingsEmbed.add_field(name = "Poll Closes on", value="May 8th")
-            settingsEmbed.add_field(name = "Poll is", value = ":unlock:")
             ##
-            await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, newPoll, self.pollEmbed, settingsEmbed), ephemeral = True)
+            await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, newPoll, self.pollEmbed, settingsEmbed, self.view.message), ephemeral = True)
             return
         
         if interaction.user.id not in newPoll:
             newPoll[interaction.user.id] = self.emoji.name
-            await interaction.response.send_message("Your vote has been recorded as " + str(self.emoji), ephemeral = True)
+            numVotes = len(newPoll)
+            self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = numVotes)
+            await interaction.response.edit_message(embed = self.pollEmbed, view = self.view)
             return
 ##
 
 #➥ Poll View Class
 class Poll(discord.ui.View):    
-    def __init__(self, ctx, buttonList):
+    def __init__(self, ctx, pollEmojiList, dictionary, embed):
         super().__init__(timeout = 15)
         self.ctx = ctx
-        
-        for button in buttonList:
-            self.add_item(button)
+        for emoji in pollEmojiList:
+            self.add_item(PollButton(ctx, emoji, dictionary, embed))
     
     async def on_timeout(self):
         await self.ctx.send("This poll has closed!")
@@ -92,28 +89,17 @@ class Poll(discord.ui.View):
 
 #➥ Custom Button for Settings
 class SettingsButton(discord.ui.Button['SettingsButton']):
-    def __init__(self, ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollAuthor_id : int):
+    def __init__(self, ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage):
         super().__init__(style=discord.ButtonStyle.gray, emoji = emoji)
         self.ctx = ctx
         self.emoji = emoji
         self.dictionary = dictionary
         self.pollEmbed = pollEmbed
         self.settingsEmbed = settingsEmbed
-        self.pollAuthor = pollAuthor_id
+        self.pollMessage = pollMessage
             
     async def callback(self, interaction: discord.Interaction):
         newPoll = self.dictionary
-        
-        if self.emoji.name == '🔐':
-            isLocked = self.settingsEmbed.fields[2].value
-            print(isLocked)
-            if isLocked == ":lock:":
-                isLocked = ":unlock"
-            elif isLocked == ":unlock":
-                isLocked = ":lock:"
-                
-            self.settingsEmbed.set_field_at(2, name = "Poll is", value = isLocked)          
-            return await interaction.edit_original_message(embed = self.settingsEmbed, view=self.view) 
             
         # Check Your Vote and Clear your vote
         if interaction.user.id in newPoll:
@@ -121,6 +107,8 @@ class SettingsButton(discord.ui.Button['SettingsButton']):
                 await interaction.response.send_message(content = newPoll.get(interaction.user.id), ephemeral = True)
             elif self.emoji.name == '🔁':
                 del newPoll[interaction.user.id]
+                self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = len(newPoll))
+                await self.pollMessage.edit(embed = self.pollEmbed)                
                 await interaction.response.send_message("Your vote has been cleared!", ephemeral = True)
         else:
             await interaction.response.send_message("You haven't voted yet!", ephemeral = True)
@@ -129,14 +117,14 @@ class SettingsButton(discord.ui.Button['SettingsButton']):
 #➥ Settings View Class
 class Settings(discord.ui.View):    
     children: List[SettingsButton]
-    def __init__(self, ctx, isAuthor, dictionary, settingsEmbed):
-        super().__init__()        
+    def __init__(self, ctx, isAuthor, dictionary, pollEmbed, settingsEmbed, pollMessage):
+        super().__init__()       
         if isAuthor:
             settings = ['\U0000270f', '\U00002754', '\U0001f510', '\U0001f501', '\U000023f0', '<:cancel:851278899270909993>']
         else: settings = ['\U00002754', '\U0001f501']
             
         for emoji in settings:
-            button = SettingsButton(ctx, emoji, dictionary, settingsEmbed, ctx.author.id)
+            button = SettingsButton(ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage)
             self.add_item(button)      
 ##
 
@@ -202,7 +190,7 @@ class voting(commands.Cog):
         if len(emojiList) > 25:
             return await ctx.send("Polls may only have up to 25 options. Try again.")
     ##
-        pollList = emojiList + ['<a:settings:845834409869180938>']
+        pollEmojiList = emojiList + ['<a:settings:845834409869180938>']
         
     #➥ Forming the embed
         pairedList = formatContent(msg, emojis)
@@ -213,9 +201,7 @@ class voting(commands.Cog):
             color = randomHexGen(),
             timestamp = timestamp
         )
-        embed.add_field(name = "Votes Recorded", value = 0)
-        embed.add_field(name = "Poll Closes on", value="May 8th")
-        embed.add_field(name = "Poll is", value = ":unlock:")
+        embed.add_field(name = "Votes Recorded:", value = 0)
         #➥ Footer
         tips = ["Tip #1: Does not work with emojis from outside the current server",
         f"Tip #2: You can create polls using \"{ctx.prefix}poll create <Title>\" to speed things up",
@@ -233,13 +219,8 @@ class voting(commands.Cog):
         ##
     ##  
         try:
-            buttonList = []
             newPoll = {}
-            locked = False
-            for emoji in pollList:
-                buttonList.append(PollButton(ctx, emoji, newPoll, embed)) 
-                
-            pollView = Poll(ctx, buttonList)
+            pollView = Poll(ctx, pollEmojiList, newPoll, embed)
             pollView.message = await ctx.send(embed = embed, view = pollView) 
         except Exception as e:
             print(e)
