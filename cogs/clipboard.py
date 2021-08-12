@@ -132,7 +132,7 @@ class clipboard(commands.Cog):
         )
         if category: 
             embed.add_field(name="Category: " + tag, value = msg)
-        embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        embed.set_author(name=ctx.author, icon_url=ctx.author.avatar.url)
         
         if reactions:
             embed.set_footer(text="React with ❌ or ✅")

@@ -32,6 +32,7 @@ intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
 bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
+bot.remove_command('help')
 
 # ➥ on ready command
 @bot.event
@@ -59,20 +60,20 @@ async def on_guild_remove(guild):
         json.dump(prefixes, f, indent=4)
 ##
 
-# ➥ Prefix Checker
-@bot.event
-async def on_message(message):
-    prefix = get_prefix(bot, message)
-    if message.author == bot.user:
-        return
-    if message.content.startswith(('~help', f'{prefix}help')):
-        await message.channel.send(f'To bring up detailed help menu type `{prefix}chelp` <:blush:845843091146539008>')
-    await bot.process_commands(message)
+#➥ Prefix Checker
+# @bot.event
+# async def on_message(message):
+#     prefix = get_prefix(bot, message)
+#     if message.author == bot.user:
+#         return
+#     if message.content.startswith(('!help', f'{prefix}help')):
+#         await message.channel.send(f'To bring up detailed help menu type `{prefix}chelp` <:blush:845843091146539008>')
+#     await bot.process_commands(message)
 ##
 
 # ➥ Help command
-@bot.command()
-async def chelp(ctx, argument=None):
+@bot.command(aliases = ["chelp"])
+async def help(ctx, argument=None):
     await ctx.trigger_typing()
 
     # Get server prefix
@@ -103,18 +104,18 @@ async def chelp(ctx, argument=None):
         embed.set_author(
             name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
         embed.add_field(name="<a:settings:845834409869180938> Useful Commands",
-                        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "{avatar}") ⇀ Returns user's avatar
-                    [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "{clear}") ⇀ Clears x number of messages (default is 10)
-                        `{prefix}info` ⇀ Tells you more about this bot
-                        `{prefix}joined` ⇀ Returns info about when user joined
-                        `{prefix}ping` ⇀ Returns ping
-                        `{prefix}prefix` ⇀ Edit the prefix used for commands on this server
+                        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "{avatar}") ➙ Returns user's avatar
+                    [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "{clear}") ➙ Clears x number of messages (default is 10)
+                        `{prefix}info` ➙ Tells you more about this bot
+                        `{prefix}joined` ➙ Returns info about when user joined
+                        `{prefix}ping` ➙ Returns ping
+                        `{prefix}prefix` ➙ Edit the prefix used for commands on this server
                     """),
                         inline=True)
         embed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
-                        value=f"""[`{prefix}add`](https://www.tumblr.com/blog/view/magnificenttyger "{add}") ⇀ Adds two numbers together, takes two arguments 
-                    [`{prefix}repeat`](https://www.tumblr.com/blog/view/magnificenttyger "{repeat}") ⇀ Repeats user input
-                    [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "{_8ball}") ⇀ Ask <:8ball:845546744665735178> questions   
+                        value=f"""[`{prefix}add`](https://www.tumblr.com/blog/view/magnificenttyger "{add}") ➙ Adds numbers together 
+                    [`{prefix}repeat`](https://www.tumblr.com/blog/view/magnificenttyger "{repeat}") ➙ Repeats user input
+                    [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "{_8ball}") ➙ Ask <:8ball:845546744665735178> questions   
                     """,
                         inline=True)
 
