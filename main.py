@@ -184,7 +184,7 @@ async def info(ctx):
 ##
 
 # ➥ loading and unloading
-@bot.command(name="reload")
+@bot.command(aliases = ["Reload"])
 @commands.is_owner()
 async def reload(ctx, *, extension: str):
     eList = extension.split(" ")
