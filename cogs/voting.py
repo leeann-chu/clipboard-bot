@@ -48,22 +48,25 @@ class PollButton(discord.ui.Button['PollButton']):
 
     async def callback(self, interaction: discord.Interaction):
         newPoll = self.dictionary
+        settingsInteraction = None
+    #➥ Settings Embed
+        if self.ctx.author.id == interaction.user.id: 
+            content = ":pencil2: ➙ Edit the Poll \n:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:alarm_clock: ➙ Change the timelimit (Default is 3 Days)\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
+            isAuthor = True
+        else:
+            content = """:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote """
+            isAuthor = False
+        settingsEmbed = discord.Embed (
+            title = "Settings & Poll Info",
+            description = content,
+            color = randomHexGen()
+        )
+        settingsEmbed.add_field(name = "You haven't voted yet!", value = "\u200b")
+    ##
         if self.emoji.name == 'settings':
-            #➥ Content
-            if self.ctx.author.id == interaction.user.id: 
-                content = ":pencil2: ➙ Edit the Poll \n:grey_question: ➙ Check what you voted for \n:repeat: ➙ Clear your vote\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:alarm_clock: ➙ Change the timelimit (Default is 3 Days)\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
-                isAuthor = True
-            else:
-                content = """:grey_question: ➙ Check what you voted for \n:repeat: ➙ Clear your vote """
-                isAuthor = False
-            settingsEmbed = discord.Embed (
-                title = "Settings & Poll Info",
-                description = content,
-                color = randomHexGen()
-            )
-            settingsEmbed.add_field(name = "Poll Closes on", value="May 8th")
-            ##
-            await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, newPoll, self.pollEmbed, settingsEmbed, self.view.message), ephemeral = True)
+            if interaction.user.id in newPoll:
+                settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(newPoll.get(interaction.user.id)))
+            settingsInteraction = await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, newPoll, self.pollEmbed, settingsEmbed, self.view.message), ephemeral = True)
             return
         
         if interaction.user.id not in newPoll:
@@ -78,13 +81,14 @@ class PollButton(discord.ui.Button['PollButton']):
 class Poll(discord.ui.View):    
     def __init__(self, ctx, pollEmojiList, dictionary, embed):
         super().__init__(timeout = 15)
+        self.embed = embed
         self.ctx = ctx
         for emoji in pollEmojiList:
             self.add_item(PollButton(ctx, emoji, dictionary, embed))
     
     async def on_timeout(self):
-        await self.ctx.send("This poll has closed!")
-        self.clear_items()
+        self.embed.set_field_at(2, name = "Poll is", value = "Closed!")
+        await self.message.edit(embed = self.embed, view = None)
 ##
 
 #➥ Custom Button for Settings
@@ -100,18 +104,45 @@ class SettingsButton(discord.ui.Button['SettingsButton']):
             
     async def callback(self, interaction: discord.Interaction):
         newPoll = self.dictionary
+        
+        if self.emoji.name == '🔐':
+            #if poll is "locked" isLocked_str = "unlocked"
+            isLocked_str = ":lock:" if self.pollEmbed.fields[2].value == ":unlock:" else ":unlock:"
+            isLocked_bool = True if self.pollEmbed.fields[2].value == ":unlock:" else False
             
-        # Check Your Vote and Clear your vote
-        if interaction.user.id in newPoll:
+            self.settingsEmbed.set_field_at(0, name = "The poll is now", value = isLocked_str)
+            self.pollEmbed.set_field_at(2, name = "Poll is", value = isLocked_str)
+            await self.pollMessage.edit(embed = self.pollEmbed)        
+            
+            #➥ LockedRefresh logic
+            for button in self.view.children:
+                if isLocked_bool and str(button.emoji) == '🔁':
+                    button.disabled = True
+                else:
+                    button.disabled = False
+            ##
+            await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
+            return
+        
+        if self.emoji == '<:cancel:851278899270909993>':
+            print("hello")
+            self.pollEmbed.set_field_at(2, name = "Poll is", value = "Closed!")
+            await self.pollMessage.edit(embed = self.pollEmbed, view = None)
+            await interaction.response.edit_message(view = None)
+            return
+            
+        if interaction.user.id in newPoll:  
             if self.emoji.name == '❔':
-                await interaction.response.send_message(content = newPoll.get(interaction.user.id), ephemeral = True)
-            elif self.emoji.name == '🔁':
+                self.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(newPoll.get(interaction.user.id)))
+                await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view) 
+                return
+            if self.emoji.name == '🔁':
                 del newPoll[interaction.user.id]
                 self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = len(newPoll))
-                await self.pollMessage.edit(embed = self.pollEmbed)                
-                await interaction.response.send_message("Your vote has been cleared!", ephemeral = True)
-        else:
-            await interaction.response.send_message("You haven't voted yet!", ephemeral = True)
+                self.settingsEmbed.set_field_at(0, name = "You haven't voted yet!", value = "\u200b")
+                await self.pollMessage.edit(embed = self.pollEmbed)
+                await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)     
+                return 
 
 ##
 #➥ Settings View Class
@@ -119,12 +150,15 @@ class Settings(discord.ui.View):
     children: List[SettingsButton]
     def __init__(self, ctx, isAuthor, dictionary, pollEmbed, settingsEmbed, pollMessage):
         super().__init__()       
+        isLocked = False if pollEmbed.fields[2].value == ":unlock:" else True
         if isAuthor:
             settings = ['\U0000270f', '\U00002754', '\U0001f510', '\U0001f501', '\U000023f0', '<:cancel:851278899270909993>']
         else: settings = ['\U00002754', '\U0001f501']
             
         for emoji in settings:
             button = SettingsButton(ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage)
+            if isLocked and str(button.emoji) == '\U0001f501':
+                button.disabled = True
             self.add_item(button)      
 ##
 
@@ -202,6 +236,8 @@ class voting(commands.Cog):
             timestamp = timestamp
         )
         embed.add_field(name = "Votes Recorded:", value = 0)
+        embed.add_field(name = "Poll Closes on", value="May 8th")
+        embed.add_field(name = "Poll is", value = ":unlock:")
         #➥ Footer
         tips = ["Tip #1: Does not work with emojis from outside the current server",
         f"Tip #2: You can create polls using \"{ctx.prefix}poll create <Title>\" to speed things up",
@@ -211,7 +247,7 @@ class voting(commands.Cog):
         "Tip #6: The default time limit for a poll is 3 days",
         "Tip #7: Polls can have up to 25 options",
         f"Tip #8: During Poll Creation dialogue you can input \"{ctx.prefix}cancel\" to exit",
-        "Tip #9: Locked polls can not have their votes changed"
+        "Tip #9: Locked polls can not have their votes changed",
         "Tip #10: Click on the settings button to find out more information about this poll"]
         # Get my current profile pic
         member = ctx.guild.get_member(364536918362554368)
