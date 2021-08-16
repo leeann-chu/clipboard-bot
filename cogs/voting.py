@@ -50,10 +50,11 @@ def formatString(options, emojis):
 
 #➥ remove spaces
 def makeList_removeSpaces(string):
-    spaceless = [s for s in string if s != ' ']
-    spaceString = "".join(spaceless)
-    spaceList = spaceString.split("\n")
-    return spaceList
+    splitList = string.split("\n")
+    spaceless = [s.strip() for s in splitList]
+    # spaceString = "".join(spaceless)
+    # spaceList = spaceString.split("\n")
+    return spaceless
 ##
 
 #➥ Create Results Embed
@@ -124,7 +125,7 @@ class PollButton(discord.ui.Button['Poll']):
         newPoll = self.dictionary
     #➥ Settings Embed
         if self.ctx.author.id == interaction.user.id: 
-            content = ":pencil2: ➙ Edit the Poll \n:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:alarm_clock: ➙ Change the timelimit (Default is 3 Days)\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
+            content = ":pencil2: ➙ Edit the Poll \n:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:alarm_clock: ➙ Change the timelimit (Default is 3 Days)\n:detective: ➙ Toggle result anonymity\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
             isAuthor = True
         else:
             content = """:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote """
@@ -169,7 +170,7 @@ class SettingsButton(discord.ui.Button['Settings']):
         except IndexError:
             closedPoll = True
         
-        if closedPoll:
+        if closedPoll and not self.emoji.name == '❔':
             self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993>')
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             return
@@ -262,7 +263,6 @@ class SelectMenu(discord.ui.Select):
         self.anon = SettingsButton(ctx, "🕵️‍♂️", isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage)
     
     async def callback(self, interaction: discord.Interaction):
-        print(self.view.children)
         if self.values[0] == "Timelimit":
             self.view.add_item(self.timeLimit)
             self.options.pop(self.options.index(self.timeOption))
