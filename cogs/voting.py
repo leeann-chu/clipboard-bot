@@ -52,13 +52,12 @@ def formatString(options, emojis):
 def makeList_removeSpaces(string):
     splitList = string.split("\n")
     spaceless = [s.strip() for s in splitList]
-    # spaceString = "".join(spaceless)
-    # spaceList = spaceString.split("\n")
     return spaceless
 ##
 
 #➥ Create Results Embed
-def createResultsEmbed(ctx, newPoll, isAnon, embed):
+def createResultsEmbed(ctx, newPoll, embed):
+    isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
     results = []
     winners = []
     if newPoll:
@@ -75,7 +74,7 @@ def createResultsEmbed(ctx, newPoll, isAnon, embed):
         if not isAnon:
             for key, values in newPoll.items():
                 member = ctx.guild.get_member(key)
-                results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") ➙ {values}")
+                results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
         else:
             for key, values in winnerDict.items():
                 if values != 1:
@@ -103,21 +102,19 @@ class Poll(discord.ui.View):
         self.dictionary = dictionary
         self.embed = embed
         self.ctx = ctx
-        self.isAnon = True if str(self.embed.author.name) == "Results are Anonymous" else False
         
         for emoji, label in zip(pollEmojiList, optionList):
-            self.add_item(PollButton(ctx, emoji, label, self.isAnon, dictionary, embed))
+            self.add_item(PollButton(ctx, emoji, label, dictionary, embed))
     
     async def on_timeout(self):
-        await self.message.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.isAnon, self.embed), view = None)
+        await self.message.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.embed), view = None)
 ##
 #➥ Custom Button for Polls
 class PollButton(discord.ui.Button['Poll']):
-    def __init__(self, ctx, emoji, label, isAnon, dictionary, embed):
+    def __init__(self, ctx, emoji, label, dictionary, embed):
         super().__init__(style=discord.ButtonStyle.gray, emoji = emoji, label = label)
         self.ctx = ctx
         self.emoji = emoji
-        self.isAnon = isAnon
         self.dictionary = dictionary
         self.pollEmbed = embed
 
@@ -140,7 +137,7 @@ class PollButton(discord.ui.Button['Poll']):
         if self.emoji.name == 'settings':
             if interaction.user.id in newPoll:
                 settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(newPoll.get(interaction.user.id)))
-            await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, self.isAnon, newPoll, self.pollEmbed, settingsEmbed, self.view.message), ephemeral = True)
+            await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.ctx, isAuthor, newPoll, self.pollEmbed, settingsEmbed, self.view.message), ephemeral = True)
             return
         
         if interaction.user.id not in newPoll:
@@ -152,11 +149,10 @@ class PollButton(discord.ui.Button['Poll']):
 ##
 #➥ Custom Button for Settings
 class SettingsButton(discord.ui.Button['Settings']):
-    def __init__(self, ctx, emoji, isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage):
+    def __init__(self, ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage):
         super().__init__(style=discord.ButtonStyle.gray, emoji = emoji)
         self.ctx = ctx
         self.emoji = emoji
-        self.isAnon = isAnon
         self.dictionary = dictionary
         self.pollEmbed = pollEmbed
         self.settingsEmbed = settingsEmbed
@@ -165,18 +161,18 @@ class SettingsButton(discord.ui.Button['Settings']):
     async def callback(self, interaction: discord.Interaction):
         closedPoll = False
         newPoll = self.dictionary
+        isAnon = True if str(self.pollEmbed.author.name) == "Results are Anonymous" else False
         try:
             isLocked_bool = True if self.pollEmbed.fields[2].value == ":unlock:" else False
         except IndexError:
             closedPoll = True
         
         if closedPoll and not self.emoji.name == '❔':
-            self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993>')
+            self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             return
         
         if self.emoji.name == '🔐':
-            #if poll is "locked" isLocked_str = "unlocked"
             isLocked_str = ":lock:" if self.pollEmbed.fields[2].value == ":unlock:" else ":unlock:"
             
             self.label = "Unlock" if isLocked_bool else "Lock"
@@ -196,9 +192,21 @@ class SettingsButton(discord.ui.Button['Settings']):
             await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
             return
         
+        if self.emoji.name == '🕵️‍♂️':
+            if isAnon:
+                self.settingsEmbed.set_field_at(0, name = "Results are now", value = "<:lancer:522166192245309452> shown with names")
+                self.pollEmbed.set_author(name = "Results are shown with names", icon_url = "")
+                await self.pollMessage.edit(embed = self.pollEmbed) 
+            else:
+                self.settingsEmbed.set_field_at(0, name = "Results are now", value = ":detective: Anonymous")
+                self.pollEmbed.set_author(name = "Results are Anonymous")
+                await self.pollMessage.edit(embed = self.pollEmbed) 
+            await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
+            return
+        
         if str(self.emoji) == '<:cancel:851278899270909993>':
-            self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993>')
-            await self.pollMessage.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.isAnon, self.pollEmbed), view = None)
+            self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
+            await self.pollMessage.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.pollEmbed), view = None)
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
         
         # Buttons non-authors can click on    
@@ -228,17 +236,17 @@ class SettingsButton(discord.ui.Button['Settings']):
 #➥ Settings View Class
 class Settings(discord.ui.View):    
     children: List[SettingsButton]
-    def __init__(self, ctx, isAuthor, isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage):
+    def __init__(self, ctx, isAuthor, dictionary, pollEmbed, settingsEmbed, pollMessage):
         super().__init__()       
         isLocked = False if pollEmbed.fields[2].value == ":unlock:" else True
         if isAuthor:
             settings = ['\U0000270f', '\U00002754', '\U0001f501', '<:cancel:851278899270909993>']
-            self.add_item(SelectMenu(ctx, isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage))
+            self.add_item(SelectMenu(ctx, dictionary, pollEmbed, settingsEmbed, pollMessage))
         else: settings = ['\U00002754', '\U0001f501']
         
         #➥ Adding Buttons
         for emoji in settings:
-            button = SettingsButton(ctx, emoji, isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage)
+            button = SettingsButton(ctx, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage)
             if isLocked and str(button.emoji) == '\U0001f501':
                 button.disabled = True
                 button.style = discord.ButtonStyle.danger
@@ -250,7 +258,7 @@ class Settings(discord.ui.View):
 
 #➥ SelectMenu View
 class SelectMenu(discord.ui.Select):
-    def __init__(self, ctx, isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage):
+    def __init__(self, ctx, dictionary, pollEmbed, settingsEmbed, pollMessage):
         self.timeOption = discord.SelectOption(label="Timelimit", emoji="⏰")
         self.lockedOption = discord.SelectOption(label="Locked", emoji="🔐")
         self.anonOption = discord.SelectOption(label="Anonymity", emoji="🕵️‍♂️")
@@ -258,21 +266,35 @@ class SelectMenu(discord.ui.Select):
         super().__init__(placeholder = "What would you like to modify?", 
                          options=[self.timeOption, self.lockedOption, self.anonOption])
         
-        self.timeLimit = SettingsButton(ctx, "⏰", isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage)
-        self.locked = SettingsButton(ctx, "🔐", isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage)
-        self.anon = SettingsButton(ctx, "🕵️‍♂️", isAnon, dictionary, pollEmbed, settingsEmbed, pollMessage)
+        self.timeButton = SettingsButton(ctx, "⏰", dictionary, pollEmbed, settingsEmbed, pollMessage)
+        self.lockedButton = SettingsButton(ctx, "🔐", dictionary, pollEmbed, settingsEmbed, pollMessage)
+        self.anonButton = SettingsButton(ctx, "🕵️‍♂️", dictionary, pollEmbed, settingsEmbed, pollMessage)
     
     async def callback(self, interaction: discord.Interaction):
+        self.options = [self.timeOption, self.lockedOption, self.anonOption]
         if self.values[0] == "Timelimit":
-            self.view.add_item(self.timeLimit)
+            self.view.add_item(self.timeButton)
             self.options.pop(self.options.index(self.timeOption))
+            try: self.view.children.pop(self.view.children.index(self.lockedButton))
+            except Exception: pass
+            try: self.view.children.pop(self.view.children.index(self.anonButton))
+            except Exception: pass
+                
         elif self.values[0] == "Locked":
-            self.view.add_item(self.locked)
+            self.view.add_item(self.lockedButton)
             self.options.pop(self.options.index(self.lockedOption))
-        elif self.values[0] == "Anonymity":
-            self.view.add_item(self.anon)
-            self.options.pop(self.options.index(self.anonOption))
+            try: self.view.children.pop(self.view.children.index(self.timeButton))
+            except Exception: pass
+            try: self.view.children.pop(self.view.children.index(self.anonButton))
+            except Exception: pass
             
+        elif self.values[0] == "Anonymity":
+            self.view.add_item(self.anonButton)
+            self.options.pop(self.options.index(self.anonOption))
+            try: self.view.children.pop(self.view.children.index(self.timeButton))
+            except Exception: pass
+            try: self.view.children.pop(self.view.children.index(self.lockedButton))
+            except Exception: pass
         await interaction.response.edit_message(view = self.view)
 
 ##
