@@ -135,14 +135,17 @@ class clipboard(commands.Cog):
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar.url)
         
         if reactions:
-            embed.set_footer(text="React with ❌ or ✅")
-            await ctx.send("Does this look about right to you?")
-            yn = await ctx.send(embed = embed)
-            confirm = await Confirm(yn).prompt(ctx)
-            if confirm:
+            view = Confirm()
+            confirm_msg = await ctx.send(content = "Does this look about right to you?", embed = embed, view = view)
+            await view.wait()
+            if view.value == None:
+                return await ctx.send(f"Confirmation menu timed out!", delete_after = 3)
+            elif view.value:
+                await confirm_msg.delete()
                 await self.create_note(ctx, title, msg, tag, datetime.utcnow())      
             else:
-                await ctx.send("Note Canceled", delete_after = 2)
+                await confirm_msg.delete()
+                await ctx.send("Note Canceled", delete_after = 3)
         else:
             return embed
 ##
