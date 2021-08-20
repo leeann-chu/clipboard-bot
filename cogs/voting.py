@@ -2,7 +2,7 @@ import discord
 import time
 from main import db, randomHexGen
 from cogs.menusUtil import *
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from discord.ext import commands
 from collections import defaultdict, Counter
 import copy
@@ -57,48 +57,10 @@ def makeList_removeSpaces(string):
     return spaceless
 ##
 
-#➥ Create Results Embed
-def createResultsEmbed(ctx, newPoll, embed):
-    isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
-    results = []
-    winners = []
-    if newPoll:
-        #➥ Winner Logic
-        freqDict = Counter(newPoll.values()) #Find the # votes for each emoji
-        maxNum = list(freqDict.values())[0]
-        winnerDict = {k: v for k, v in freqDict.items() if v == maxNum} #Turn it into a dict to cycle through
-        for key in winnerDict:
-            winners.append(key) #Add winners with the most votes to winner list
-        ##
-        
-        #➥ Results
-        if not isAnon:
-            for key, values in newPoll.items():
-                member = ctx.guild.get_member(key)
-                results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
-        else:
-            for key, values in winnerDict.items():
-                if values != 1:
-                    results.append(f"{key} has {values} votes")
-                else:
-                    results.append(f"{key} has {values} vote")
-        ##
-    
-    #➥ Forming the embed
-    embed.title = "Here are the Results!"
-    embed.description = "\n".join(results) if results else "No one voted!"
-    embed.clear_fields()
-    
-    if results:
-        embed.add_field(name = "The winner is..." if len(winners) == 1 else "The winners are...", value = "\n".join(winners), inline = False)
-    ##
-    return embed
-##
-
 #➥ Poll View Class
 class Poll(discord.ui.View):    
-    def __init__(self, ctx, clipboardBot, timeout, pollEmojiList, optionList, dictionary, embed):
-        super().__init__(timeout = timeout)
+    def __init__(self, ctx, clipboardBot, pollEmojiList, optionList, dictionary, embed):
+        super().__init__(timeout = None)
         self.optionList = optionList
         self.dictionary = dictionary
         self.embed = embed
@@ -106,13 +68,6 @@ class Poll(discord.ui.View):
         
         for emoji, label in zip(pollEmojiList, optionList):
             self.add_item(PollButton(ctx, clipboardBot, emoji, label, dictionary, embed))
-    
-    async def on_timeout(self):
-        print(self.dictionary)
-        try:
-            await self.message.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.embed), view = None)
-        except Exception:
-            pass
 ##
 #➥ Custom Button for Polls
 class PollButton(discord.ui.Button['Poll']):
@@ -126,6 +81,18 @@ class PollButton(discord.ui.Button['Poll']):
 
     async def callback(self, interaction: discord.Interaction):
         newPoll = self.dictionary
+        time = discord.utils.utcnow()
+        discordTimestamp = self.pollEmbed.fields[1].value
+        timestamp = re.findall('\d+', discordTimestamp)
+        
+        closedPoll = time >= datetime.fromtimestamp(int(timestamp[0]), tz = timezone.utc)
+        
+        if closedPoll:
+            resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.ctx, self.dictionary, self.pollEmbed)
+            self.view.stop()
+            await interaction.response.edit_message(embed = resultsEmbed, view = None)
+            return
+        
     #➥ Settings Embed
         if self.ctx.author.id == interaction.user.id: 
             content = ":pencil2: ➙ Edit the Poll \n:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:hourglass: ➙ Change when the poll closes (Default is 1 Day)\n:detective: ➙ Toggle result anonymity\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
@@ -248,7 +215,6 @@ class SettingsButton(discord.ui.Button['Settings']):
                 pollView = discord.ui.View.from_message(self.pollMessage)                
                 try:
                     pollView.embed = newPollEmbed
-                    pollView.timeout = timeout
                     pollView.message = await self.ctx.send(embed = newPollEmbed, view = pollView)
                 except Exception as e:
                     print(e)
@@ -264,7 +230,8 @@ class SettingsButton(discord.ui.Button['Settings']):
         
         if str(self.emoji) == '<:cancel:851278899270909993>':
             self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
-            await self.pollMessage.edit(embed = createResultsEmbed(self.ctx, self.dictionary, self.pollEmbed), view = None)
+            resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.ctx, self.dictionary, self.pollEmbed)
+            await self.pollMessage.edit(embed = resultsEmbed, view = None)
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             return
         
@@ -306,7 +273,7 @@ class Settings(discord.ui.View):
         
         #➥ Adding Buttons
         for emoji in settings:
-            button = SettingsButton(ctx, None, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage)
+            button = SettingsButton(ctx, clipboardBot, emoji, dictionary, pollEmbed, settingsEmbed, pollMessage)
             if str(button.emoji) == '<:cancel:851278899270909993>':
                 button.style = discord.ButtonStyle.danger #turn red
             if isLocked and str(button.emoji) == '\U0001f501': #If locked and button refresh
@@ -416,7 +383,7 @@ class voting(commands.Cog):
             color = randomHexGen(),
             timestamp = timestamp
         )
-        pollClose = timestamp + timedelta(seconds =+ 86400)
+        pollClose = timestamp + timedelta(seconds =+ 30)
         embed.add_field(name = "Votes Recorded:", value = 0)
         embed.add_field(name = "Date Poll Closes:", value=f"<t:{int(pollClose.timestamp())}:f>")
         embed.add_field(name = "Poll is", value = ":unlock:")
@@ -441,8 +408,7 @@ class voting(commands.Cog):
     ##  
         try:
             newPoll = {}
-            timeout = 15
-            pollView = Poll(ctx, self, timeout, pollEmojiList, fullOptionList, newPoll, embed)
+            pollView = Poll(ctx, self, pollEmojiList, fullOptionList, newPoll, embed)
             pollView.message = await ctx.send(embed = embed, view = pollView) 
         except Exception as e:
             print(e)
@@ -458,6 +424,49 @@ class voting(commands.Cog):
         seconds = humantimeTranslator(inp)
         await ctx.send(seconds)
     ##  
+    
+    #➥ Create Results Embed
+    @commands.command()
+    @commands.is_owner()
+    async def createResultsEmbed(self, ctx, newPoll, embed):
+        isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
+        results = []
+        winners = []
+        if newPoll:
+            #➥ Winner Logic
+            freqDict = Counter(newPoll.values()) #Find the # votes for each emoji
+            maxNum = list(freqDict.values())[0]
+            winnerDict = {k: v for k, v in freqDict.items() if v == maxNum} #Turn it into a dict to cycle through
+            for key in winnerDict:
+                winners.append(key) #Add winners with the most votes to winner list
+            ##
+            
+            for key, values in newPoll.items():
+                    member = ctx.guild.get_member(key)
+                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+            privateEmbed = discord.Embed(title = "Reults", description = results, color = randomHexGen())
+            await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
+            
+            #➥ Results
+            if isAnon:
+                results.clear()
+                for key, values in winnerDict.items():
+                    if values != 1:
+                        results.append(f"{key} has {values} votes")
+                    else:
+                        results.append(f"{key} has {values} vote")
+            ##
+        
+        #➥ Forming the embed
+        embed.title = "Here are the Results!"
+        embed.description = "\n".join(results) if results else "No one voted!"
+        embed.clear_fields()
+        
+        if results:
+            embed.add_field(name = "The winner is..." if len(winners) == 1 else "The winners are...", value = "\n".join(winners), inline = False)
+        ##
+        return embed
+    ##
 
 def setup(bot):
     bot.add_cog(voting(bot))
