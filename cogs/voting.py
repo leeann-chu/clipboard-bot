@@ -11,8 +11,8 @@ import re
 
 from typing import List
 
-pollEmojiList = []
-fullOptionList = []
+emojiList = []
+optionList = []
 newPoll = {}
 
 #➥ humanTime
@@ -42,16 +42,16 @@ def humantimeTranslator(s):
         return 0
 ##
 
-#➥ formatString
-def formatString(options, emojis):
-    pairedList = []
-    optionList = options.split("\n")
-    emojiList = emojis.split("\n")
+#➥ format_toString
+def format_toString(options, emojis):
+    pairedString = []
+    oList = options.split("\n")
+    eList = emojis.split("\n")
     
-    for option, emoji in zip(optionList, emojiList):
-        pairedList.append(f"{emoji} {option}")
+    for option, emoji in zip(oList, eList):
+        pairedString.append(f"{emoji} {option}")
         
-    return "\n".join(pairedList)
+    return "\n".join(pairedString)
 ##
 
 #➥ remove spaces
@@ -63,13 +63,10 @@ def makeList_removeSpaces(string):
 
 #➥ Poll View Class
 class Poll(discord.ui.View):    
-    def __init__(self, ctx, clipboardBot, pollEmojiList, optionList, embed):
-        super().__init__(timeout = None)
-        self.optionList = optionList
-        self.embed = embed
-        self.ctx = ctx
+    def __init__(self, ctx, clipboardBot, emojiList, optionList, embed):
+        super().__init__()
         
-        for emoji, label in zip(pollEmojiList, optionList):
+        for emoji, label in zip(emojiList, optionList):
             self.add_item(PollButton(ctx, clipboardBot, emoji, label, embed))
 ##
 #➥ Custom Button for Polls
@@ -96,7 +93,7 @@ class PollButton(discord.ui.Button['Poll']):
         
     #➥ Settings Embed
         if self.ctx.author.id == interaction.user.id: 
-            content = "<:white_plus:878169238932684831> ➙ Add options to the poll \n\n:grey_question: ➙ Check your vote\n\n:repeat: ➙ Clear your vote\n\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n\n:hourglass: ➙ Change when the poll closes (Default is 1 Day)\n\n:detective: ➙ Toggle result anonymity\n\n<:cancel:851278899270909993> ➙ Close the Poll & Show results"
+            content = "<:white_plus:878169238932684831> ➙ Add options to the poll \n:grey_question: ➙ Check your vote \n:repeat: ➙ Clear your vote\n<:cancel:851278899270909993> ➙ Close the Poll \n\n:closed_lock_with_key: ➙ Toggle if voters are allowed to clear their vote \n:hourglass: ➙ Change when the poll closes (Default is 1 Day)\n:detective: ➙ Toggle anonymity"
             isAuthor = True
         else:
             content = """:grey_question: ➙ Check Your Vote \n:repeat: ➙ Clear your vote """
@@ -144,6 +141,7 @@ class SettingsButton(discord.ui.Button['Settings']):
         
         if closedPoll and not self.emoji.name == '❔':
             self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
+            self.settingsEmbed.set_footer(text = "You can dismiss this message now")
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             return
         
@@ -183,19 +181,26 @@ class SettingsButton(discord.ui.Button['Settings']):
         ##
         #➥ If button is timelimit
         if self.emoji.name == '⌛':
+            global emojiList, optionList
+            fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
+            fullOptionList = optionList + ["Settings"]
+            
             pollStarted = self.pollEmbed.timestamp
             view = Confirm()
             try: await self.pollMessage.delete() 
             except: pass
             
-            self.settingsEmbed.set_field_at(0, name = "Please enter how long you want the poll to be open for", value = "Examples: `1d2h`, `3 hours`, `1 h`")
-            self.settingsEmbed.add_field(name = "Poll was started at", value = f"<t:{int(pollStarted.timestamp())}:f>")
+            self.settingsEmbed.title = "Please enter how long you want the poll to be open for"
+            self.settingsEmbed.description = "Examples: `1d2h`, `3 hours`, `1 h`"
+            self.settingsEmbed.set_field_at(0, name = "Poll was started at", value = f"<t:{int(pollStarted.timestamp())}:f>")
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             
             human_timeout = await self.clipboardBot.bot.get_command('waitCheck')(self.ctx, 90)
             timeout = humantimeTranslator(human_timeout)            
             pollClose = pollStarted + timedelta(seconds =+ timeout)
-            self.settingsEmbed.set_field_at(0, name = "Poll is now set to close at", value = f"<t:{int(pollClose.timestamp())}:f>")
+            self.settingsEmbed.title = "Poll is now set to close at"
+            self.settingsEmbed.description = f"<t:{int(pollClose.timestamp())}:f>"
+            self.settingsEmbed.clear_fields()
             self.settingsEmbed.set_footer(text = "Is this what you wanted?")
             await interaction.edit_original_message(embed = self.settingsEmbed, view = view)
             await self.ctx.channel.purge(limit=1)
@@ -204,32 +209,36 @@ class SettingsButton(discord.ui.Button['Settings']):
             if view.value == None:
                 return await self.ctx.send(f"Confirmation menu timed out!", delete_after = 3)
             elif view.value:
-                self.settingsEmbed.set_field_at(0, name = "Poll will close at", 
-                                            value = f"<t:{int(pollClose.timestamp())}:f>")
-                self.settingsEmbed.remove_field(1)
                 self.settingsEmbed.set_footer(text = "You can dismiss this message now")
-
                 await interaction.edit_original_message(embed = self.settingsEmbed, view = self.view) 
-
+ 
                 self.pollEmbed.set_field_at(1, name = "Date Poll Closes:", value = f"<t:{int(pollClose.timestamp())}:f>")
                 
-                pollView = Poll(self.ctx, self.clipboardBot, pollEmojiList, fullOptionList, self.pollEmbed)              
+                pollView = Poll(self.ctx, self.clipboardBot, fullEmojiList, fullOptionList, self.pollEmbed)              
                 try:
                     pollView.message = await self.ctx.send(embed = self.pollEmbed, view = pollView)
                 except Exception as e:
                     print(e)
                     return await self.ctx.send("Something went wrong!")
             else:
-                self.settingsEmbed.set_field_at(0, name = "Canceled Menu", 
-                                            value = "\u200b")
-                self.settingsEmbed.remove_field(1)
-                self.settingsEmbed.set_footer(text = "You can dismiss this message now")
-                await interaction.edit_original_message(embed = self.settingsEmbed, view = self.view)
+                self.settingsEmbed.title = "Canceled Menu"
+                self.settingsEmbed.description = "You can dismiss this message now"
+                await interaction.followup.send(embed = self.settingsEmbed, ephemeral=True)
+                          
+                pollView = Poll(self.ctx, self.clipboardBot, fullEmojiList, fullOptionList, self.pollEmbed)              
+                try:
+                    pollView.message = await self.ctx.send(embed = self.pollEmbed, view = pollView)
+                except Exception as e:
+                    print(e)
+                    return await self.ctx.send("Something went wrong!")
             return
         ##
         #➥ If button is edit
         if self.emoji.name == '➕':
+            await interaction.response.defer()
             view = Confirm()
+            oldEmojiList = emojiList
+            oldOptionList = optionList
             try: await self.pollMessage.delete() 
             except: pass
             
@@ -243,21 +252,54 @@ class SettingsButton(discord.ui.Button['Settings']):
             if emojis == None: return
             await emojiPrompt.delete()
             
-            new_emojiList = pollEmojiList + makeList_removeSpaces(emojis)
-            new_optionList = fullOptionList + makeList_removeSpaces(msg)
-            if len(new_emojiList) > 25:
-                return await ctx.send("Polls may only have up to 25 options. Try again.")
+            emojiList = emojiList + makeList_removeSpaces(emojis)
+            optionList = optionList + makeList_removeSpaces(msg)
+            if len(emojiList) > 25:
+                return await self.ctx.send("Polls may only have up to 25 options. Try again.")
             
-            pairedList = formatString(msg, emojis)
-            self.settingsEmbed.set_field_at(0, name = "Does this look about right?", value = "pairedList")
-            await interaction.response.edit_message(embed = self.settingsEmbed, view = view)
+            pairedString = format_toString("\n".join(optionList), "\n".join(emojiList))
+            
+            self.settingsEmbed.title = "Does this look about right?"
+            self.settingsEmbed.clear_fields()
+            self.settingsEmbed.description = pairedString
+            confirmationMenu = await interaction.followup.send(embed = self.settingsEmbed, view = view)
+            
+            await view.wait()
+            if view.value == None:
+                await confirmationMenu.delete()
+                return await self.ctx.send(f"Confirmation menu timed out!", delete_after = 3)
+            elif view.value:
+                await confirmationMenu.delete()
+                fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
+                fullOptionList = optionList + ['Settings']
+                self.pollEmbed.description = "React with the corresponding emote to cast a vote. \n\n" + pairedString
+                pollView = Poll(self.ctx, self.clipboardBot, fullEmojiList, fullOptionList, self.pollEmbed)              
+                try:
+                    pollView.message = await self.ctx.send(embed = self.pollEmbed, view = pollView)
+                except Exception as e:
+                    print(e)
+                    return await self.ctx.send("Something went wrong!")  
+            else:
+                await confirmationMenu.delete()
+                self.settingsEmbed.title = "Canceled Menu"
+                self.settingsEmbed.description = "You can dismiss this message now"
+                await interaction.followup.send(embed = self.settingsEmbed, ephemeral=True)
+                
+                fullEmojiList = oldEmojiList + ['<a:settings:845834409869180938>']
+                fullOptionList = oldOptionList + ['Settings']            
+                pollView = Poll(self.ctx, self.clipboardBot, fullEmojiList, fullOptionList, self.pollEmbed)              
+                try:
+                    pollView.message = await self.ctx.send(embed = self.pollEmbed, view = pollView)
+                except Exception as e:
+                    print(e)
+                    return await self.ctx.send("Something went wrong!")  
             return
-            
         ##
         
         #➥ If button is cancel
         if str(self.emoji) == '<:cancel:851278899270909993>':
             self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
+            self.settingsEmbed.set_footer(text = "You can dismiss this message now")
             resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.ctx, self.pollEmbed)
             await self.pollMessage.edit(embed = resultsEmbed, view = None)
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
@@ -397,21 +439,19 @@ class voting(commands.Cog):
         if emojis == None: return
         await emojiPrompt.delete()
         
+        global emojiList
+        global optionList
         emojiList = makeList_removeSpaces(emojis)
         optionList = makeList_removeSpaces(msg)
         if len(emojiList) > 25:
             return await ctx.send("Polls may only have up to 25 options. Try again.")
     ##
-        global pollEmojiList
-        global fullOptionList
-        pollEmojiList = emojiList + ['<a:settings:845834409869180938>']
-        fullOptionList = optionList + ['Settings']
     #➥ Forming the embed
-        pairedList = formatString(msg, emojis)
+        pairedString = format_toString(msg, emojis)
         timestamp = discord.utils.utcnow()
         embed = discord.Embed(
             title = title,
-            description = "React with the corresponding emote to cast a vote. \n\n" + pairedList,
+            description = "React with the corresponding emote to cast a vote. \n\n" + pairedString,
             color = randomHexGen(),
             timestamp = timestamp
         )
@@ -440,7 +480,9 @@ class voting(commands.Cog):
     ##  
         try:
             global newPoll
-            pollView = Poll(ctx, self, pollEmojiList, fullOptionList, embed)
+            fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
+            fullOptionList = optionList + ["Settings"]
+            pollView = Poll(ctx, self, fullEmojiList, fullOptionList, embed)
             pollView.message = await ctx.send(embed = embed, view = pollView) 
         except Exception as e:
             print(e)
@@ -458,6 +500,8 @@ class voting(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def createResultsEmbed(self, ctx, embed):
+        pollClosingTime = embed.fields[1].value
+        
         isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
         results = []
         winners = []
@@ -473,8 +517,8 @@ class voting(commands.Cog):
             for key, values in newPoll.items():
                     member = ctx.guild.get_member(key)
                     results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
-            privateEmbed = discord.Embed(title = "Reults", description = results, color = randomHexGen())
-            if isAnon: await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
+            privateEmbed = discord.Embed(title = "Here are the Results!", description = results, color = randomHexGen())
+            if isAnon and len(newPoll) > 1: await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
             
             #➥ Results
             if isAnon:
@@ -494,6 +538,9 @@ class voting(commands.Cog):
         if results:
             embed.add_field(name = "The winner is..." if len(winners) == 1 else "The winners are...", value = "\n".join(winners), inline = False)
         ##
+        embed.add_field(name = "Date Poll Started:", value = f"<t:{int(embed.timestamp.timestamp())}:f>")
+        embed.add_field(name = "Date Poll Closed:", value = pollClosingTime)
+        newPoll.clear()
         return embed
     ##
 
