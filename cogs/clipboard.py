@@ -159,11 +159,10 @@ class clipboard(commands.Cog):
         try: 
             msg = await self.bot.wait_for('message', timeout = timeout, check = check)            
             if msg.content == f'{ctx.prefix}cancel':
-                await self.msg.delete()
+                await msg.delete()
                 await ctx.send("Canceled", delete_after = 2)
                 return None
             else:
-                await self.msg.delete()
                 return msg.content
             
         except asyncio.TimeoutError:

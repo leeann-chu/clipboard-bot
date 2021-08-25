@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, menus
-from cogs.voting import createResultsEmbed
 from main import randomHexGen
 
 class menusUtil(commands.Cog):
