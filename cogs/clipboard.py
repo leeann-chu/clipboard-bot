@@ -162,6 +162,9 @@ class clipboard(commands.Cog):
                 await msg.delete()
                 await ctx.send("Canceled", delete_after = 2)
                 return None
+            elif f"{ctx.prefix}" in msg.content:
+                await ctx.send("Only one command allowed at a time")
+                return None
             else:
                 return msg.content
             

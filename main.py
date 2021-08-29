@@ -81,62 +81,70 @@ async def help(ctx, argument=None):
     member = ctx.message.author
     m = ctx.message
 
-    # ➥ Get hover text
-    with open("helpmenu.json", 'r') as f:
-        helpmenu = json.load(f)
+    # # ➥ Get hover text
+    # with open("helpmenu.json", 'r') as f:
+    #     helpmenu = json.load(f)
 
-    # These are variables because formatting deal with it
-    avatar = helpmenu["avatar"]
-    clear = helpmenu["clear"]
-    add = helpmenu["add"]
-    repeat = helpmenu["repeat"]
-    _8ball = helpmenu["8ball"]
-    ##
+    # # These are variables because formatting deal with it
+    # avatar = helpmenu["avatar"]
+    # clear = helpmenu["clear"]
+    # add = helpmenu["add"]
+    # repeat = helpmenu["repeat"]
+    # _8ball = helpmenu["8ball"]
+    # ##
 
     if argument is None:
         # ➥ Embed for Empty Argument
         embed = discord.Embed(
-            description=f"Help menu for all your clipboard commands\nHover over the command to see more info or type `{prefix}chelp [command]` for more help",
+            description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
             timestamp=discord.utils.utcnow()
         )
 
         embed.set_author(
             name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
+        
+        embed.add_field(name="<:voteicon:881035523102236684> Voting Commands",
+                        value=(f"""[`{prefix}poll create`](https://www.tumblr.com/blog/view/magnificenttyger \"Aliases: v make, vote create, p make, vote start...\") ➙ Guides you through making a poll!
+                               `{prefix}poll create <Title>` ➙ Speeds things along while making the poll
+                               `{prefix}poll example` ➙ Sends you a dm with an example poll being created
+                               """))
+        
         embed.add_field(name="<a:settings:845834409869180938> Useful Commands",
-                        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "{avatar}") ➙ Returns user's avatar
-                    [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "{clear}") ➙ Clears x number of messages (default is 10)
+                        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "Works with nicknames or usernames. ex: {prefix}avatar Graceless") ➙ Returns user's avatar
+                    [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: {prefix}purge") ➙ Clears x number of messages (default is 10)
                         `{prefix}info` ➙ Tells you more about this bot
                         `{prefix}joined` ➙ Returns info about when user joined
                         `{prefix}ping` ➙ Returns ping
                         `{prefix}prefix` ➙ Edit the prefix used for commands on this server
                     """),
                         inline=True)
+                        
         embed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
-                        value=f"""[`{prefix}add`](https://www.tumblr.com/blog/view/magnificenttyger "{add}") ➙ Adds numbers together 
-                    [`{prefix}repeat`](https://www.tumblr.com/blog/view/magnificenttyger "{repeat}") ➙ Repeats user input
-                    [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "{_8ball}") ➙ Ask <:8ball:845546744665735178> questions   
-                    """,
+                        value=(f"""[`{prefix}add`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: math. ex: {prefix}add 3 4 6") ➙ Adds numbers together 
+                    [`{prefix}repeat`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: mimic, copy. ex: {prefix}repeat doot") ➙ Repeats user input
+                    [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: 8b") ➙ Ask <:8ball:845546744665735178> questions   
+                    """),
                         inline=True)
 
         await ctx.send(embed=embed)
     ##
-    elif argument in bot.all_commands:
-        # ➥ Help per command
-        command = bot.get_command(argument)
-        if (argument) == "avatar":
-            await ctx.send(f"{avatar}")
-        elif (argument) == "clear":
-            await ctx.send(f"{clear}")
-        elif (argument) == "add":
-            await ctx.send(f"{add}")
-        elif (argument) == "repeat":
-            await ctx.send(f"{repeat}")
-        elif (argument) == "8ball":
-            await ctx.send(f"{_8ball}")
-    ##
-    else:
-        await ctx.send("Unrecognized command")
+    # elif argument in bot.all_commands:
+    #     # ➥ Help per command
+    #     command = bot.get_command(argument)
+    #     if (argument) == "avatar":
+    #         await ctx.send(f"{avatar}")
+    #     elif (argument) == "clear":
+    #         await ctx.send(f"{clear}")
+    #     elif (argument) == "add":
+    #         await ctx.send(f"{add}")
+    #     elif (argument) == "repeat":
+    #         await ctx.send(f"{repeat}")
+    #     elif (argument) == "8ball":
+    #         await ctx.send(f"{_8ball}")
+    # ##
+    # else:
+    #     await ctx.send("Unrecognized command")
 ##
 
 # ➥ Close Bot
