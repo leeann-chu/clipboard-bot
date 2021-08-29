@@ -419,23 +419,32 @@ class voting(commands.Cog):
         await ctx.send(f"Use the command `{ctx.prefix}poll create` or \n`{ctx.prefix}poll create <Title>` to get started!")
     ##
 #➥ ------------   Create Poll   ------------
-    @vote.command(aliases = ["create", "start", "new"])
+    @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, title = None):
         await ctx.trigger_typing() 
+        member = ctx.guild.get_member(ctx.author.id)
+        embed = discord.Embed(description="")
+        embed.set_author(name = ctx.author)
         
     #➥ Setting up the variables for the embed
         if title is None:
-            titlePrompt = await ctx.send("What would you like the **Title** of your poll to be?")
-            title = await self.bot.get_command('waitCheck')(ctx, 100)
+            embed.description = "What would you like the **Title** of your poll to be?"
+            embed.set_footer(text="This question will time out in 3 minutes") 
+            titlePrompt = await ctx.send(embed = embed)
+            title = await self.bot.get_command('waitCheck')(ctx, 180)
             await titlePrompt.delete()
-            
-        optionPrompt = await ctx.send("Enter the options for your poll seperated by new lines")
-        msg = await self.bot.get_command('waitCheck')(ctx, 200)
+        
+        embed.description = ("Enter the options for your poll seperated by new lines")
+        embed.set_footer(text="This question will time out in 6 minutes")
+        optionPrompt = await ctx.send(embed = embed)
+        msg = await self.bot.get_command('waitCheck')(ctx, 400)
         if msg == None: return
         await optionPrompt.delete()
         
-        emojiPrompt = await ctx.send("Enter the emojis you wish to use for your poll seperated by new lines")
-        emojis = await self.bot.get_command('waitCheck')(ctx, 300)
+        embed.description = ("Enter the emojis you wish to use for your poll seperated by new lines")
+        embed.set_footer(text="This question will time out in 6 minutes")
+        emojiPrompt = await ctx.send(embed = embed)
+        emojis = await self.bot.get_command('waitCheck')(ctx, 400)
         if emojis == None: return
         await emojiPrompt.delete()
         
@@ -444,7 +453,9 @@ class voting(commands.Cog):
         emojiList = makeList_removeSpaces(emojis)
         optionList = makeList_removeSpaces(msg)
         if len(emojiList) > 25:
-            return await ctx.send("Polls may only have up to 25 options. Try again.")
+            return await ctx.send("Polls may only have up to 25 options. Try making the Poll again.")
+        if len(emojiList) != len(optionList):
+            return await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
     ##
     #➥ Forming the embed
         pairedString = format_toString(msg, emojis)
@@ -455,7 +466,7 @@ class voting(commands.Cog):
             color = randomHexGen(),
             timestamp = timestamp
         )
-        pollClose = timestamp + timedelta(seconds =+ 30)
+        pollClose = timestamp + timedelta(seconds =+ 86400)
         embed.add_field(name = "Votes Recorded:", value = 0)
         embed.add_field(name = "Date Poll Closes:", value=f"<t:{int(pollClose.timestamp())}:f>")
         embed.add_field(name = "Poll is", value = ":unlock:")
@@ -473,8 +484,6 @@ class voting(commands.Cog):
         "Tip #9: Locked polls cannot have their votes changed",
         "Tip #10: Click on the settings button to find out more information about this poll",
         "Tip #11: You can hover over the nicknames in the results to see their username (if the poll is not anonymous)"]
-        # Get my current profile pic
-        member = ctx.guild.get_member(ctx.author.id)
         embed.set_footer(text = random.choice(tips), icon_url = member.avatar.url)
         ##
     ##  
@@ -486,7 +495,7 @@ class voting(commands.Cog):
             pollView.message = await ctx.send(embed = embed, view = pollView) 
         except Exception as e:
             print(e)
-            return await ctx.send("One of your emojis is invalid! Try again.")        
+            return await ctx.send("One of your emojis is invalid! Try making the Poll again.")        
 ##            
 
     #➥ timeConvert
@@ -543,6 +552,11 @@ class voting(commands.Cog):
         newPoll.clear()
         return embed
     ##
+    
+    #➥ Vote example command
+    @vote.command()
+    async def example(self, ctx):
+        await ctx.guild.get_member(ctx.author.id).send("https://imgur.com/a/wq6swYo")
 
 def setup(bot):
     bot.add_cog(voting(bot))

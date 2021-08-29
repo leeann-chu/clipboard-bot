@@ -1,7 +1,0 @@
-{
-    "avatar": "Works with nicknames or usernames. ex: {prefix}avatar Graceless",
-    "clear": "Aliases: purge",
-    "repeat": "Aliases: mimic, copy. ex: {prefix}repeat doot",
-    "add": "Aliases: math. ex: {prefix}add 3 4",
-    "8ball": "Aliases: 8b"
-}

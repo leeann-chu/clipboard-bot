@@ -18,7 +18,10 @@ class extraCommands(commands.Cog):
     @commands.command()
     async def add(self, ctx, *nums):
         eq = " + ".join(nums)
-        summation = sum([int(i) for i in nums])
+        try:
+            summation = sum([int(i) for i in nums])
+        except Exception:
+            await ctx.send(f"Only integers, format is {ctx.prefix}add 2 3 4")
         embed = discord.Embed (
             title = "Summation",
             description = f"{eq} = {summation}",
@@ -38,7 +41,8 @@ class extraCommands(commands.Cog):
     async def joined(self, ctx, *, member: discord.Member=None):
         if not member:
             member = ctx.message.author
-        await ctx.send('{0} joined on {0.joined_at}'.format(member))
+        joinedTime = member.joined_at
+        await ctx.send(f"{member} ({member.display_name}) joined on <t:{int(joinedTime.timestamp())}:f>")
 
 #➥ 8Ball Command
     @commands.command(aliases=["8ball", "8b"])

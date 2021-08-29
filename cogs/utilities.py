@@ -82,7 +82,7 @@ class utilities(commands.Cog):
             await ctx.send(f"Sorry {member.display_name}, you do not have permission to clear messages!", delete_after = 3)
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{member.display_name}, you forgot to include the number of messages you wanted to ")
-    ##
+    ##  
 
 def setup(bot):
     bot.add_cog(utilities(bot))
