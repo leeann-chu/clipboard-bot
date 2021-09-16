@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import discord
 import random
 import json
@@ -17,20 +18,20 @@ def randomHexGen():
     return random.randint(0, 16777215)
 ##
 
-def get_prefix(bot, message):
-    if message.guild is None:
-        return "~"
-    else:
-        with open("prefixes.json", 'r') as f:
-            prefixes = json.load(f)
-        return prefixes[str(message.guild.id)]
+# def get_prefix(bot, message):
+#     if message.guild is None:
+#         return "~"
+#     else:
+#         with open("prefixes.json", 'r') as f:
+#             prefixes = json.load(f)
+#         return prefixes[str(message.guild.id)]
 
 loop = asyncio.get_event_loop()
 db = loop.run_until_complete(asyncpg.create_pool(**credentials))
 
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
-bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
+bot = commands.Bot(command_prefix="~", description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
 bot.remove_command('help')
 
@@ -58,17 +59,6 @@ async def on_guild_remove(guild):
     prefixes.pop(str(guild.id))
     with open("prefixes.json", 'w') as f:
         json.dump(prefixes, f, indent=4)
-##
-
-#➥ Prefix Checker
-# @bot.event
-# async def on_message(message):
-#     prefix = get_prefix(bot, message)
-#     if message.author == bot.user:
-#         return
-#     if message.content.startswith(('!help', f'{prefix}help')):
-#         await message.channel.send(f'To bring up detailed help menu type `{prefix}chelp` <:blush:845843091146539008>')
-#     await bot.process_commands(message)
 ##
 
 # ➥ Help command
@@ -105,14 +95,14 @@ async def help(ctx, argument=None):
             name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
         
         embed.add_field(name="<:voteicon:881035523102236684> Voting Commands",
-                        value=(f"""[`{prefix}poll create`](https://www.tumblr.com/blog/view/magnificenttyger \"Aliases: v make, vote create, p make, vote start...\") ➙ Guides you through making a poll!
-                               `{prefix}poll create <Title>` ➙ Speeds things along while making the poll
-                               `{prefix}poll example` ➙ Sends you a dm with an example poll being created
+                        value=(f"""[`{prefix}poll create`](https://i.imgur.com/dV7GBcih.jpg \"Aliases: v make, vote create, p make, vote start, p m...\") ➙ Guides you through making a poll
+                               `{prefix}poll create <Title>` ➙ Speeds things along 
+                               `{prefix}poll example` ➙ Sends you a dm with an example being created
                                """))
         
         embed.add_field(name="<a:settings:845834409869180938> Useful Commands",
-                        value=(f"""[`{prefix}avatar`](https://www.tumblr.com/blog/view/magnificenttyger "Works with nicknames or usernames. ex: {prefix}avatar Graceless") ➙ Returns user's avatar
-                    [`{prefix}clear x`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: {prefix}purge") ➙ Clears x number of messages (default is 10)
+                        value=(f"""[`{prefix}avatar`](https://i.imgur.com/dV7GBcih.jpg "Works with nicknames or usernames. ex: {prefix}avatar Graceless") ➙ Returns user's avatar
+                    [`{prefix}clear x`](https://i.imgur.com/dV7GBcih.jpg "Aliases: {prefix}purge") ➙ Clears x number of messages (default is 10)
                         `{prefix}info` ➙ Tells you more about this bot
                         `{prefix}joined` ➙ Returns info about when user joined
                         `{prefix}ping` ➙ Returns ping
@@ -121,9 +111,9 @@ async def help(ctx, argument=None):
                         inline=True)
                         
         embed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
-                        value=(f"""[`{prefix}add`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: math. ex: {prefix}add 3 4 6") ➙ Adds numbers together 
-                    [`{prefix}repeat`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: mimic, copy. ex: {prefix}repeat doot") ➙ Repeats user input
-                    [`{prefix}8ball`](https://www.tumblr.com/blog/view/magnificenttyger "Aliases: 8b") ➙ Ask <:8ball:845546744665735178> questions   
+                        value=(f"""[`{prefix}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {prefix}add 3 4 6") ➙ Adds numbers together 
+                    [`{prefix}repeat`](https://i.imgur.com/dV7GBcih.jpg "Aliases: mimic, copy. ex: {prefix}repeat doot") ➙ Repeats user input
+                    [`{prefix}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask <:8ball:845546744665735178> questions   
                     """),
                         inline=True)
 
@@ -186,6 +176,14 @@ async def info(ctx):
     #embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
     embed.add_field(name="__Functionalities__",
                     value="• timer to send a reminder \n• check things off the list \n• create sticky reminders \n• create persistent reminders", inline=False)
+    embed.add_field(name="__Changelog__",
+                    value = """Voting Bot Changelog: 
+                                *Among other things*
+                                • Prints an ephemeral message when a user votes to give them feedback that their vote was registered successfully along with other instructions 
+                                • Included a new button for non-poll owners to see who has voted so far
+                                • A new way to create polls that is much faster
+                                • now randomly chooses a winner if there's a tie
+                                """)
     embed.set_footer(text="Created by GracefulLion", icon_url=pfp)
 
     await ctx.send(embed=embed)

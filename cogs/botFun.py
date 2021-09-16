@@ -38,6 +38,11 @@ class extraCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    async def chooseOne(self, ctx, *, inp : str):
+        inputList = inp.split(" ")
+        await ctx.send(random.choice(inputList))
+
+    @commands.command()
     async def joined(self, ctx, *, member: discord.Member=None):
         if not member:
             member = ctx.message.author
@@ -97,6 +102,23 @@ class extraCommands(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             if error.param.name == 'inp':
                 await ctx.send("You forgot to give me input to repeat!")
+##
+
+#➥ Easteregg
+    @commands.command(aliases=['egg', 'secret'])
+    async def easteregg(self, ctx):
+        eggs = ["https://imgur.com/gallery/Sn3R1", "https://cdn.discordapp.com/attachments/806952740424384573/881582644020772894/unknown.png", 
+                "https://www.youtube.com/watch?v=Xx8TQfhRVXY", "http://howardhallis.com/POE/index.html", 
+                "https://media.discordapp.net/attachments/806952740424384573/881583866249351278/name_of_the_wind_fanart_cover.jpg?width=439&height=670", 
+                "I'm sorry I slapped you but you didn't seem like you would ever stop talking and I panicked",
+                "https://cdn.discordapp.com/attachments/806952740424384573/881585486496403487/Screenshot_20170901-221337.png",
+                "https://cdn.discordapp.com/attachments/806952740424384573/881585743510773800/sarah_cat_august.gif",
+                "https://cdn.discordapp.com/attachments/806952740424384573/881585832010604605/cat_cup_crop_-_june.gif",
+                "What is the height of stupidty? \nI don't know, how tall are you?",
+                "The most beautiful things in the world cannot be seen or touched, they are felt with the heart.",
+                "Happy people are just people you aren't acquainted enough with yet to know how miserable they really are",
+                "Always forgive your enemies; nothing annoys them so much."]
+        await ctx.send(random.choice(eggs))
 ##
 
 def setup(bot):
