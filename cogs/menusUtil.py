@@ -18,12 +18,12 @@ class Confirm(discord.ui.View):
         self.value = None     
         
     @discord.ui.button(emoji="<:confirm:851278899832684564>", style=discord.ButtonStyle.green)
-    async def yes(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def yes(self, button: discord.ui.button, interaction: discord.Interaction):
         self.value = True
         self.stop()
         
     @discord.ui.button(emoji="<:cancel:851278899270909993>", style=discord.ButtonStyle.red)
-    async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def no(self, button: discord.ui.button, interaction: discord.Interaction):
         self.value = False
         self.stop()
 ##

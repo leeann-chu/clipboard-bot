@@ -1,5 +1,7 @@
 import discord
+from discord.errors import InteractionResponded
 from main import randomHexGen
+from poll_class import *
 from cogs.menusUtil import *
 from datetime import datetime, timedelta, timezone
 from discord.ext import commands
@@ -453,10 +455,10 @@ class voting(commands.Cog):
         embed = discord.Embed(description="")
         embed.set_author(name = ctx.author)
         
-    #➥ Check that a poll hasn't already been created
-        global isOpenPoll
-        if isOpenPoll:
-            return await ctx.send("Please close the previous poll before starting a new one!")
+    # #➥ Check that a poll hasn't already been created
+    #     global isOpenPoll
+    #     if isOpenPoll:
+    #         return await ctx.send("Please close the previous poll before starting a new one!")
         
     #➥ Setting up the variables for the embed
         if title is None:
@@ -606,6 +608,7 @@ class voting(commands.Cog):
         await ctx.guild.get_member(ctx.author.id).send("https://imgur.com/a/wq6swYo")
     ##
     
+    # ➥ Print the dictionary
     @vote.command()
     @commands.is_owner()
     async def print(self, ctx):
@@ -616,18 +619,47 @@ class voting(commands.Cog):
         privateEmbed = discord.Embed(title = "Here are the Results!", description = "\n".join(results), color = randomHexGen())
         await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed) 
         return privateEmbed
-        
+    ##
+    #➥ Insert dictionary
     @vote.command()
     @commands.is_owner()
     async def insertPoll(self, ctx, *, inp : str):
         global newPoll
         newPoll = json.loads(inp.replace("'", "\""))    
         await ctx.send("Dictionary inserted")
-        
+    ##
+    #➥ Clear dictionary
     @vote.command()
     @commands.is_owner()
-    async def clear(self, ctx):
+    async def clear(self):
         newPoll.clear()
-
+    ##
+    #➥ Submit Image
+    @vote.command()
+    async def submit(self, ctx):
+        message = ctx.message
+        embed = discord.Embed(title = "Is this correct?", color = randomHexGen())
+        try: 
+            embed.set_image(url = message.attachments[0])  
+        except Exception:
+            return await ctx.send("Please attach an image with this command!")  
+        view = Confirm()
+        msg = await ctx.send(embed = embed, view = view)
+        await view.wait()
+        if view.value is None:
+            return await ctx.send(f"Confirmation menu timed out!", delete_after = 3)
+        elif view.value:
+            await msg.edit(embed = embed, view = None)
+            with open("image_urls.json", 'r') as f:
+                images = json.load(f)
+            images[str(ctx.author.id)] = message.attachments[0].url
+            with open("image_urls.json", 'w') as f:
+                json.dump(images, f, indent = 4)
+            await ctx.send("Image successfully submitted!")
+        else:
+            await msg.edit(embed = embed, view = None)
+            return await ctx.send(f"Submission canceled", delete_after = 3)
+    ##
+    
 def setup(bot):
     bot.add_cog(voting(bot))

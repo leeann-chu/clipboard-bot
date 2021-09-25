@@ -12,19 +12,11 @@ description = "I can store long term, short term, and immediate goals!"
 credentials = {"user": USERNAME, "password": PASSWORD,
                "database": DATABASE, "host": "127.0.0.1"}
 
-# ➥ randomHexGen
+#➥ randomHexGen
 def randomHexGen():
     # Create a random hex value
     return random.randint(0, 16777215)
 ##
-
-# def get_prefix(bot, message):
-#     if message.guild is None:
-#         return "~"
-#     else:
-#         with open("prefixes.json", 'r') as f:
-#             prefixes = json.load(f)
-#         return prefixes[str(message.guild.id)]
 
 loop = asyncio.get_event_loop()
 db = loop.run_until_complete(asyncpg.create_pool(**credentials))
@@ -35,14 +27,14 @@ bot = commands.Bot(command_prefix="~", description=description, activity=discord
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
 bot.remove_command('help')
 
-# ➥ on ready command
+#➥ on ready command
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     print("------------------------------")
 ##
 
-# ➥ .json manipulation
+#➥ .json manipulation
 @bot.event
 async def on_guild_join(guild):
     with open("prefixes.json", 'r') as f:
@@ -61,27 +53,13 @@ async def on_guild_remove(guild):
         json.dump(prefixes, f, indent=4)
 ##
 
-# ➥ Help command
+#➥ Help command
 @bot.command(aliases = ["chelp"])
 async def help(ctx, argument=None):
     await ctx.trigger_typing()
 
     # Get server prefix
     prefix = ctx.prefix
-    member = ctx.message.author
-    m = ctx.message
-
-    # # ➥ Get hover text
-    # with open("helpmenu.json", 'r') as f:
-    #     helpmenu = json.load(f)
-
-    # # These are variables because formatting deal with it
-    # avatar = helpmenu["avatar"]
-    # clear = helpmenu["clear"]
-    # add = helpmenu["add"]
-    # repeat = helpmenu["repeat"]
-    # _8ball = helpmenu["8ball"]
-    # ##
 
     if argument is None:
         # ➥ Embed for Empty Argument
@@ -98,6 +76,7 @@ async def help(ctx, argument=None):
                         value=(f"""[`{prefix}poll create`](https://i.imgur.com/dV7GBcih.jpg \"Aliases: v make, vote create, p make, vote start, p m...\") ➙ Guides you through making a poll
                                `{prefix}poll create <Title>` ➙ Speeds things along 
                                `{prefix}poll example` ➙ Sends you a dm with an example being created
+                               `{prefix}poll submit` ➙ DM the bot with this command and an attached image to submit your image to the poll
                                """))
         
         embed.add_field(name="<a:settings:845834409869180938> Useful Commands",
@@ -118,26 +97,9 @@ async def help(ctx, argument=None):
                         inline=True)
 
         await ctx.send(embed=embed)
-    ##
-    # elif argument in bot.all_commands:
-    #     # ➥ Help per command
-    #     command = bot.get_command(argument)
-    #     if (argument) == "avatar":
-    #         await ctx.send(f"{avatar}")
-    #     elif (argument) == "clear":
-    #         await ctx.send(f"{clear}")
-    #     elif (argument) == "add":
-    #         await ctx.send(f"{add}")
-    #     elif (argument) == "repeat":
-    #         await ctx.send(f"{repeat}")
-    #     elif (argument) == "8ball":
-    #         await ctx.send(f"{_8ball}")
-    # ##
-    # else:
-    #     await ctx.send("Unrecognized command")
 ##
 
-# ➥ Close Bot
+#➥ Close Bot
 @bot.command(aliases = ["close"])
 async def quit(ctx):
     if await bot.is_owner(ctx.author):
@@ -149,13 +111,13 @@ async def quit(ctx):
         await ctx.send("You do not have the permissions to use this command!")
 ##
 
-# ➥ Ping
+#➥ Ping
 @bot.command()
 async def ping(ctx):
     await ctx.send(f"Pong! {round(bot.latency * 1000)}ms")
 ##
 
-# ➥ Info command
+#➥ Info command
 @bot.command()
 async def info(ctx):
     await ctx.trigger_typing()
@@ -189,7 +151,7 @@ async def info(ctx):
     await ctx.send(embed=embed)
 ##
 
-# ➥ loading and unloading
+#➥ loading and unloading
 @bot.command(aliases = ["Reload"])
 @commands.is_owner()
 async def reload(ctx, *, extension: str):
