@@ -3,7 +3,6 @@ import json
 from discord.ext import commands
 from cogs.menusUtil import *
 from main import randomHexGen
-import asyncio
 
 class utilities(commands.Cog):
     def __init__(self, bot):
