@@ -1,6 +1,5 @@
 import discord
 import random
-import math
 from discord.ext import commands
 from main import randomHexGen
 import asyncio

@@ -18,12 +18,20 @@ def randomHexGen():
     return random.randint(0, 16777215)
 ##
 
+def get_prefix(bot, message):
+    if message.guild is None:
+        return "~"
+    else:
+        with open("data/prefixes.json", 'r') as f:
+            prefixes = json.load(f)
+        return prefixes[str(message.guild.id)]
+
 loop = asyncio.get_event_loop()
 db = loop.run_until_complete(asyncpg.create_pool(**credentials))
 
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
-bot = commands.Bot(command_prefix="~", description=description, activity=discord.Activity(
+bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
 bot.remove_command('help')
 
@@ -37,19 +45,19 @@ async def on_ready():
 #➥ .json manipulation
 @bot.event
 async def on_guild_join(guild):
-    with open("prefixes.json", 'r') as f:
+    with open("data/prefixes.json", 'r') as f:
         prefixes = json.load(f)
     # Default guild value, the prefix all servers should start with
     prefixes[str(guild.id)] = '~'
-    with open("prefixes.json", 'w') as f:
+    with open("data/prefixes.json", 'w') as f:
         json.dump(prefixes, f, indent=4)
 
 @bot.event
 async def on_guild_remove(guild):
-    with open("prefixes.json", 'r') as f:
+    with open("data/prefixes.json", 'r') as f:
         prefixes = json.load(f)
     prefixes.pop(str(guild.id))
-    with open("prefixes.json", 'w') as f:
+    with open("data/prefixes.json", 'w') as f:
         json.dump(prefixes, f, indent=4)
 ##
 
