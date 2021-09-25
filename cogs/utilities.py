@@ -29,10 +29,10 @@ class utilities(commands.Cog):
         stuff = await self.bot.get_command('reactRespond')(ctx, prefixEmbed, 50, ['<:cancel:851278899270909993>'])        
         try: 
             newPrefix = stuff.content
-            with open("prefixes.json", 'r') as f:
+            with open("data/prefixes.json", 'r') as f:
                 prefixes = json.load(f) 
             prefixes[str(ctx.guild.id)] = newPrefix
-            with open("prefixes.json", 'w') as f:
+            with open("data/prefixes.json", 'w') as f:
                 json.dump(prefixes, f, indent = 4)
             await ctx.send(f"Successfully changed **standard prefix** to: `{newPrefix}`")
             
