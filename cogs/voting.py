@@ -1,3 +1,4 @@
+from os import write
 import discord, traceback
 from main import randomHexGen
 from utils.poll_class import *
@@ -74,9 +75,9 @@ class PollButton(discord.ui.Button['Poll']):
         self.clipboardBot = currentPoll.clipboardBot
         self.emoji = emoji
         self.pollEmbed = currentPoll.pollEmbed
-        self.newPoll = currentPoll.newPoll
 
     async def callback(self, interaction: discord.Interaction):
+        currPoll = readfromFile()
         time = discord.utils.utcnow()
         discordTimestamp = self.pollEmbed.fields[1].value
         timestamp = re.findall('\d+', discordTimestamp)
@@ -113,15 +114,16 @@ class PollButton(discord.ui.Button['Poll']):
         currentSettings = SettingsClass(settingsEmbed, self.view.message, isAuthor)
     ##
         if self.emoji.name == 'settings':
-            if interaction.user.id in self.newPoll:
-                currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(self.newPoll.get(interaction.user.id)))
+            if str(interaction.user.id) in currPoll:
+                currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(interaction.user.id)))
             await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
             return
         
         # Not in Poll yet
-        if interaction.user.id not in self.newPoll:
-            self.newPoll[interaction.user.id] = f"{self.emoji.name} {self.label}"
-            numVotes = len(self.newPoll)
+        if str(interaction.user.id) not in currPoll:
+            currPoll[interaction.user.id] = f"{self.emoji.name} {self.label}"
+            writetoFile(currPoll)
+            numVotes = len(currPoll)
             self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = numVotes)
             await interaction.response.edit_message(embed = self.pollEmbed, view = self.view)
             self.currentPoll.pollEmbed = self.pollEmbed
@@ -131,7 +133,7 @@ class PollButton(discord.ui.Button['Poll']):
             await interaction.followup.send(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
             return
         # Already in Poll
-        if interaction.user.id in self.newPoll:
+        if str(interaction.user.id) in currPoll:
             followup = discord.Embed (title = "You have already voted!",
                                       description = "If you would like to see what you voted for try :grey_question:\nIf you would like to change your vote use :repeat:")
             await interaction.response.send_message(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
@@ -147,10 +149,10 @@ class SettingsButton(discord.ui.Button['Settings']):
         self.settingsEmbed = currentSettings.settingsEmbed
         self.pollMessage = currentSettings.message
         self.currentPoll = currentPoll
-        self.newPoll = currentPoll.newPoll
             
     async def callback(self, interaction: discord.Interaction):
         closedPoll = False
+        currPoll = readfromFile()
 
         #➥ Detect if poll is closed
         try:
@@ -257,9 +259,9 @@ class SettingsButton(discord.ui.Button['Settings']):
         ##
         #➥ If button is print
         if self.emoji.name == '🖨':
-            if self.newPoll:
+            if currPoll:
                 results = []
-                for key in newPoll:
+                for key in currPoll:
                         member = self.ctx.guild.get_member(int(key))
                         results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") has voted")
                 embed = discord.Embed(title = "Here's a list of people who have voted so far!", description = "\n".join(results), color = randomHexGen())
@@ -347,14 +349,15 @@ class SettingsButton(discord.ui.Button['Settings']):
             return
         ##
         #➥ Buttons non-authors can click on    
-        if interaction.user.id in self.newPoll:  
+        if str(interaction.user.id) in currPoll:  
             if self.emoji.name == '❔':
-                self.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(self.newPoll.get(interaction.user.id)))
+                self.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(str(interaction.user.id))))
                 await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view) 
                 return
             if self.emoji.name == '🔁' and isLocked_bool:
-                del self.newPoll[interaction.user.id]
-                self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = len(self.newPoll))
+                del currPoll[str(interaction.user.id)]
+                writetoFile(currPoll)
+                self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = len(currPoll))
                 self.settingsEmbed.set_field_at(0, name = "You haven't voted yet!", value = "\u200b")
                 await self.pollMessage.edit(embed = self.pollEmbed)
                 await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)     
@@ -501,8 +504,6 @@ class voting(commands.Cog):
             emojis = "\n".join(re.findall(r"^[^*](?!\w)", entirePoll, re.MULTILINE))
             msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE)[1:])
             
-        global emojiList
-        global optionList
         emojiList = makeList_removeSpaces(emojis)
         optionList = makeList_removeSpaces(msg)
         if len(emojiList) > 25:
@@ -567,11 +568,10 @@ class voting(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def createResultsEmbed(self, currentPoll):
+        newPoll = readfromFile()
         embed = currentPoll.pollEmbed
         ctx = currentPoll.ctx
         pollClosingTime = embed.fields[1].value
-        global isOpenPoll
-        isOpenPoll = False
         
         isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
         results = []
@@ -586,7 +586,7 @@ class voting(commands.Cog):
             ##
             
             for key, values in newPoll.items():
-                    member = ctx.guild.get_member(key)
+                    member = ctx.guild.get_member(int(key))
                     results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
             privateEmbed = discord.Embed(title = "Here are the Results!", description = "\n".join(results), color = randomHexGen())
             if isAnon and len(newPoll) > 1: await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
@@ -616,6 +616,7 @@ class voting(commands.Cog):
         embed.add_field(name = "Date Poll Started:", value = f"<t:{int(embed.timestamp.timestamp())}:f>")
         embed.add_field(name = "Date Poll Closed:", value = pollClosingTime)
         newPoll.clear()
+        writetoFile(newPoll)
         return embed
     ##
     
@@ -629,6 +630,7 @@ class voting(commands.Cog):
     @vote.command()
     @commands.is_owner()
     async def print(self, ctx):
+        newPoll = readfromFile()
         results = []
         for key, values in newPoll.items():
                 member = ctx.guild.get_member(int(key))
@@ -641,15 +643,17 @@ class voting(commands.Cog):
     @vote.command()
     @commands.is_owner()
     async def insertPoll(self, ctx, *, inp : str):
-        global newPoll
-        newPoll = json.loads(inp.replace("'", "\""))    
+        newPoll = json.loads(inp.replace("'", "\""))   
+        writetoFile(newPoll)
         await ctx.send("Dictionary inserted")
     ##
     #➥ Clear dictionary
     @vote.command()
     @commands.is_owner()
     async def clear(self, ctx):
+        newPoll = readfromFile()
         newPoll.clear()
+        writetoFile(newPoll)
     ##
     #➥ Submit Image
     @vote.command()
@@ -667,10 +671,10 @@ class voting(commands.Cog):
             return await ctx.send(f"Confirmation menu timed out!", delete_after = 3)
         elif view.value:
             await msg.edit(embed = embed, view = None)
-            with open("data\image_urls.json", 'r') as f:
+            with open("data/image_urls.json", 'r') as f:
                 images = json.load(f)
             images[str(ctx.author.id)] = message.attachments[0].url
-            with open("data\image_urls.json", 'w') as f:
+            with open("data/image_urls.json", 'w') as f:
                 json.dump(images, f, indent = 4)
             await ctx.send("Image successfully submitted!")
         else:
