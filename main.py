@@ -1,16 +1,15 @@
-#!/usr/bin/python3
+# !/usr/bin/python3
 import discord
 import random
 import json
 import asyncio
 import asyncpg
 from API_KEYS import *
-from discord.ext import commands, menus
-from datetime import datetime
+from discord.ext import commands
 
 description = "I can store long term, short term, and immediate goals!"
-credentials = {"user": USERNAME, "password": PASSWORD,
-               "database": DATABASE, "host": "127.0.0.1"}
+# credentials = {"user": USERNAME, "password": PASSWORD,
+#                "database": DATABASE, "host": "127.0.0.1"}
 
 #➥ randomHexGen
 def randomHexGen():
@@ -26,13 +25,13 @@ def get_prefix(bot, message):
             prefixes = json.load(f)
         return prefixes[str(message.guild.id)]
 
-loop = asyncio.get_event_loop()
-db = loop.run_until_complete(asyncpg.create_pool(**credentials))
+# loop = asyncio.get_event_loop()
+# db = loop.run_until_complete(asyncpg.create_pool(**credentials))
 
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
 bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
-    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
+    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents) #removed db=db
 bot.remove_command('help')
 
 #➥ on ready command
@@ -113,7 +112,7 @@ async def quit(ctx):
     if await bot.is_owner(ctx.author):
         await bot.change_presence(status=discord.Status.offline)
         await ctx.send("Bot is Closed!")
-        await db.close()
+        # await db.close()
         await bot.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
@@ -170,7 +169,7 @@ async def reload(ctx, *, extension: str):
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
 
-cogsList = ["botFun", "clipboard", "error_handler", "menusUtil", "utilities", "voting"]
+cogsList = ["botFun", "error_handler", "menusUtil", "utilities", "voting"]
 for cog in cogsList:
     bot.load_extension(f'cogs.{cog}')
 

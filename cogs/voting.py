@@ -1,4 +1,3 @@
-from os import write
 import discord, traceback
 from main import randomHexGen
 from utils.poll_class import *
@@ -525,7 +524,7 @@ class voting(commands.Cog):
         embed.add_field(name = "Date Poll Closes:", value=f"<t:{int(pollClose.timestamp())}:f>")
         embed.add_field(name = "Poll is", value = ":unlock:")
         
-        embed.set_author(name = "Results are Anonymous")
+        embed.set_author(name = "Results are shown with names")
         #➥ Footer
         tips = ["Tip #1: Does not work with emojis from outside the current server",
         f"Tip #2: You can create polls using \"{ctx.prefix}poll create <Title>\" to speed things up",

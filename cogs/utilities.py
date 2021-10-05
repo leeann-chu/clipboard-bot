@@ -1,5 +1,6 @@
 import discord
 import json
+import asyncio
 from discord.ext import commands
 from cogs.menusUtil import *
 from main import randomHexGen
@@ -75,13 +76,34 @@ class utilities(commands.Cog):
     @clear.error
     async def clear_error(self, ctx, error):
         member = ctx.message.author
-        message = ctx.message
         
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(f"Sorry {member.display_name}, you do not have permission to clear messages!", delete_after = 3)
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{member.display_name}, you forgot to include the number of messages you wanted to ")
     ##  
+    
+    #➥ waitfor command
+    @commands.command()
+    @commands.is_owner()
+    async def waitCheck(self, ctx, timeout):
+        def check(msg):
+            return msg.author == ctx.author and ctx.channel == msg.channel
+        try: 
+            msg = await self.bot.wait_for('message', timeout = timeout, check = check)            
+            if msg.content == f'{ctx.prefix}cancel':
+                await msg.delete()
+                await ctx.send("Canceled", delete_after = 2)
+                return None
+            elif f"{ctx.prefix}" in msg.content:
+                await ctx.send("Only one command allowed at a time")
+                return None
+            else:
+                return msg.content
+            
+        except asyncio.TimeoutError:
+            return await ctx.send("You took too long, try again!", delete_after = 5)          
+##
 
 def setup(bot):
     bot.add_cog(utilities(bot))
