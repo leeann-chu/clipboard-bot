@@ -114,7 +114,7 @@ class PollButton(discord.ui.Button['Poll']):
     ##
         if self.emoji.name == 'settings':
             if str(interaction.user.id) in currPoll:
-                currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(interaction.user.id)))
+                currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(str(interaction.user.id))))
             await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
             return
         
@@ -497,14 +497,15 @@ class voting(commands.Cog):
             emojis = await self.bot.get_command('waitCheck')(ctx, 400)
             if emojis == None: return
             await emojiPrompt.delete()
-        else:
+        else: # need to fix what happens when no title is given
             entirePoll = title
-            title = title.split("\n", 1)[0]
-            emojis = "\n".join(re.findall(r"^[^*](?!\w)", entirePoll, re.MULTILINE))
+            title = re.search(r"\A.*", entirePoll).group()
             msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE)[1:])
-            
+            emojis = "\n".join(re.findall(r"^[^*](?!\w)", entirePoll, re.MULTILINE))
+
         emojiList = makeList_removeSpaces(emojis)
         optionList = makeList_removeSpaces(msg)
+        
         if len(emojiList) > 25:
             return await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
         if len(emojiList) != len(optionList):
@@ -571,51 +572,46 @@ class voting(commands.Cog):
         embed = currentPoll.pollEmbed
         ctx = currentPoll.ctx
         pollClosingTime = embed.fields[1].value
+        isAnon = currentPoll.isAnon
         
-        isAnon = True if str(embed.author.name) == "Results are Anonymous" else False
         results = []
         winners = []
         if newPoll:
             #➥ Winner Logic
-            freqDict = Counter(newPoll.values()) #Find the # votes for each emoji
-            maxNum = list(freqDict.values())[0]
-            winnerDict = {k: v for k, v in freqDict.items() if v == maxNum} #Turn it into a dict to cycle through
+            freqCounter = Counter(newPoll.values()) #Find the # votes for each emoji
+            emoji, freq = zip(*freqCounter.most_common())
+            the_rest = [emoji+" ➙ "+str(freq)+" votes" for emoji, freq in zip(emoji, freq)]
+            maxNum = freq[0]
+            winnerDict = {k: v for k, v in freqCounter.items() if v == maxNum} #Turn it into a dict to cycle through
             for key in winnerDict:
                 winners.append(key) #Add winners with the most votes to winner list
             ##
             
-            for key, values in newPoll.items():
-                    member = ctx.guild.get_member(int(key))
-                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
-            privateEmbed = discord.Embed(title = "Here are the Results!", description = "\n".join(results), color = randomHexGen())
-            if isAnon and len(newPoll) > 1: await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
-            
-            #➥ Results
             if isAnon:
-                results.clear()
-                for key, values in winnerDict.items():
-                    if values != 1:
-                        results.append(f"{key} has {values} votes")
-                    else:
-                        results.append(f"{key} has {values} vote")
-            ##
+                results = the_rest
+            else:
+                # Creating the large list of what everyone voted for
+                for key, values in newPoll.items():
+                        member = ctx.guild.get_member(int(key))
+                        results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
         
         #➥ Forming the embed
-        embed.title = "Here are the Results!"
         embed.description = "\n".join(results) if results else "No one voted!"
         embed.clear_fields()
         
         if results:
             if len(winners) == 1:
-                embed.add_field(name = "The winner is...", value = winners[0], inline = False)
+                final_winner = winners[0]
+                embed.add_field(name = f"The winner (with {maxNum} votes)...", value = final_winner, inline = False)
             else:
-                embed.add_field(name = "The winners...", value = "\n".join(winners), inline = False)
-                embed.add_field(name = "As there was a tie, one has been chosen at random from our winners", value = random.choice(winners), inline = False) 
+                final_winner = random.choice(winners)
+                embed.add_field(name = f"The winners (with {maxNum} votes)...", value = "\n".join(winners), inline = False)
+                embed.add_field(name = "As there was a tie, one has been chosen at random from our winners", value = final_winner, inline = False) 
+        if not isAnon: embed.add_field(name = "The totals:", value = "\n".join(the_rest), inline = False)
         ##
         embed.add_field(name = "Date Poll Started:", value = f"<t:{int(embed.timestamp.timestamp())}:f>")
         embed.add_field(name = "Date Poll Closed:", value = pollClosingTime)
-        newPoll.clear()
-        writetoFile(newPoll)
+        embed.title = f"Our winner is {final_winner}!!"
         return embed
     ##
     

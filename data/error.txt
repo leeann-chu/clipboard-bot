@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 339, in callback
+    resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.currentPoll)
+  File "C:\Users\LeeAnn\AppData\Local\Programs\Python\Python39\lib\site-packages\discord\ext\commands\core.py", line 410, in __call__
+    return await self.callback(self.cog, *args, **kwargs)
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 593, in createResultsEmbed
+    if isAnon and len(newPoll) > 1: await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
+AttributeError: 'NoneType' object has no attribute 'send'
+Traceback (most recent call last):
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 339, in callback
+    resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.currentPoll)
+  File "C:\Users\LeeAnn\AppData\Local\Programs\Python\Python39\lib\site-packages\discord\ext\commands\core.py", line 410, in __call__
+    return await self.callback(self.cog, *args, **kwargs)
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 616, in createResultsEmbed
+    embed.add_field(Name = "Our runners up:", value = "\n".join(the_rest), inline = False)
+TypeError: add_field() got an unexpected keyword argument 'Name'
+Traceback (most recent call last):
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 339, in callback
+    resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.currentPoll)
+  File "C:\Users\LeeAnn\AppData\Local\Programs\Python\Python39\lib\site-packages\discord\ext\commands\core.py", line 410, in __call__
+    return await self.callback(self.cog, *args, **kwargs)
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 616, in createResultsEmbed
+    embed.add_field(Name = "Our runners up:", value = "test", inline = False)
+TypeError: add_field() got an unexpected keyword argument 'Name'
+Traceback (most recent call last):
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 339, in callback
+    resultsEmbed = await self.clipboardBot.bot.get_command('createResultsEmbed')(self.currentPoll)
+  File "C:\Users\LeeAnn\AppData\Local\Programs\Python\Python39\lib\site-packages\discord\ext\commands\core.py", line 410, in __call__
+    return await self.callback(self.cog, *args, **kwargs)
+  File "d:\Stuffs\Coding Adventures\Python Botting\clipboardBot\cogs\voting.py", line 593, in createResultsEmbed
+    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+AttributeError: 'NoneType' object has no attribute 'display_name'
