@@ -1,6 +1,7 @@
 # Ignore where bot token is kept
 API_KEYS.py
-utils/
+utils/__pycache__/
+utils/db.py
 
 # Ignore vs code specific files
 .vscode/
