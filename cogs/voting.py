@@ -1,7 +1,6 @@
 import discord, traceback
 from main import randomHexGen
 from utils.poll_class import *
-from cogs.menusUtil import *
 from datetime import datetime, timedelta, timezone
 from discord.ext import commands
 from collections import defaultdict, Counter

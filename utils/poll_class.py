@@ -1,4 +1,5 @@
 import json
+import discord
 
 class PollClass:
     def __init__(self, ctx, clipboardBot, pollEmbed, emojiList, optionList, isAnon = False, isLocked = False, newPoll = {}):
@@ -10,10 +11,6 @@ class PollClass:
         self.isAnon = isAnon
         self.isLocked = isLocked
         self.newPoll = newPoll     
-        
-    # def refreshPoll(self):
-    #     self.newPoll = readfromFile()
-    #     return self.newPoll
         
 class SettingsClass:
     def __init__(self, settingsEmbed, message, isAuthor):
@@ -28,4 +25,20 @@ def readfromFile():
     with open('data/storedPolls.json') as fp:
         newPoll = json.load(fp)
     return newPoll
+
+#➥ Setting up a Confirmation Menu
+class Confirm(discord.ui.View):    
+    def __init__(self):
+        super().__init__()
+        self.value = None     
         
+    @discord.ui.button(emoji="<:confirm:851278899832684564>", style=discord.ButtonStyle.green)
+    async def yes(self, button: discord.ui.button, interaction: discord.Interaction):
+        self.value = True
+        self.stop()
+        
+    @discord.ui.button(emoji="<:cancel:851278899270909993>", style=discord.ButtonStyle.red)
+    async def no(self, button: discord.ui.button, interaction: discord.Interaction):
+        self.value = False
+        self.stop()
+##

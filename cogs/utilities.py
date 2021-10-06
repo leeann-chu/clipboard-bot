@@ -1,8 +1,8 @@
 import discord
 import json
 import asyncio
+from utils.poll_class import Confirm
 from discord.ext import commands
-from cogs.menusUtil import *
 from main import randomHexGen
 
 class utilities(commands.Cog):
