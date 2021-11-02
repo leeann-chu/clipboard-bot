@@ -2,8 +2,6 @@
 import discord
 import random
 import json
-import asyncio
-import asyncpg
 from API_KEYS import *
 from discord.ext import commands
 
