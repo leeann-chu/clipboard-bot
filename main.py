@@ -1,13 +1,11 @@
 # !/usr/bin/python3
 import discord
 import random
-import json
 from API_KEYS import *
 from discord.ext import commands
+from utils.poll_class import readfromFile, writetoFile
 
 description = "I can store long term, short term, and immediate goals!"
-# credentials = {"user": USERNAME, "password": PASSWORD,
-#                "database": DATABASE, "host": "127.0.0.1"}
 
 #➥ randomHexGen
 def randomHexGen():
@@ -16,15 +14,14 @@ def randomHexGen():
 ##
 
 def get_prefix(bot, message):
-    if message.guild is None:
+    try:
+        if message.guild is None:
+            return "~"
+        else:
+            prefixes = readfromFile("prefixes")
+            return prefixes[str(message.guild.id)]
+    except KeyError:
         return "~"
-    else:
-        with open("data/prefixes.json", 'r') as f:
-            prefixes = json.load(f)
-        return prefixes[str(message.guild.id)]
-
-# loop = asyncio.get_event_loop()
-# db = loop.run_until_complete(asyncpg.create_pool(**credentials))
 
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
@@ -42,20 +39,16 @@ async def on_ready():
 #➥ .json manipulation
 @bot.event
 async def on_guild_join(guild):
-    with open("data/prefixes.json", 'r') as f:
-        prefixes = json.load(f)
+    prefixes = readfromFile("prefixes")
     # Default guild value, the prefix all servers should start with
     prefixes[str(guild.id)] = '~'
-    with open("data/prefixes.json", 'w') as f:
-        json.dump(prefixes, f, indent=4)
+    writetoFile(prefixes, "prefixes")
 
 @bot.event
 async def on_guild_remove(guild):
-    with open("data/prefixes.json", 'r') as f:
-        prefixes = json.load(f)
+    prefixes = readfromFile("prefixes")
     prefixes.pop(str(guild.id))
-    with open("data/prefixes.json", 'w') as f:
-        json.dump(prefixes, f, indent=4)
+    writetoFile(prefixes, "prefixes")
 ##
 
 #➥ Help command

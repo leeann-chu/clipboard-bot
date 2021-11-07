@@ -2,6 +2,8 @@
 API_KEYS.py
 utils/__pycache__/
 utils/db.py
+data/error.txt
+data/storedPolls.json
 
 # Ignore vs code specific files
 .vscode/
