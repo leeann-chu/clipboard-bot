@@ -1,14 +1,13 @@
 import discord
-import json
 import asyncio
-from utils.poll_class import Confirm
+from utils.poll_class import Confirm, Cancel, readfromFile, writetoFile
 from discord.ext import commands
 from main import randomHexGen
 
 class utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        
+
     # Events
     @commands.Cog.listener()
     async def on_ready(self):
@@ -18,29 +17,26 @@ class utilities(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def prefix(self, ctx):
-        await ctx.trigger_typing()        
-        
+        await ctx.trigger_typing()
         embed = discord.Embed(
             title = "Changing Server Prefix",
             description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
             color = randomHexGen()
         )
-        embed.set_footer(text="React with ❌ to close the menu!")
-        prefixEmbed = await ctx.send(embed = embed)
-        stuff = await self.bot.get_command('reactRespond')(ctx, prefixEmbed, 50, ['<:cancel:851278899270909993>'])        
-        try: 
-            newPrefix = stuff.content
-            with open("data/prefixes.json", 'r') as f:
-                prefixes = json.load(f) 
+        view = Cancel()
+        prefixEmbed = await ctx.send(embed = embed, view = view)
+        stuff = await self.multi_wait(ctx, view, 50)
+        if isinstance(stuff, str):
+            newPrefix = stuff
+            prefixes = readfromFile("prefixes")
             prefixes[str(ctx.guild.id)] = newPrefix
-            with open("data/prefixes.json", 'w') as f:
-                json.dump(prefixes, f, indent = 4)
-            await ctx.send(f"Successfully changed **standard prefix** to: `{newPrefix}`")
-            
-        except:
-            if stuff[0].emoji.name == 'cancel':
-                    await ctx.channel.purge(limit = 1)
-                    await ctx.send("Canceled", delete_after = 2)
+            writetoFile(prefixes, "prefixes")
+            embed.description = f"Successfully changed **standard prefix** to: `{newPrefix}`"
+            await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
+            await ctx.channel.purge(limit = 1)
+        else:
+            embed.description = f"Prefix menu canceled. \n**Standard prefix**: `{ctx.prefix}`"
+            await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
         
     @prefix.error
     async def prefix_error(self, ctx, error):
@@ -52,8 +48,8 @@ class utilities(commands.Cog):
     #➥ Clear Command and Error
     @commands.command(aliases=["purge"])
     @commands.has_permissions(manage_guild=True)
-    async def clear(self, ctx, amount: int = 10, override = None):      
-        if override is None:  
+    async def clear(self, ctx, amount: int = 10, override = None):
+        if override is None:
             view = Confirm()
             msg = await ctx.send(f"Clear {amount} messages?", view = view)
             await view.wait()
@@ -71,26 +67,26 @@ class utilities(commands.Cog):
                 return await ctx.send(f"Confirmation menu canceled", delete_after = 3)
         else:
             await ctx.channel.purge(limit = amount + 1)
-            await ctx.send(f"Cleared {amount} messages!", delete_after = 3)     
+            await ctx.send(f"Cleared {amount} messages!", delete_after = 3)
 
     @clear.error
     async def clear_error(self, ctx, error):
         member = ctx.message.author
-        
+
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(f"Sorry {member.display_name}, you do not have permission to clear messages!", delete_after = 3)
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{member.display_name}, you forgot to include the number of messages you wanted to ")
-    ##  
-    
+    ##
+
     #➥ waitfor command
     @commands.command()
     @commands.is_owner()
     async def waitCheck(self, ctx, timeout):
         def check(msg):
             return msg.author == ctx.author and ctx.channel == msg.channel
-        try: 
-            msg = await self.bot.wait_for('message', timeout = timeout, check = check)            
+        try:
+            msg = await self.bot.wait_for('message', timeout = timeout, check = check)
             if msg.content == f'{ctx.prefix}cancel':
                 await msg.delete()
                 await ctx.send("Canceled", delete_after = 2)
@@ -100,10 +96,36 @@ class utilities(commands.Cog):
                 return None
             else:
                 return msg.content
-            
+
         except asyncio.TimeoutError:
-            return await ctx.send("You took too long, try again!", delete_after = 5)          
-##
+            return await ctx.send("You took too long, try again!", delete_after = 5)
+    ##
+
+    #➥ multi_wait command
+    @commands.command()
+    @commands.is_owner()
+    async def multi_wait(self, ctx, view, timeout):    
+      
+        # asyncio magic?
+        done, pending = await asyncio.wait([
+                            self.waitCheck(ctx, 50),
+                            view.wait()], 
+                            timeout = timeout,
+                            return_when = asyncio.FIRST_COMPLETED)
+        try:
+            stuff = done.pop().result()
+            return stuff
+        except KeyError:
+                await ctx.send("Something went wrong, keyError")
+        except Exception as e: 
+            print(e) 
+            
+        for future in done:
+            print("more errors?")
+            future.exception()
+        for future in pending:
+            future.cancel()
+    ##
 
 def setup(bot):
     bot.add_cog(utilities(bot))
