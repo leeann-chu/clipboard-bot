@@ -1,7 +1,6 @@
-# !/usr/bin/python3
 import discord
 import random
-from API_KEYS import *
+from utils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
 from utils.poll_class import readfromFile, writetoFile
 
@@ -103,7 +102,6 @@ async def quit(ctx):
     if await bot.is_owner(ctx.author):
         await bot.change_presence(status=discord.Status.offline)
         await ctx.send("Bot is Closed!")
-        # await db.close()
         await bot.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
@@ -113,6 +111,12 @@ async def quit(ctx):
 @bot.command()
 async def ping(ctx):
     await ctx.send(f"Pong! {round(bot.latency * 1000)}ms")
+##
+
+#➥ Ping
+@bot.command()
+async def cancel(ctx):
+    await ctx.send("Action has been canceled",  delete_after = 3)
 ##
 
 #➥ Info command
@@ -160,7 +164,7 @@ async def reload(ctx, *, extension: str):
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
 
-cogsList = ["botFun", "error_handler", "utilities", "voting"]
+cogsList = ["botFun", "clipboard", "error_handler", "utilities", "voting"]
 for cog in cogsList:
     bot.load_extension(f'cogs.{cog}')
 

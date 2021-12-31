@@ -1,6 +1,7 @@
 import discord, traceback
 from main import randomHexGen
-from utils.poll_class import *
+from utils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
+from utils.views import Confirm, Cancel
 from datetime import datetime, timedelta, timezone
 from discord.ext import commands
 from collections import defaultdict, Counter
@@ -458,7 +459,7 @@ class voting(commands.Cog):
     async def on_ready(self):
         print("voting is Ready")
 
-    @commands.group(aliases = ["poll", "v", "p"])
+    @commands.group(aliases = ["poll", "p"])
     async def vote(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}poll create`")
