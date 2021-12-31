@@ -1,6 +1,7 @@
 import discord
 import asyncio
-from utils.poll_class import Confirm, Cancel, readfromFile, writetoFile
+from utils.poll_class import readfromFile, writetoFile
+from utils.views import Cancel, Confirm
 from discord.ext import commands
 from main import randomHexGen
 
@@ -25,18 +26,16 @@ class utilities(commands.Cog):
         )
         view = Cancel()
         prefixEmbed = await ctx.send(embed = embed, view = view)
-        stuff = await self.multi_wait(ctx, view, 50)
-        if isinstance(stuff, str):
-            newPrefix = stuff
-            prefixes = readfromFile("prefixes")
-            prefixes[str(ctx.guild.id)] = newPrefix
-            writetoFile(prefixes, "prefixes")
-            embed.description = f"Successfully changed **standard prefix** to: `{newPrefix}`"
-            await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
-            await ctx.channel.purge(limit = 1)
-        else:
+        newPrefix = await self.multi_wait(ctx, view, 50)
+        if not newPrefix:
             embed.description = f"Prefix menu canceled. \n**Standard prefix**: `{ctx.prefix}`"
-            await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
+            return await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
+        prefixes = readfromFile("prefixes")
+        prefixes[str(ctx.guild.id)] = newPrefix
+        writetoFile(prefixes, "prefixes")
+        embed.description = f"Successfully changed **standard prefix** to: `{newPrefix}`"
+        await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
+        await ctx.channel.purge(limit = 1)
         
     @prefix.error
     async def prefix_error(self, ctx, error):
@@ -98,7 +97,7 @@ class utilities(commands.Cog):
                 return msg.content
 
         except asyncio.TimeoutError:
-            return await ctx.send("You took too long, try again!", delete_after = 5)
+            return await ctx.send("You took too long, try again! -- ", delete_after = 5)
     ##
 
     #➥ multi_wait command
@@ -114,9 +113,13 @@ class utilities(commands.Cog):
                             return_when = asyncio.FIRST_COMPLETED)
         try:
             stuff = done.pop().result()
-            return stuff
+            if isinstance(stuff, str):
+                return stuff
+            else:
+                pending.pop().cancel()
+                return None
         except KeyError:
-                await ctx.send("Something went wrong, keyError")
+                await ctx.send("You took too long, try again!", delete_after = 5)
         except Exception as e: 
             print(e) 
             
