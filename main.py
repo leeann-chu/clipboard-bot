@@ -6,7 +6,7 @@ from utils.poll_class import readfromFile, writetoFile
 
 description = "I can store long term, short term, and immediate goals!"
 
-#➥ randomHexGen
+#* randomHexGen
 def randomHexGen():
     # Create a random hex value
     return random.randint(0, 16777215)
@@ -25,17 +25,17 @@ def get_prefix(bot, message):
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
 bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
-    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents) #removed db=db
+    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents)
 bot.remove_command('help')
 
-#➥ on ready command
+#* on ready command
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     print("------------------------------")
 ##
 
-#➥ .json manipulation
+#* .json manipulation
 @bot.event
 async def on_guild_join(guild):
     prefixes = readfromFile("prefixes")
@@ -50,7 +50,7 @@ async def on_guild_remove(guild):
     writetoFile(prefixes, "prefixes")
 ##
 
-#➥ Help command
+#* Help command
 @bot.command(aliases = ["chelp"])
 async def help(ctx, argument=None):
     await ctx.trigger_typing()
@@ -59,7 +59,7 @@ async def help(ctx, argument=None):
     prefix = ctx.prefix
 
     if argument is None:
-        # ➥ Embed for Empty Argument
+        # * Embed for Empty Argument
         embed = discord.Embed(
             description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
@@ -96,30 +96,29 @@ async def help(ctx, argument=None):
         await ctx.send(embed=embed)
 ##
 
-#➥ Close Bot
+#* Close Bot
 @bot.command(aliases = ["close"])
 async def quit(ctx):
     if await bot.is_owner(ctx.author):
-        await bot.change_presence(status=discord.Status.offline)
         await ctx.send("Bot is Closed!")
         await bot.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
 ##
 
-#➥ Ping
+#* Ping
 @bot.command()
 async def ping(ctx):
     await ctx.send(f"Pong! {round(bot.latency * 1000)}ms")
 ##
 
-#➥ Ping
+#* Cancel
 @bot.command()
 async def cancel(ctx):
     await ctx.send("Action has been canceled",  delete_after = 3)
 ##
 
-#➥ Info command
+#* Info command
 @bot.command()
 async def info(ctx):
     await ctx.trigger_typing()
@@ -153,7 +152,7 @@ async def info(ctx):
     await ctx.send(embed=embed)
 ##
 
-#➥ loading and unloading
+#* loading and unloading
 @bot.command(aliases = ["Reload"])
 @commands.is_owner()
 async def reload(ctx, *, extension: str):

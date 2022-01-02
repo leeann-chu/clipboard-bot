@@ -1,5 +1,7 @@
+from typing import List
 import discord
 import re
+
 from main import randomHexGen
 from utils.models import Session, Lists, Tasks, recreate
 from utils.views import Cancel, Confirm
@@ -11,20 +13,96 @@ def formatContent(data):
     spaceless = [{s.strip()} for s in itemList]
     return spaceless
 
-class Selection(discord.ui.View):
-    def __init__(self, embed, optionList, numList):
+class ListView(discord.ui.View):
+    def __init__(self, titleList, numList, nextStep):
         super().__init__()
-        self.add_item(SelectMenu(embed, optionList, numList))
+        self.nextStep = nextStep
+        
+        for emoji, title in zip(numList, titleList):
+            button = ListButton(emoji, title)
+            self.add_item(button)
+        
+        cancelButton = discord.ui.Button(emoji = "<:cancel:851278899270909993>", label="Cancel", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
+        self.add_item(cancelButton)
+        
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        selected = list(interaction.data.values())[0]
+        if selected == "cancel":
+            await self.message.delete()
+        elif selected == "done":
+            await interaction.response.edit_message(view = None)
+            
+        return await super().interaction_check(interaction)
 
-class SelectMenu(discord.ui.Select):
-    def __init__(self, embed, optionList, numList):
-        menuOptionList = [discord.SelectOption(label=option, emoji=num) for option, num in zip(optionList, numList)]
-        super().__init__(placeholder = "Select your List",
-                         options = menuOptionList)
-        self.embed = embed
+class ListButton(discord.ui.Button['ListView']):
+    def __init__(self, emoji, title):
+        super().__init__(style=discord.ButtonStyle.gray, emoji = emoji, label = title)
+        
+    async def callback(self, interaction: discord.Interaction):
+        done = discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", 
+                                 style=discord.ButtonStyle.green, custom_id="done", row=4)
+        
+        if done not in self.view.children:
+            print("done is not in children")
+            self.view.add_item(done)
+        else:
+            print("done is in children")
+        
+        await interaction.response.edit_message(embed = view(self.label), view=self.view)
+        
+class ListSettings(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        # self.add_item(ScopeSelect(self.view))
+        
+    @discord.ui.button(emoji="✏", label="Rename List", style=discord.ButtonStyle.gray)
+    async def edit(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("rename list")
+        
+    @discord.ui.button(emoji="🙈", label="Hide List", style=discord.ButtonStyle.gray)
+    async def hide(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("hide list")
+        
+    @discord.ui.button(emoji="<:trash:926991605615960064>", label="Delete List", style=discord.ButtonStyle.red)
+    async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("delete list")
+        
+class TaskSettings(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        # self.add_item(ScopeSelect(self.view))
+        
+    @discord.ui.button(emoji="✏", label="Rename Task", style=discord.ButtonStyle.gray)
+    async def edit(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("rename task")
+        
+    @discord.ui.button(emoji="➕", label="Add Task", style=discord.ButtonStyle.primary)
+    async def add(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("add tasks")
+        
+    @discord.ui.button(emoji="<:cross:926283850882088990>", label="Remove Task", style=discord.ButtonStyle.red)
+    async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
+        print("remove task")
+
+class ScopeSelect(discord.ui.Select):
+    def __init__(self, listView):
+        self.listOption = discord.SelectOption(label="List Settings", emoji="<:list:927096692069789696>")
+        self.taskOption = discord.SelectOption(label="Task Settings", emoji="<:notdone:926280852856504370>")
+        self.backOption = discord.SelectOption(label="Go Back", emoji="◀️")
+        
+        self.oldView = listView
+        
+        super().__init__(placeholder = "Select between List and Task Settings",
+                         options = [self.listOption, self.taskOption, self.backOption])
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(embed = view(self.values[0], self.embed), view=None)      
+        if self.values[0] == "List Settings":
+            view = ListSettings()
+        elif self.values[0] == "Task Settings":
+            view = TaskSettings()
+        else:
+            view = self.oldView
+        return await interaction.response.edit_message(view = view)     
 
 #* Setting up Cog   
 class clipboard(commands.Cog):
@@ -109,7 +187,7 @@ class clipboard(commands.Cog):
             embed.description = "Confirmation menu timed out!"
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 3)
         elif view.value:
-            _list = Lists(title = title, author = str(ctx.author.id))
+            _list = Lists(title = title, author = str(ctx.author.id), author_name = member.name)
             s = Session()
             s.add(_list)
             for task in taskList:
@@ -126,39 +204,25 @@ class clipboard(commands.Cog):
 ##
 
 #* Select your lists
-    @_list.command(aliases = ["b"])
+    @_list.command(aliases = ["b", "view"])
     async def browse(self, ctx, *, filter=None):
         s = Session()
         if filter is None:
             allLists = s.query(Lists).filter_by(author = str(ctx.author.id)).all()
             member = ctx.guild.get_member(ctx.author.id)
-            try: pfp = member.avatar.url
-            except: pfp = None
   
         s.close()
 
-        await ctx.trigger_typing()
-        embed = discord.Embed (
-            title = "Choose the list you want to view",
-            description = "",
-            color = randomHexGen()
-        )
-        embed.set_footer(text=f"Lists owned by {member}", icon_url=pfp if pfp else '')
-
         if len(allLists) > 1:
             numList = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-            listofLists = [f"{num} {_list.title}" for _list, num in zip(allLists, numList)]
-            numList = numList[:len(listofLists)]
             titleList = [_list.title for _list in allLists]
-            embed.description = "\n".join(listofLists)
+            numList = numList[:len(titleList)]
         elif len(allLists) == 1:
             return await ctx.send(embed = view(allLists[0].title))
         else:
-            embed.description = f"No lists found for this user! Create a list using `{ctx.prefix}list create`"
-            return await ctx.send(embed = embed)
-
-        ListView = Selection(embed, titleList, numList)
-        ListView.message = await ctx.send(f"> Selecting owned lists! • [{member}]", embed = embed, view = ListView)
+            return await ctx.send(f"No lists found for this user! Create a list using `{ctx.prefix}list create`")
+        viewListObject = ListView(titleList, numList, False)
+        viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member}]", view = viewListObject)
 ##
 
 #* View one list
@@ -197,23 +261,18 @@ class clipboard(commands.Cog):
 def setup(bot):
     bot.add_cog(clipboard(bot))
 
-def view(title, embed=None):
+def view(title):
     s = Session()
     selList = s.query(Lists).filter_by(title = title).first()
     taskList = [f"{task.status} {task.taskItem}" for task in selList.rel_tasks]
     s.close()
-
-    if embed is None:
-        embed = discord.Embed(
-            title = selList.title,
-            description = "\n".join(taskList),
-            color = 0x2F3136,
-            timestamp = selList.created
-        )
-    else:
-        embed.title = selList.title
-        embed.description = "\n".join(taskList)
-        embed.color = 0x2F3136
-        embed.timestamp = selList.created
+    
+    embed = discord.Embed(
+        title = selList.title,
+        description = "\n".join(taskList),
+        color = 0x2F3136,
+        timestamp = selList.created
+    )
+    embed.set_footer(text = f"Owned by {selList.author_name}")
 
     return embed
