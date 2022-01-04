@@ -3,8 +3,10 @@ import random
 from utils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
 from utils.poll_class import readfromFile, writetoFile
+from utils.models import Session
 
 description = "I can store long term, short term, and immediate goals!"
+db = Session()
 
 #* randomHexGen
 def randomHexGen():
@@ -25,7 +27,7 @@ def get_prefix(bot, message):
 intents = discord.Intents.default()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
 bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
-    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents)
+    type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
 bot.remove_command('help')
 
 #* on ready command
@@ -102,6 +104,7 @@ async def quit(ctx):
     if await bot.is_owner(ctx.author):
         await ctx.send("Bot is Closed!")
         await bot.close()
+        await db.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
 ##
