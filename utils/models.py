@@ -28,6 +28,7 @@ class Tasks(Base):
     taskID = Column(Integer, primary_key = True)
     listID = Column(Integer, ForeignKey('lists.id'), nullable=False)
     taskItem = Column(Text)
+    number = Column(Integer)
     status = Column(String, default= "<:notdone:926280852856504370>")
 
     rel_list = relationship('Lists', back_populates='rel_tasks')
