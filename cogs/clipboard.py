@@ -1,6 +1,9 @@
+from random import random
 from typing import List
 import discord
 import re
+
+from discord.enums import NotificationLevel
 
 from main import randomHexGen, db
 from utils.models import Lists, Tasks, recreate
@@ -14,14 +17,18 @@ def formatContent(data):
     return spaceless
 
 class ListView(discord.ui.View):
-    def __init__(self, ctx, db, titleList, numList):
+    def __init__(self, ctx, bot, titleList, numList):
         super().__init__()
         self.ctx = ctx
-        self.db = db
+        self.bot = bot
         
-        for emoji, title in zip(numList, titleList):
-            button = ListButton(emoji, title)
-            self.add_item(button)
+        if titleList:
+            for emoji, title in zip(numList, titleList):
+                button = ListButton(emoji, title)
+                self.add_item(button)
+        else:
+            self.add_item(ScopeSelect(self))
+            self.add_item(discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, custom_id = "done", row=4))
             
     @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
     async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -41,13 +48,13 @@ class ListButton(discord.ui.Button['ListView']):
         super().__init__(emoji = emoji, label = title)
         
     async def callback(self, interaction: discord.Interaction):   
-        menu = ScopeSelect(self)
+        menu = ScopeSelect(self.view)
         done = discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, custom_id = "done", row=4)
         childrenCID = []
  
         for child in self.view.children:
             try:
-                childrenCID.append(child.custom_id)
+                childrenCID.append(child.custom_id) # had trouble with self.view.children
             except: pass
 
         if done.custom_id not in childrenCID:
@@ -55,12 +62,13 @@ class ListButton(discord.ui.Button['ListView']):
         if menu.custom_id not in childrenCID:
             self.view.add_item(menu)
             
-        selList = self.view.db.query(Lists).filter_by(title = self.label).first()     
+        selList = self.view.bot.db.query(Lists).filter_by(title = self.label).first()     
         await interaction.response.edit_message(embed = view(selList), view=self.view)
         
 class ListSettings(discord.ui.View):
     def __init__(self, ogView):
         super().__init__()
+        self.ogView = ogView
         self.add_item(ScopeSelect(ogView))
         
     @discord.ui.button(emoji="✏", label="Rename List", style=discord.ButtonStyle.gray)
@@ -73,7 +81,8 @@ class ListSettings(discord.ui.View):
         
     @discord.ui.button(emoji="<:trash:926991605615960064>", label="Delete List", style=discord.ButtonStyle.red)
     async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
-        print("delete list")
+        await self.ogView.message.delete()
+        await self.ogView.bot._list.get_command('delete')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
         
 class TaskSettings(discord.ui.View):
     def __init__(self, ogView):
@@ -83,8 +92,8 @@ class TaskSettings(discord.ui.View):
         
     @discord.ui.button(emoji="<:check:926281518266073088>", label="Change Task Status", style=discord.ButtonStyle.green)
     async def status(self, button: discord.ui.button, interaction: discord.Interaction):
-        print(self.view.message.embeds)
-        # await interaction.response.edit_message(content="this changed", embed = self.ogView.message.embeds[0])
+        await self.ogView.message.delete()
+        await self.ogView.bot._list.get_command('complete')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="✏", label="Rename Task", style=discord.ButtonStyle.gray)
     async def edit(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -99,24 +108,53 @@ class TaskSettings(discord.ui.View):
         print("remove task")
 
 class CompleteView(discord.ui.View):
-    def __init__(self, ctx, db, title):
+    def __init__(self, ctx, bot, title):
         super().__init__()
         self.ctx = ctx
         self.title = title
-        self.db = db
-        selList = self.db.query(Lists).filter_by(title = title).first()
-        for task in selList.rel_tasks:
-            self.add_item(CompleteButtons(task.status, task.taskItem))
+        self.bot = bot
+        self.selList = self.bot.db.query(Lists).filter_by(title = title).first()
+        taskList = self.bot.db.query(Tasks).filter_by(listID = self.selList.id).order_by(Tasks.number.asc())
+        for task in taskList:
+            if task.status == "<:check:926281518266073088>":
+                style = discord.ButtonStyle.green
+            elif task.status == "<:wip:926281721224265728>":
+                style = discord.ButtonStyle.blurple
+            else:
+                style = discord.ButtonStyle.secondary
+            self.add_item(CompleteButtons(task.status, task.number, style))
+        
+        self.add_item(ScopeSelect(self))
+        
+    @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, row=4)
+    async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
+        await self.message.delete()
+        
+    @discord.ui.button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, row=4)
+    async def confirm(self, button: discord.ui.button, interaction: discord.Interaction):
+        await interaction.response.edit_message(view = None)
         
 class CompleteButtons(discord.ui.Button):
-    def __init__(self, emoji, label):
-        super().__init__(emoji = emoji, label = label)
+    def __init__(self, emoji, label, style):
+        super().__init__(emoji = emoji, label = label, style = style)
         
     async def callback(self, interaction: discord.Interaction):  
-        selTask = self.view.db.query(Tasks).filter_by(taskItem = self.label)
-        selTask.status = "<:check:926281518266073088>"
-        self.view.db.commit()
-        await interaction.response.edit_message(embed = view(selTask, True))
+        selTask = self.view.bot.db.query(Tasks).filter_by(number = self.label).first()
+        
+        if selTask.status == "<:check:926281518266073088>":
+            selTask.taskItem = selTask.taskItem.replace("~", "*")
+            selTask.status = "<:wip:926281721224265728>"
+        elif selTask.status == "<:wip:926281721224265728>":
+            selTask.taskItem = selTask.taskItem.replace("*", "")
+            selTask.status = "<:notdone:926280852856504370>"
+        else:
+            selTask.taskItem = f"~~{selTask.taskItem}~~"
+            selTask.status = "<:check:926281518266073088>"
+        self.view.bot.db.commit()
+        
+        checkoffView =  CompleteView(self.view.ctx, self.view.bot, self.view.title)
+        checkoffView.message = self.view.message
+        await interaction.response.edit_message(embed = view(self.view.selList, True), view = checkoffView)
 
 class ScopeSelect(discord.ui.Select):
     def __init__(self, ogView):
@@ -158,7 +196,23 @@ class clipboard(commands.Cog):
     async def note(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f"Note subcommands are wip, use `{ctx.prefix}list create` to create lists instead")
-##
+
+#* -------    Help Command   -------
+    @_list.command()
+    async def help(self, ctx):
+        embed = discord.Embed(
+            title = "Help Menu",
+            description =
+            f"""`{ctx.prefix}list make`
+            `{ctx.prefix}list view`
+            `{ctx.prefix}list view <title>`
+            `{ctx.prefix}list complete`
+            `{ctx.prefix}list delete`
+            `{ctx.prefix}view <title>`
+            """,
+            color = randomHexGen()
+        ) 
+        await ctx.send(embed = embed)
     
 #* -------    List Creation   -------
     @_list.command(aliases = ["create", "new", "c", "m"])
@@ -180,17 +234,18 @@ class clipboard(commands.Cog):
             embed.set_footer(text=f"{member}'s list | Title cannot exceed 200 characters") 
             titlePrompt = await ctx.send(f"> This question will time out in `3 minutes` • [{member}]", embed = embed, view = view)
             title = await self.bot.get_command('multi_wait')(ctx, view, 180)
-            if len(title) > 200:
-                title = False
-                return await ctx.send("Title cannot exceed 200 characters, try again")
             if not title:
                 embed.description = f"List Creation canceled."
                 embed.remove_footer()
                 return await titlePrompt.edit(embed = embed, view = None, delete_after = 5)
+            if len(title) > 200:
+                title = False
+                return await ctx.send("Title cannot exceed 200 characters, try again.")
+            
             await titlePrompt.delete()
 
         if "\n" not in title:
-            embed.description = "Enter the tasks you wish to complete seperated by *new lines*"
+            embed.description = "Enter the tasks you wish to complete separated by *new lines*"
             embed.set_footer(text=f"{member}'s list")
             tasksPrompt = await ctx.send(f"> This question will time out in `6 minutes` • [{member}]", embed = embed, view = view)
             taskString = await self.bot.get_command('multi_wait')(ctx, view, 400)
@@ -213,9 +268,9 @@ class clipboard(commands.Cog):
             description = taskString, 
             color = 0x2F3136
         )
-        embed.set_footer(text=f"Owned by {member}", icon_url=pfp if pfp else '')
+        embed.set_footer(text=f"Created by {member}", icon_url=pfp if pfp else '')
         view = Confirm()
-        confirmationEmbed = await ctx.send("Does this look correct?", embed = embed, view=view)
+        confirmationEmbed = await ctx.send(f"> Does this look correct? • [{member}]", embed = embed, view=view)
     ##
         await view.wait()
         if view.value is None:
@@ -224,8 +279,8 @@ class clipboard(commands.Cog):
         elif view.value:
             _list = Lists(title = title, author = str(ctx.author.id), author_name = member.name)
             self.db.add(_list)
-            for task in taskList:
-                newTask = Tasks(listID = _list.id, taskItem = task)
+            for task in enumerate(taskList, start=1):
+                newTask = Tasks(listID = _list.id, taskItem = task[1], number = task[0])
                 self.db.add(newTask)
                 _list.rel_tasks.append(newTask)
 
@@ -234,9 +289,8 @@ class clipboard(commands.Cog):
         else:
             embed.description = "List canceled!"
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 5)
-##
 
-#* Select your lists
+#* Select your lists (allows for looser searches)
     @_list.command(aliases = ["b", "view"])
     async def browse(self, ctx, *, filterOption=None):
         member = ctx.guild.get_member(ctx.author.id)
@@ -253,24 +307,51 @@ class clipboard(commands.Cog):
             titleList = [_list.title for _list in allLists]
             numList = numList[:len(titleList)]
         elif len(allLists) == 1:
-            return await ctx.send(embed = view(allLists[0]))
+            listView = ListView(ctx, self, titleList = None, numList = None)
+            listView.message = await ctx.send(embed = view(allLists[0]), view=listView)
+            return
         else:
             return await ctx.send(f"List(s) not found! Create a list using `{ctx.prefix}list create`")
-        viewListObject = ListView(ctx, self.db, titleList, numList)
+        viewListObject = ListView(ctx, self, titleList, numList)
         viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member}]", view = viewListObject)
-##
+
 #* Mark Tasks as complete
     @_list.command(aliases = ["checkoff"])
     async def complete(self, ctx, *, title: str):
-        selList = self.db.query(Lists).filter_by(title = title).first()
-        await ctx.send(embed = view(selList, True), view = CompleteView(ctx, self.db, title))
+        selList = await self._list.get_command('_checkExistence')(ctx, title)
+        checkView = CompleteView(ctx, self, title)
+        checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
     
     @complete.error
     async def _list_handler(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             if error.param.name == 'title':
-                await ctx.send("You must specify which List's tasks you would like to mark complete")
-##      
+                await ctx.send("You must specify which List's tasks you would like to mark complete.")  
+
+#* Delete a List
+    @_list.command()
+    async def delete(self, ctx, *, title):
+        member = ctx.guild.get_member(ctx.author.id)
+        selList = await self._list.get_command('_checkExistence')(ctx, title)
+        confirmView = Confirm()
+        confirmationEmbed = await ctx.send(f"> Are you sure you want to delete this list? • [{member}]", embed = view(selList), view = confirmView)
+        await confirmView.wait()
+        if confirmView.value is None:
+            await ctx.send("Confirmation menu timed out!", delete_after = 5)
+        elif confirmView.value:
+            self.db.delete(selList)
+            self.db.commit()
+            await ctx.send("Database Updated!", delete_after = 5)
+        else:
+            await ctx.send("Confirmation menu canceled!", delete_after = 5)
+        await confirmationEmbed.delete()
+        
+    @delete.error
+    async def delete_handler(self, ctx, error):
+        print(error)
+        if isinstance(error, commands.MissingRequiredArgument):
+            if error.param.name == 'title':
+                await ctx.send("You must specify what list you would like to delete.") 
 
 #* View one list
     @commands.command(aliases = ["view", "v"]) # command that is not nested in the Note Group
@@ -282,13 +363,19 @@ class clipboard(commands.Cog):
             selList = self.db.query(Lists).filter_by(title = title).first()
             await ctx.send(embed = view(selList))
 
-##
-
 #* Other Commands
     @_list.command()
     async def recreate(self, ctx):
         recreate()
         await ctx.send("Database recreated")
+        
+    @_list.command()
+    async def _checkExistence(self, ctx, title):
+        selList = self.db.query(Lists).filter_by(title = title).first()
+        if selList is None:
+            return await ctx.send(f"No lists were found with name: `{title}`!")
+        else:
+            return selList
 
     @_list.command()
     async def emoji(self,ctx):
@@ -304,25 +391,21 @@ class clipboard(commands.Cog):
         )
 
         await ctx.send(embed = embed)
-##
 
+#* Given query object, returns embed
 def view(selList, numbered=None):
-    if selList:
-        if numbered:
-            taskList = [(f"{task[1].status} {format(task[0], '>3')}. {task[1].taskItem}") for task in enumerate(selList.rel_tasks, start = 1)]
-        else:
-            taskList = [(f"{task[1].status} {task[1].taskItem}") for task in enumerate(selList.rel_tasks, start = 1)]
-        embed = discord.Embed(
-            title = selList.title,
-            description = f"\n".join(taskList),
-            color = 0x2F3136,
-            timestamp = selList.created
-        )
-        embed.set_footer(text = f"Owned by {selList.author_name}")
+    sortedTasks = sorted(selList.rel_tasks, key = lambda task: task.number) #sorts by number instead of most recently updated
+    if numbered:
+        taskList = [f"{task.status} {task.number}. {task.taskItem}" for task in sortedTasks]
     else:
-        embed = discord.Embed(
-            title = f"No lists were found with that name!"
-        )      
+        taskList = [f"{task.status} {task.taskItem}" for task in sortedTasks]
+    embed = discord.Embed(
+        title = selList.title,
+        description = f"\n".join(taskList),
+        color = 0x2F3136,
+        timestamp = selList.created
+    )
+    embed.set_footer(text = f"Created by {selList.author_name}")
     return embed
 
 def setup(bot):
