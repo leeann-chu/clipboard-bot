@@ -1,14 +1,10 @@
-from random import random
-from typing import List
-import discord
-import re
-
-from discord.enums import NotificationLevel
-
+from sqlalchemy.sql.functions import next_value
 from main import randomHexGen, db
 from utils.models import Lists, Tasks, recreate
 from utils.views import Cancel, Confirm
 from discord.ext import commands
+import discord
+import re
 
 def formatContent(data):
     items = (re.sub('\n- |\n-|\n• |\n•', '\n', data))
@@ -26,13 +22,18 @@ class ListView(discord.ui.View):
             for emoji, title in zip(numList, titleList):
                 button = ListButton(emoji, title)
                 self.add_item(button)
+            
+            backButton = PageButtons("⇽ Back", discord.ButtonStyle.gray)
+            self.add_item(backButton)
+            nextButton = PageButtons("⇾ Next", discord.ButtonStyle.blurple)
+            self.add_item(nextButton)
         else:
             self.add_item(ScopeSelect(self))
             self.add_item(discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, custom_id = "done", row=4))
             
     @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
     async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
-        await self.message.delete()
+        await self.message.delete() 
         
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.ctx.author.id:
@@ -64,6 +65,14 @@ class ListButton(discord.ui.Button['ListView']):
             
         selList = self.view.bot.db.query(Lists).filter_by(title = self.label).first()     
         await interaction.response.edit_message(embed = view(selList), view=self.view)
+   
+class PageButtons(discord.ui.Button['ListView']):
+    def __init__(self, label, style):
+        super().__init__(label = label, style = style, row = 4)
+        
+    async def callback(self, interaction:discord.Interaction):
+        await self.view.message.delete()
+        await self.view.bot._list.get_command('browse')(ctx=self.view.ctx, pagenum = 1) 
         
 class ListSettings(discord.ui.View):
     def __init__(self, ogView):
@@ -114,7 +123,7 @@ class CompleteView(discord.ui.View):
         self.title = title
         self.bot = bot
         self.selList = self.bot.db.query(Lists).filter_by(title = title).first()
-        taskList = self.bot.db.query(Tasks).filter_by(listID = self.selList.id).order_by(Tasks.number.asc())
+        taskList = sorted(self.selList.rel_tasks, key = lambda task: task.number)
         for task in taskList:
             if task.status == "<:check:926281518266073088>":
                 style = discord.ButtonStyle.green
@@ -139,7 +148,7 @@ class CompleteButtons(discord.ui.Button):
         super().__init__(emoji = emoji, label = label, style = style)
         
     async def callback(self, interaction: discord.Interaction):  
-        selTask = self.view.bot.db.query(Tasks).filter_by(number = self.label).first()
+        selTask = self.view.bot.db.query(Tasks).filter_by(listID = self.view.selList.id).filter_by(number = self.label).first()
         
         if selTask.status == "<:check:926281518266073088>":
             selTask.taskItem = selTask.taskItem.replace("~", "*")
@@ -292,7 +301,7 @@ class clipboard(commands.Cog):
 
 #* Select your lists (allows for looser searches)
     @_list.command(aliases = ["b", "view"])
-    async def browse(self, ctx, *, filterOption=None):
+    async def browse(self, ctx, *, filterOption=None, pagenum = 0):
         member = ctx.guild.get_member(ctx.author.id)
     
         if filterOption is None:
@@ -301,19 +310,24 @@ class clipboard(commands.Cog):
             allLists = self.db.query(Lists).filter(Lists.title.like(f'{filterOption}%')).all()
             if not allLists:
                 allLists = self.db.query(Lists).filter(Lists.author_name.like(f'{filterOption}%')).all()
+       
+        allLists = chunkList(allLists, 20)
 
-        if len(allLists) > 1:
+        if len(allLists[pagenum]) > 1:
             numList = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-            titleList = [_list.title for _list in allLists]
+            titleList = [_list.title for _list in allLists[pagenum]]
             numList = numList[:len(titleList)]
-        elif len(allLists) == 1:
-            listView = ListView(ctx, self, titleList = None, numList = None)
-            listView.message = await ctx.send(embed = view(allLists[0]), view=listView)
+        elif len(allLists[pagenum]) == 1:
+            viewListObject = ListView(ctx, self, titleList = None, numList = None)
+            viewListObject.message = await ctx.send(embed = view(allLists[pagenum][0]), view=viewListObject)
             return
         else:
             return await ctx.send(f"List(s) not found! Create a list using `{ctx.prefix}list create`")
         viewListObject = ListView(ctx, self, titleList, numList)
         viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member}]", view = viewListObject)
+    @browse.error
+    async def _browse_handler(self, ctx, error):
+        print(error)
 
 #* Mark Tasks as complete
     @_list.command(aliases = ["checkoff"])
@@ -327,6 +341,8 @@ class clipboard(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             if error.param.name == 'title':
                 await ctx.send("You must specify which List's tasks you would like to mark complete.")  
+        else:
+            print(error)
 
 #* Delete a List
     @_list.command()
@@ -357,7 +373,7 @@ class clipboard(commands.Cog):
     @commands.command(aliases = ["view", "v"]) # command that is not nested in the Note Group
     async def open(self, ctx, *, title=None):
         if title is None:
-            await self._list.get_command('browse')(ctx)
+            await self._list.get_command('browse')(ctx, pagenum = 0)
 
         else:
             selList = self.db.query(Lists).filter_by(title = title).first()
@@ -375,7 +391,7 @@ class clipboard(commands.Cog):
         if selList is None:
             return await ctx.send(f"No lists were found with name: `{title}`!")
         else:
-            return selList
+            return selList 
 
     @_list.command()
     async def emoji(self,ctx):
@@ -407,6 +423,10 @@ def view(selList, numbered=None):
     )
     embed.set_footer(text = f"Created by {selList.author_name}")
     return embed
+
+def chunkList(queryList, n): #chunk a list into lists of n size
+    queryList = [queryList[i:i + n] for i in range(0, len(queryList), n)]
+    return queryList
 
 def setup(bot):
     bot.add_cog(clipboard(bot))
