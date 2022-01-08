@@ -13,7 +13,7 @@ class Lists(Base):
     __tablename__ = "lists"
     id = Column(Integer, primary_key = True)
     title = Column(String(200))
-    author = Column(String)
+    author = Column(String) #author_id
     author_name = Column(String)
     created = Column(DateTime, default = datetime.now())
     private = Column(Boolean, default = True)

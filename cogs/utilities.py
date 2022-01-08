@@ -24,7 +24,7 @@ class utilities(commands.Cog):
             description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
             color = randomHexGen()
         )
-        view = Cancel()
+        view = Cancel(ctx)
         prefixEmbed = await ctx.send(embed = embed, view = view)
         newPrefix = await self.multi_wait(ctx, view, 50)
         if not newPrefix:
@@ -49,7 +49,7 @@ class utilities(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def clear(self, ctx, amount: int = 10, override = None):
         if override is None:
-            view = Confirm()
+            view = Confirm(ctx)
             msg = await ctx.send(f"Clear {amount} messages?", view = view)
             await view.wait()
             if view.value is None:

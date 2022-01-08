@@ -210,7 +210,7 @@ class SettingsButton(discord.ui.Button['Settings']):
         #* If button is timelimit
         if self.emoji.name == '⌛':
             pollStarted = self.pollEmbed.timestamp
-            view = Confirm()
+            view = Confirm(self.ctx)
             try: await self.pollMessage.delete()
             except: pass
 
@@ -276,7 +276,7 @@ class SettingsButton(discord.ui.Button['Settings']):
         #* If button is edit
         if self.emoji.name == '➕':
             await interaction.response.defer()
-            view = Confirm()
+            view = Confirm(self.ctx)
             try: await self.pollMessage.delete()
             except: pass
 
