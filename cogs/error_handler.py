@@ -1,4 +1,3 @@
-import discord
 import traceback
 import sys
 from discord.ext import commands
@@ -14,7 +13,9 @@ class CommandErrorHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
-        # prefix = get_prefix(self.bot, ctx)
+        if hasattr(ctx.command, 'on_error'):
+            return
+        
         if ctx.author == self.bot.user:
             return
         if hasattr(ctx.command, 'on_error'):
