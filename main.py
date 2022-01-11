@@ -4,9 +4,11 @@ from utils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
 from utils.poll_class import readfromFile, writetoFile
 from utils.models import Session
+from utils.views import EmbedPageView
 
-description = "I can store long term, short term, and immediate goals!"
 db = Session()
+override = "^"
+description = "I can store long term, short term, and immediate goals!"
 
 #* randomHexGen
 def randomHexGen():
@@ -56,46 +58,66 @@ async def on_guild_remove(guild):
 @bot.command(aliases = ["chelp"])
 async def help(ctx, argument=None):
     await ctx.trigger_typing()
-
-    # Get server prefix
-    prefix = ctx.prefix
+    
+    p = ctx.prefix
 
     if argument is None:
-        # * Embed for Empty Argument
-        embed = discord.Embed(
+        PageOneembed = discord.Embed(
             description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
             timestamp=discord.utils.utcnow()
         )
-
-        embed.set_author(
+        PageOneembed.set_footer(text="Page 1/2")
+        PageOneembed.set_author(
             name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
         
-        embed.add_field(name="<:voteicon:881035523102236684> Voting Commands",
-                        value=(f"""[`{prefix}poll create`](https://i.imgur.com/dV7GBcih.jpg \"Aliases: v make, vote create, p make, vote start, p m...\") ➙ Guides you through making a poll
-                               `{prefix}poll create <Title>` ➙ Speeds things along 
-                               `{prefix}poll example` ➙ Sends you a dm with an example being created
-                               `{prefix}poll submit` ➙ DM the bot with this command and an attached image to submit your image to the poll
+        PageOneembed.add_field(name="<:voteicon:881035523102236684> Voting Commands",
+                        value=(f"""[`{p}poll create`](https://i.imgur.com/dV7GBcih.jpg \"Aliases: v make, vote create, p make, vote start, p m...\") ➙ Guides you through making a poll
+                               `{p}poll create <Title>` ➙ Speeds things along 
+                               `{p}poll example` ➙ Sends you a dm with an example being created
                                """))
         
-        embed.add_field(name="<a:settings:845834409869180938> Useful Commands",
-                        value=(f"""[`{prefix}avatar`](https://i.imgur.com/dV7GBcih.jpg "Works with nicknames or usernames. ex: {prefix}avatar Graceless") ➙ Returns user's avatar
-                    [`{prefix}clear x`](https://i.imgur.com/dV7GBcih.jpg "Aliases: {prefix}purge") ➙ Clears x number of messages (default is 10)
-                        `{prefix}info` ➙ Tells you more about this bot
-                        `{prefix}joined` ➙ Returns info about when user joined
-                        `{prefix}ping` ➙ Returns ping
-                        `{prefix}prefix` ➙ Edit the prefix used for commands on this server
+        PageOneembed.add_field(name="📋 Clipboard Commands",
+                        value=(f"""\n __Creation & Viewing__
+                                    `{p}list make` ➙ Create your first List!
+                                    `{p}view <title>` ➙ Just shows your list, plain and simple
+                                    `{p}list view` ➙ Menu to select which list you wish to view & edit
+                                    \n__List & Task Editing__
+                                    `{p}list rename <title>` ➙ Renaming lists
+                                    `{p}list delete <title>` ➙ Deleting lists
+                                    `{p}tasks complete <title>` ➙ Brings up checkoff tasks menu
+                                    `{p}tasks add <title>` ➙ Add more tasks to your list
+                                    `{p}tasks delete <title>` ➙ Brings up delete tasks menu
+                                    \n__Other__
+                                    `{p}list example` ➙ Examples of shortcuts you can take to make lists 
+                                    `{p}list help` ➙ More info on the commands!
+                                    """), inline=False)                         
+        PageTwoembed = discord.Embed(
+            description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
+            color=randomHexGen(),
+            timestamp=discord.utils.utcnow()
+        )
+        PageTwoembed.set_footer(text="Page 2/2")
+        PageTwoembed.set_author(
+            name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
+        PageTwoembed.add_field(name="<a:settings:845834409869180938> Useful Commands",
+                        value=(f"""[`{p}avatar`](https://i.imgur.com/dV7GBcih.jpg "Works with nicknames or usernames. ex: {p}avatar Graceless") ➙ Returns user's avatar
+                    [`{p}clear x`](https://i.imgur.com/dV7GBcih.jpg "Aliases: {p}purge") ➙ Clears x number of messages (default is 10)
+                        `{p}info` ➙ Tells you more about this bot
+                        `{p}joined` ➙ Returns info about when user joined
+                        `{p}ping` ➙ Returns ping
+                        `{p}prefix` ➙ Edit the prefix used for commands on this server
                     """),
                         inline=True)
                         
-        embed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
-                        value=(f"""[`{prefix}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {prefix}add 3 4 6") ➙ Adds numbers together 
-                    [`{prefix}repeat`](https://i.imgur.com/dV7GBcih.jpg "Aliases: mimic, copy. ex: {prefix}repeat doot") ➙ Repeats user input
-                    [`{prefix}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask <:8ball:845546744665735178> questions   
+        PageTwoembed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
+                        value=(f"""[`{p}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {p}add 3 4 6") ➙ Adds numbers together 
+                    [`{p}repeat`](https://i.imgur.com/dV7GBcih.jpg "Aliases: mimic, copy. ex: {p}repeat doot") ➙ Repeats user input
+                    [`{p}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask 🎱 questions   
                     """),
                         inline=True)
-
-        await ctx.send(embed=embed)
+        embedList = [PageOneembed, PageTwoembed]
+        await ctx.send(embed=PageOneembed, view=EmbedPageView(eList = embedList, pagenum = 0, totpage = 2))
 ##
 
 #* Close Bot
