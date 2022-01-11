@@ -16,7 +16,7 @@ class Lists(Base):
     author = Column(String) #author_id
     author_name = Column(String)
     created = Column(DateTime, default = datetime.now())
-    private = Column(Boolean, default = True)
+    private = Column(Boolean, default = False)
 
     rel_tasks = relationship('Tasks', back_populates='rel_list', cascade="all, delete, delete-orphan", lazy=True)
 

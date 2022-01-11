@@ -1,4 +1,6 @@
-from main import randomHexGen, db
+from main import randomHexGen
+from main import db as db
+from main import override as override
 from utils.models import Lists, Tasks, recreate
 from utils.views import Cancel, Confirm
 from discord.ext import commands
@@ -7,7 +9,6 @@ import re
 
 listsPerPage = 3
 tasksPerPage = 10
-override = "^"
 
 class ListView(discord.ui.View):
     def __init__(self, ctx, bot, allLists, pagenum, totpage):
@@ -18,7 +19,7 @@ class ListView(discord.ui.View):
         self.pagenum = pagenum
         self.totpage = totpage
         
-        if allLists:
+        if isinstance(allLists, list):
             for _list in allLists[pagenum]:
                 button = ListButton(_list.id, _list.title)
                 if _list.private and (str(ctx.author.id) != _list.author):
@@ -36,7 +37,10 @@ class ListView(discord.ui.View):
                 self.add_item(nextButton)
                 
         else:
-            self.add_item(ScopeSelect(self))
+            if allLists.private:
+                self.add_item(discord.ui.Button(emoji="<:white_check:930021702560280596>", label="Open List", style=discord.ButtonStyle.primary, custom_id = "private"))
+            if str(ctx.author.id) == allLists.author:
+                self.add_item(ScopeSelect(self))
             self.add_item(discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, custom_id = "done", row=4))
         self.add_item(discord.ui.Button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4))
         
@@ -50,11 +54,10 @@ class ListView(discord.ui.View):
             elif selected == "cancel":
                 self.stop()
                 await self.message.delete()
-        return await super().interaction_check(interaction)   
+            elif selected == "private":
+                await interaction.response.send_message(embed = view(self.allLists), ephemeral=True)
+        return await super().interaction_check(interaction)           
     
-    # async def on_timeout(self):
-    #     await self.message.edit("> List Menu has timed out!", view = None)  
-
 class ListButton(discord.ui.Button['ListView']):
     def __init__(self, id, title):
         super().__init__(label = title)
@@ -75,7 +78,7 @@ class ListButton(discord.ui.Button['ListView']):
         if menu.custom_id not in childrenCID:
             self.view.add_item(menu)
     ## 
-        selList = self.view.bot.db.query(Lists).filter_by(id = self.listID).first() 
+        selList = db.query(Lists).filter_by(id = self.listID).first() 
         if selList.private:
             return await interaction.response.send_message(content = "> Here's your private list!", embed = view(selList), view = EphemeralView(self.view, True), ephemeral = True)
         await interaction.response.edit_message(content = "> Here's your list!", embed = view(selList), view = self.view)
@@ -132,12 +135,19 @@ class ListSettings(discord.ui.View):
         newctx.invoked_with = 'rename'
         await self.ogView.bot._list.get_command('rename')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
         
-    @discord.ui.button(emoji="🙈", label="Hide List", style=discord.ButtonStyle.gray)
-    async def hide(self, button: discord.ui.button, interaction: discord.Interaction):
-        await self.ogView.message.delete()
-        newctx = self.ogView.ctx
-        newctx.invoked_with = 'hide'
-        await self.ogView.bot._list.get_command('hide')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+    # @discord.ui.button(emoji="🙈", label="Toggle Visibility", style=discord.ButtonStyle.gray)
+    # async def hide(self, button: discord.ui.button, interaction: discord.Interaction):
+    #     title = interaction.message.embeds[0].title
+    #     selList = db.query(Lists).filter_by(title = title).first()
+    #     if not selList.private:
+    #         newctx = self.ogView.ctx
+    #         newctx.invoked_with = 'hide'
+    #         await self.ogView.bot._list.get_command('hide')(ctx=self.ogView.ctx, title=title)
+    #     else:
+    #         newctx = self.ogView.ctx
+    #         newctx.invoked_with = 'show'
+    #         await self.ogView.bot._list.get_command('show')(ctx=self.ogView.ctx, title=title)
+    #     await self.ogView.message.delete()
         
     @discord.ui.button(emoji="<:trash:926991605615960064>", label="Delete List", style=discord.ButtonStyle.red)
     async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -164,31 +174,54 @@ class TaskSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'complete'
-        await self.ogView.bot._list.get_command('complete')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('complete')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="➕", label="Add Task", style=discord.ButtonStyle.primary)
     async def add(self, button: discord.ui.button, interaction: discord.Interaction):
+        await interaction.response.defer()
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'add'
-        await self.ogView.bot._list.get_command('add')(ctx=self.ogView.ctx, inp=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('add')(ctx=self.ogView.ctx, inp=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="<:cross:926283850882088990>", label="Remove Task", style=discord.ButtonStyle.red)
     async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_task'
-        await self.ogView.bot._list.get_command('delete_task')(ctx=self.ogView.ctx, inp=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('delete_task')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
 
-class CompleteView(discord.ui.View):
-    def __init__(self, ctx, selList, allTasks, pagenum, totpage):
+class PrivateView(discord.ui.View):
+    def __init__(self, ctx, selList):
         super().__init__()
         self.ctx = ctx
+        self.selList = selList
+        
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("This is not your menu to navigate.", ephemeral= True)
+            return False
+        else:
+            return await super().interaction_check(interaction) 
+        
+    @discord.ui.button(emoji="<:white_check:930021702560280596>", label="Open List", style=discord.ButtonStyle.primary)
+    async def open(self, button: discord.ui.button, interaction: discord.Interaction):
+        await interaction.response.send_message(embed = view(self.selList), ephemeral = True)
+    
+    @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
+    async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
+        await self.message.delete()
+        
+class CompleteView(discord.ui.View):
+    def __init__(self, ctx, bot, selList, allTasks, pagenum, totpage):
+        super().__init__()
+        self.ctx = ctx
+        self.bot = bot
         self.selList = selList
         self.allTasks = allTasks
         self.pagenum = pagenum
         self.totpage = totpage
-    
+        
         for task in allTasks[pagenum]:
             if task.status == "<:check:926281518266073088>":
                 style = discord.ButtonStyle.green
@@ -240,9 +273,9 @@ class CompleteButtons(discord.ui.Button):
         else:
             selTask.taskItem = f"~~{selTask.taskItem}~~"
             selTask.status = "<:check:926281518266073088>"
-        self.view.bot.db.commit()
+        db.commit()
         
-        checkoffView =  CompleteView(self.view.ctx, self.view.selList, self.view.allTasks, self.view.pagenum, self.view.totpage)
+        checkoffView =  CompleteView(self.view.ctx, self.view.bot, self.view.selList, self.view.allTasks, self.view.pagenum, self.view.totpage)
         checkoffView.message = self.view.message
         await interaction.response.edit_message(embed = view(self.view.selList, True), view = checkoffView)
         
@@ -262,7 +295,7 @@ class RemoveView(discord.ui.View):
                 style = discord.ButtonStyle.green
             elif task.status == "<:wip:926281721224265728>":
                 style = discord.ButtonStyle.blurple
-            elif task.status == "<:trash:926991605615960064>":
+            elif task.status == "<:cross:926283850882088990>":
                 style = discord.ButtonStyle.red
             else:
                 style = discord.ButtonStyle.secondary
@@ -288,21 +321,24 @@ class RemoveView(discord.ui.View):
     @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
     async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
         await self.message.delete()
-        self.bot.db.delete(self.dupList)
-        self.bot.db.commit()
+        db.delete(self.dupList)
+        db.commit()
         
     @discord.ui.button(emoji = "<:white_check:930021702560280596>", label="Save Changes", style=discord.ButtonStyle.primary, custom_id = "save", row=4)
     async def save(self, button: discord.ui.button, interaction: discord.Interaction):
         sel_taskList = sorted(self.selList.rel_tasks, key = lambda task: task.number)
         dup_taskList = sorted(self.dupList.rel_tasks, key = lambda task: task.number)
-        for i, (dup_task, sel_task) in enumerate(zip(dup_taskList, sel_taskList), start=1):
-            if dup_task.status == "<:trash:926991605615960064>":
+        i = 1 #needs to be outside the for loop
+        for dup_task, sel_task in zip(dup_taskList, sel_taskList):
+            if dup_task.status == "<:cross:926283850882088990>":
                 self.selList.rel_tasks.remove(sel_task)
-            sel_task.number = i
+                continue
+            sel_task.number = i 
+            i += 1
         
-        self.bot.db.delete(self.dupList)
-        self.bot.db.commit()
-        await interaction.response.edit_message(embed = view(self.selList), view = None)
+        db.delete(self.dupList)
+        db.commit()
+        await interaction.response.edit_message(content = "Changes Saved!", embed = view(self.selList), view = None)
         
 class RemoveButtons(discord.ui.Button):
     def __init__(self, emoji, label, style):
@@ -310,13 +346,13 @@ class RemoveButtons(discord.ui.Button):
         
     async def callback(self, interaction: discord.Interaction):  
         dupTask = self.view.allTasks[self.view.pagenum][int(self.label) - 1]
-        selTask = self.view.bot.db.query(Tasks).filter_by(listID = self.view.selList.id).filter_by(number = self.label).first()
+        selTask = db.query(Tasks).filter_by(listID = self.view.selList.id).filter_by(number = self.label).first()
 
-        if dupTask.status == "<:trash:926991605615960064>":
+        if dupTask.status == "<:cross:926283850882088990>":
             dupTask.status = selTask.status
         else:
-            dupTask.status = "<:trash:926991605615960064>"
-        self.view.bot.db.commit()
+            dupTask.status = "<:cross:926283850882088990>"
+        db.commit()
        
         delete_taskView =  RemoveView(self.view.ctx, self.view.bot, self.view.selList, self.view.dupList, self.view.allTasks, self.view.pagenum, self.view.totpage)
         delete_taskView.message = self.view.message
@@ -348,7 +384,6 @@ class ScopeSelect(discord.ui.Select):
 class clipboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = db
         
     # Events
     @commands.Cog.listener()
@@ -376,20 +411,15 @@ class clipboard(commands.Cog):
         embed = discord.Embed(
             title = "Help Menu",
             description =
-            f"""`{ctx.prefix}list make`
-            `{ctx.prefix}list make <title>`
-            `{ctx.prefix}view <title>`
-            `{ctx.prefix}list view`
-            `{ctx.prefix}list view <title>`
-            `{ctx.prefix}list view {override}<author's username>`\n---> `{ctx.prefix}list view {override}GracefulLion`
+            f"""`{ctx.prefix}list make` (aliases include create, c, m)
+            `{ctx.prefix}list view <title>` ➙ Brings up editing menu for that list
+            `{ctx.prefix}list view {override}<author's username>` ➙ `{ctx.prefix}list view {override}GracefulLion`
             `{ctx.prefix}list rename <title> {override} <newtitle>`
-            `{ctx.prefix}list delete <title>` \n---> you can override the confirmation menu using `{override}<title>`
+            `{ctx.prefix}list delete <title>` ➙ you can override the confirmation menu using `{override}<title>`
+            `{ctx.prefix}list show/hide <title>` ➙ WIP, allows you to mark a list as private so that only you can see it. I don't recommend marking lists as private yet.
             
-            `{ctx.prefix}tasks complete <list title>`
-            `{ctx.prefix}tasks add <list title>`
-            `{ctx.prefix}tasks delete <list title>`
-            
-            `{ctx.prefix}list override <override symbol>`\n---> The current override symbol is set to `{override}`
+            `{ctx.prefix}list override` ➙ Return current override for server
+            `{ctx.prefix}list override <override>` ➙ The current override symbol is set to `{override}`
             """,
             color = randomHexGen()
         ) 
@@ -452,6 +482,7 @@ class clipboard(commands.Cog):
             color = 0x2F3136
         )
         embed.set_footer(text=f"Created by {member}", icon_url=pfp if pfp else '')
+        embed.set_author(name="List is Public")
         view = Confirm(ctx)
         confirmationEmbed = await ctx.send(f"> Does this look correct? • [{member}]", embed = embed, view=view)
     ##
@@ -461,13 +492,13 @@ class clipboard(commands.Cog):
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 3)
         elif view.value:
             _list = Lists(title = title, author = str(ctx.author.id), author_name = member.name)
-            self.db.add(_list)
+            db.add(_list)
             for task in enumerate(taskList, start=1):
                 newTask = Tasks(listID = _list.id, taskItem = task[1], number = task[0])
-                self.db.add(newTask)
+                db.add(newTask)
                 _list.rel_tasks.append(newTask)
 
-            self.db.commit()
+            db.commit()
             return await confirmationEmbed.edit("Saved to Database!", embed = embed, view = None)
         else:
             embed.description = "List canceled!"
@@ -479,19 +510,22 @@ class clipboard(commands.Cog):
         member = ctx.guild.get_member(ctx.author.id)
     
         if filterOption is None:
-            allLists = self.db.query(Lists).filter_by(author = str(ctx.author.id)).all()
+            allLists = db.query(Lists).filter_by(author = str(ctx.author.id)).all()
         else: # given argument search for
             if "^" in filterOption:
-                allLists = self.db.query(Lists).filter(Lists.author_name.like(f'{filterOption.replace("^", "")}%')).all()
+                allLists = db.query(Lists).filter(Lists.author_name.like(f'{filterOption.replace("^", "")}%')).all()
             else: 
-                allLists = self.db.query(Lists).filter(Lists.title.like(f'{filterOption}%')).all()            
+                allLists = db.query(Lists).filter(Lists.title.like(f'{filterOption}%')).all()            
         
         if allLists:
             if len(allLists) == 1:
-                if allLists[0].private and (allLists[0].author != str(ctx.author.id)):
-                    invoke = str(ctx.invoked_with).replace("_list", "").strip()
-                    return await ctx.send(f"You may not `{invoke}` this list because it is private!")
-                viewListObject = ListView(ctx, self, allLists = None, pagenum = 0, totpage = 1)
+                viewListObject = ListView(ctx, self, allLists = allLists[0], pagenum = 0, totpage = 1)
+                if allLists[0].private:
+                    if allLists[0].author != str(ctx.author.id):
+                        invoke = str(ctx.invoked_with).replace("_list", "").strip()
+                        return await ctx.send(f"You may not `{invoke}` this list because it is private!") 
+                    viewListObject.message = await ctx.send(content = f"> {allLists[0].title} • [{member}]", view = viewListObject)
+                    return
                 viewListObject.message = await ctx.send(embed = view(allLists[0]), view = viewListObject)
                 return
             allListsChunked = chunkList(allLists, listsPerPage)
@@ -517,15 +551,15 @@ class clipboard(commands.Cog):
             if confirmView.value is None:
                 await ctx.send("Confirmation menu timed out!", delete_after = 5)
             elif confirmView.value:
-                self.db.delete(selList)
-                self.db.commit()
+                db.delete(selList)
+                db.commit()
                 await ctx.send("Database Updated!", delete_after = 5)
             else:
                 await ctx.send("Confirmation menu canceled!", delete_after = 5)
             await confirmationEmbed.delete()
         else:
-            self.db.delete(selList)
-            self.db.commit()
+            db.delete(selList)
+            db.commit()
             await ctx.send("Database Updated!", delete_after = 5)
         
 #* Renaming Lists
@@ -548,7 +582,7 @@ class clipboard(commands.Cog):
             newListName = title.split(override)[1].strip()
         
         selList.title = newListName   
-        self.db.commit()
+        db.commit()
         await ctx.send(f"> List successfully renamed! • [{member}]", embed = view(selList))
 
 #* Hiding Lists
@@ -560,7 +594,7 @@ class clipboard(commands.Cog):
             return await ctx.send(selList)
 
         selList.private = True
-        self.db.commit()
+        db.commit()
         await ctx.send(f"List successfully marked private! • [{member}]", delete_after = 5)
         
     @_list.command()
@@ -571,13 +605,14 @@ class clipboard(commands.Cog):
             return await ctx.send(selList)
 
         selList.private = False
-        self.db.commit()
+        db.commit()
         await ctx.send(f"List successfully marked public! • [{member}]", delete_after = 5)
          
 #*  --------------------- TASK COMMANDS ---------------------------         
 #* Mark Tasks as complete
     @tasks.command(aliases = ["checkoff"])
     async def complete(self, ctx, *, title: str, pagenum = 0):
+        member = ctx.guild.get_member(ctx.author.id)
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
@@ -585,8 +620,11 @@ class clipboard(commands.Cog):
         taskList = sorted(selList.rel_tasks, key = lambda task: task.number)
         taskListChunked = chunkList(taskList, tasksPerPage)
         
-        checkView = CompleteView(ctx, selList, taskListChunked, pagenum, len(taskListChunked))
-        checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
+        checkView = CompleteView(ctx, self.bot, selList, taskListChunked, pagenum, len(taskListChunked))
+        if selList.private:
+            checkView.message = await ctx.send(content = f"> {selList.title} • [{member}]", view = checkView)
+        else:
+            checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
         
 #* Add a Task to a List
     @tasks.command()
@@ -611,10 +649,10 @@ class clipboard(commands.Cog):
             
         for task in enumerate(taskList, start = len(selList.rel_tasks)+1):
             newTask = Tasks(listID = selList.id, taskItem = task[1], number = task[0])
-            self.db.add(newTask)
+            db.add(newTask)
             selList.rel_tasks.append(newTask)
             
-        self.db.commit()
+        db.commit()
         await ctx.send(f"Tasks Successfully Added! • [{member}]", embed = view(selList))
   
 #* Remove a Task from a list 
@@ -624,12 +662,12 @@ class clipboard(commands.Cog):
         if isinstance(selList, str):
             return await ctx.send(selList)
         dupList = Lists(title = "^" + selList.title, author = "0", author_name = "0")
-        self.db.add(dupList)
+        db.add(dupList)
         for task in selList.rel_tasks:
             newTask = Tasks(listID = dupList.id, taskItem = task.taskItem, number = task.number, status = task.status)
-            self.db.add(newTask)
+            db.add(newTask)
             dupList.rel_tasks.append(newTask)
-        self.db.commit() 
+        db.commit() 
         
         taskList = sorted(dupList.rel_tasks, key = lambda task: task.number)
         taskListChunked = chunkList(taskList, tasksPerPage)
@@ -652,9 +690,10 @@ class clipboard(commands.Cog):
         else:
             print(error)
             
-#* View one list (not in list group)
+#* View one list (does not allow for editing list)
     @commands.command(aliases = ["view", "v"]) # command that is not nested in the Note Group
     async def open(self, ctx, *, title=None):
+        member = ctx.guild.get_member(ctx.author.id)   
         if title is None:
             await self._list.get_command('browse')(ctx, pagenum = 0)
 
@@ -662,6 +701,11 @@ class clipboard(commands.Cog):
             selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
             if isinstance(selList, str):
                 return await ctx.send(selList)
+            
+            if selList.private:
+                privView = PrivateView(ctx, selList)
+                privView.message = await ctx.send(f"> {selList.title} • [{member}]", view = privView)
+                return                
             await ctx.send(embed = view(selList))  
 
 #* Other Commands
@@ -669,6 +713,19 @@ class clipboard(commands.Cog):
     async def recreate(self, ctx):
         recreate()
         await ctx.send("Database recreated")
+        
+    @_list.command()
+    async def override(self, ctx, *, symbol = None):
+        global override
+        if symbol:
+            override = symbol
+            await ctx.send("Your new override symbol is " + override)
+        else:
+            await ctx.send("Your current override symbol is " + override)       
+            
+    @_list.command()
+    async def example(self, ctx):
+        await ctx.guild.get_member(ctx.author.id).send("https://imgur.com/DI7IQcn")
 
     @_list.command()
     async def emoji(self,ctx):
@@ -698,6 +755,7 @@ def view(selList, numbered=None):
         color = 0x2F3136,
         timestamp = selList.created
     )
+    embed.set_author(name="Private List" if selList.private else "Public List")
     embed.set_footer(text = f"Created by {selList.author_name} | List ID: {selList.id}")
     return embed
 
@@ -706,7 +764,7 @@ def chunkList(queryList, n): #chunk a list into lists of n size
     return queryList
     
 def _checkOwner_Exists(self, ctx, title):
-    selList = self.db.query(Lists).filter_by(title = title).all()
+    selList = db.query(Lists).filter_by(title = title).all()
     output = "Error!"
     if not selList:
         return f"No lists were found with name: `{title}`!"
