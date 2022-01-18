@@ -45,7 +45,7 @@ class utilities(commands.Cog):
     ##
 
     #➥ Clear Command and Error
-    @commands.command(aliases=["purge"])
+    @commands.command(aliases=["purge", "c"])
     @commands.has_permissions(manage_guild=True)
     async def clear(self, ctx, amount: int = 10, override = None):
         if override is None:
@@ -76,6 +76,8 @@ class utilities(commands.Cog):
             await ctx.send(f"Sorry {member.display_name}, you do not have permission to clear messages!", delete_after = 3)
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{member.display_name}, you forgot to include the number of messages you wanted to ")
+        else:
+            await ctx.send(f"It's highly probable the bot does not have the permissions to fulfil your wishes, sorry")
     ##
 
     #➥ waitfor command
@@ -97,7 +99,7 @@ class utilities(commands.Cog):
                 return msg.content
 
         except asyncio.TimeoutError:
-            return await ctx.send("You took too long, try again! -- ", delete_after = 5)
+            return await ctx.send("You took too long, try again! ", delete_after = 5)
     ##
 
     #➥ multi_wait command
@@ -107,7 +109,7 @@ class utilities(commands.Cog):
       
         # asyncio magic?
         done, pending = await asyncio.wait([
-                            self.waitCheck(ctx, 50),
+                            self.waitCheck(ctx, timeout),
                             view.wait()], 
                             timeout = timeout,
                             return_when = asyncio.FIRST_COMPLETED)

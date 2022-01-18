@@ -26,8 +26,8 @@ class Confirm(discord.ui.View):
 ##
 
 class Cancel(discord.ui.View):
-    def __init__(self, ctx):
-        super().__init__()
+    def __init__(self, ctx, timeout=400):
+        super().__init__(timeout=timeout)
         self.value = None
         self.ctx = ctx
         
