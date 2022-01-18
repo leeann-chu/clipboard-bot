@@ -7,8 +7,8 @@ from discord.ext import commands
 import discord
 import re
 
-listsPerPage = 3
-tasksPerPage = 10
+listsPerPage = 5
+tasksPerPage = 15
 
 class ListView(discord.ui.View):
     def __init__(self, ctx, bot, allLists, pagenum, totpage):
@@ -109,8 +109,10 @@ class PageButton(discord.ui.Button['ListView']):
             pagenum += 1
         if isinstance(self.view, ListView):
             newView = ListView(self.view.ctx, self.view.bot, self.view.allLists, pagenum, self.view.totpage)
-        else:
-            newView = CompleteView(self.view.ctx, self.view.selList, self.view.allTasks, pagenum, self.view.totpage)
+        elif isinstance(self.view, CompleteView):
+            newView = CompleteView(self.view.ctx, self.view.bot, self.view.selList, self.view.allTasks, pagenum, self.view.totpage)
+        elif isinstance(self.view, RemoveView):
+            newView = RemoveView(self.view.ctx, self.view.bot, self.view.selList, self.view.dupList, self.view.allTasks, pagenum, self.view.totpage)
         newView.message = self.view.message
         await interaction.response.edit_message(view=newView)
         
@@ -133,7 +135,7 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'rename'
-        await self.ogView.bot._list.get_command('rename')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+        await self.ogView.bot._list.get_command('rename')(self.ogView.ctx, title=interaction.message.embeds[0].title)
         
     # @discord.ui.button(emoji="🙈", label="Toggle Visibility", style=discord.ButtonStyle.gray)
     # async def hide(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -154,7 +156,7 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_list'
-        await self.ogView.bot._list.get_command('delete_list')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+        await self.ogView.bot._list.get_command('delete_list')(self.ogView.ctx, title=interaction.message.embeds[0].title)
         
 class TaskSettings(discord.ui.View):
     def __init__(self, ogView):
@@ -174,7 +176,7 @@ class TaskSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'complete'
-        await self.ogView.bot.tasks.get_command('complete')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('complete')(self.ogView.ctx, title=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="➕", label="Add Task", style=discord.ButtonStyle.primary)
     async def add(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -182,14 +184,14 @@ class TaskSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'add'
-        await self.ogView.bot.tasks.get_command('add')(ctx=self.ogView.ctx, inp=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('add')(self.ogView.ctx, inp=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="<:cross:926283850882088990>", label="Remove Task", style=discord.ButtonStyle.red)
     async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_task'
-        await self.ogView.bot.tasks.get_command('delete_task')(ctx=self.ogView.ctx, title=interaction.message.embeds[0].title)
+        await self.ogView.bot.tasks.get_command('delete_task')(self.ogView.ctx, title=interaction.message.embeds[0].title)
 
 class PrivateView(discord.ui.View):
     def __init__(self, ctx, selList):
@@ -262,7 +264,7 @@ class CompleteButtons(discord.ui.Button):
         super().__init__(emoji = emoji, label = label, style = style)
         
     async def callback(self, interaction: discord.Interaction):  
-        selTask = self.view.allTasks[self.view.pagenum][int(self.label) - 1]
+        selTask = self.view.allTasks[self.view.pagenum][(int(self.label) - (self.view.pagenum*tasksPerPage)) - 1]
         
         if selTask.status == "<:check:926281518266073088>":
             selTask.taskItem = selTask.taskItem.replace("~", "*")
@@ -345,7 +347,7 @@ class RemoveButtons(discord.ui.Button):
         super().__init__(emoji = emoji, label = label, style = style)
         
     async def callback(self, interaction: discord.Interaction):  
-        dupTask = self.view.allTasks[self.view.pagenum][int(self.label) - 1]
+        dupTask = self.view.allTasks[self.view.pagenum][(int(self.label) - (self.view.pagenum*tasksPerPage)) - 1]
         selTask = db.query(Tasks).filter_by(listID = self.view.selList.id).filter_by(number = self.label).first()
 
         if dupTask.status == "<:cross:926283850882088990>":
@@ -411,11 +413,13 @@ class clipboard(commands.Cog):
         embed = discord.Embed(
             title = "Help Menu",
             description =
-            f"""`{ctx.prefix}list make` (aliases include create, c, m)
-            `{ctx.prefix}list view <title>` ➙ Brings up editing menu for that list
+            f"""
+            [`{ctx.prefix}list`](https://imgur.com/DI7IQcn \"Aliases: checklist, clipboard, l\") ➙ The start of any list related command
+            [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a poll
+            [`{ctx.prefix}list view <title>`](https://imgur.com/DI7IQcn \"Aliases: open, browse, b, v \") ➙ Brings up editing menu for that list
             `{ctx.prefix}list view {override}<author's username>` ➙ `{ctx.prefix}list view {override}GracefulLion`
-            `{ctx.prefix}list rename <title> {override} <newtitle>`
-            `{ctx.prefix}list delete <title>` ➙ you can override the confirmation menu using `{override}<title>`
+            [`{ctx.prefix}list rename <title> {override} <newtitle>`](http://www.howardhallis.com/tpoe/noflash.html \"Aliases: r\")
+            [`{ctx.prefix}list delete <title>`](https://imgur.com/DI7IQcn \"Aliases: d\") ➙ you can override the confirmation menu using `{override}<title>`
             `{ctx.prefix}list show/hide <title>` ➙ WIP, allows you to mark a list as private so that only you can see it. I don't recommend marking lists as private yet.
             
             `{ctx.prefix}list override` ➙ Return current override for server
@@ -423,6 +427,13 @@ class clipboard(commands.Cog):
             """,
             color = randomHexGen()
         ) 
+        embed.add_field(name="Taks Commands", 
+        value=f"""
+        [`{ctx.prefix}task`](https://imgur.com/DI7IQcn \"Aliases: t\") ➙ The start of any task related command
+        [`{ctx.prefix}task add`](https://imgur.com/DI7IQcn \"Aliases: a\") 
+        [`{ctx.prefix}task remove`](https://imgur.com/DI7IQcn \"Aliases: r\")
+        [`{ctx.prefix}task complete`](https://imgur.com/DI7IQcn \"Aliases: checkoff, c\")
+        """)
         embed.set_footer(text=f"Tip: Don't use your override symbol in your List titles")
         await ctx.send(embed = embed)
 
@@ -505,7 +516,7 @@ class clipboard(commands.Cog):
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 5)
 
 #* Select your lists (allows for looser searches)
-    @_list.command(aliases = ["b", "view"])
+    @_list.command(aliases = ["b", "view", "v"])
     async def browse(self, ctx, *, filterOption=None, pagenum = 0): #pagenum starts at 0
         member = ctx.guild.get_member(ctx.author.id)
     
@@ -536,8 +547,20 @@ class clipboard(commands.Cog):
         viewListObject = ListView(ctx, self, allListsChunked, pagenum, len(allListsChunked))
         viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member}]", view = viewListObject)
 
+#* List view admin 
+    @commands.is_owner()
+    @_list.command(aliases = ["@view"])
+    async def _view_admin(self, ctx, pagenum=0):
+        allLists = db.query(Lists).all()
+        if allLists:
+            allListsChunked = chunkList(allLists, listsPerPage)
+        else:
+            return await ctx.send(f"List(s) not found! Create a list using `{ctx.prefix}list create`")
+        viewListObject = ListView(ctx, self, allListsChunked, pagenum, len(allListsChunked))
+        viewListObject.message = await ctx.send(f"Viewing all possible lists", view = viewListObject)
+
 #* Delete a List
-    @_list.command(aliases = ["remove", "delete"])
+    @_list.command(aliases = ["remove", "delete", "d"])
     async def delete_list(self, ctx, *, title):
         member = ctx.guild.get_member(ctx.author.id)
         selList = _checkOwner_Exists(self, ctx, title.replace(override, "")) #does this list exist? and are you the owner?
@@ -563,7 +586,7 @@ class clipboard(commands.Cog):
             await ctx.send("Database Updated!", delete_after = 5)
         
 #* Renaming Lists
-    @_list.command()
+    @_list.command(aliases = ["r"])
     async def rename(self, ctx, *, title):
         member = ctx.guild.get_member(ctx.author.id)
         selList = _checkOwner_Exists(self, ctx, title.partition(override)[0].strip()) #does this list exist? and are you the owner?
@@ -610,7 +633,7 @@ class clipboard(commands.Cog):
          
 #*  --------------------- TASK COMMANDS ---------------------------         
 #* Mark Tasks as complete
-    @tasks.command(aliases = ["checkoff"])
+    @tasks.command(aliases = ["checkoff", "c"])
     async def complete(self, ctx, *, title: str, pagenum = 0):
         member = ctx.guild.get_member(ctx.author.id)
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
@@ -627,8 +650,8 @@ class clipboard(commands.Cog):
             checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
         
 #* Add a Task to a List
-    @tasks.command()
-    async def add(self, ctx, *, inp):    
+    @tasks.command(aliases = ["a", "add"])
+    async def task_add(self, ctx, *, inp):    
         member = ctx.guild.get_member(ctx.author.id)   
         title = re.match(r"\A.*", inp).group()
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
@@ -656,12 +679,12 @@ class clipboard(commands.Cog):
         await ctx.send(f"Tasks Successfully Added! • [{member}]", embed = view(selList))
   
 #* Remove a Task from a list 
-    @tasks.command(aliases = ["remove", "delete"])
+    @tasks.command(aliases = ["remove", "delete", "d"])
     async def delete_task(self, ctx, *, title, pagenum = 0):    
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
-        dupList = Lists(title = "^" + selList.title, author = "0", author_name = "0")
+        dupList = Lists(title = "&" + selList.title, author = "0", author_name = "0")
         db.add(dupList)
         for task in selList.rel_tasks:
             newTask = Tasks(listID = dupList.id, taskItem = task.taskItem, number = task.number, status = task.status)
@@ -681,7 +704,6 @@ class clipboard(commands.Cog):
     @complete.error
     @hide.error
     @show.error
-    @add.error
     async def _error_handler(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             if error.param.name == 'title':
@@ -691,7 +713,7 @@ class clipboard(commands.Cog):
             print(error)
             
 #* View one list (does not allow for editing list)
-    @commands.command(aliases = ["view", "v"]) # command that is not nested in the Note Group
+    @commands.command(aliases = ["view", "o"]) # command that is not nested in the Note Group
     async def open(self, ctx, *, title=None):
         member = ctx.guild.get_member(ctx.author.id)   
         if title is None:

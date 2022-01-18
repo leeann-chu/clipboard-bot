@@ -2,7 +2,7 @@ import discord, traceback
 from main import randomHexGen
 from utils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
 from utils.views import Confirm
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from discord.ext import commands
 from collections import defaultdict, Counter
 import random
@@ -658,6 +658,21 @@ class voting(commands.Cog):
         newPoll.clear()
         writetoFile(newPoll, "storedPolls")
     ##
+    
+    #* checkVotes
+    @commands.command()
+    @commands.is_owner()
+    async def checkVotes(self, ctx, *, inp=None):
+        if inp:
+            today = datetime.now()
+            lastday = date(today.year, today.month + 1, 1) - timedelta(days=1)
+            daysLeft = lastday.day - today.day 
+            
+            votesNeeded = int(inp.split(" ")[1]) - int(inp.split(" ")[0])
+            await ctx.send(round(votesNeeded/daysLeft, 2))
+
+        else:
+            await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed>`")
 
 def setup(bot):
     bot.add_cog(voting(bot))
