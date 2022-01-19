@@ -135,7 +135,8 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'rename'
-        await self.ogView.bot._list.get_command('rename')(self.ogView.ctx, title=interaction.message.embeds[0].title)
+        listID = str(interaction.message.embeds[0].footer.text).split(" ")[-1]
+        await self.ogView.bot._list.get_command('rename')(self.ogView.ctx, title=":" + listID)
         
     # @discord.ui.button(emoji="🙈", label="Toggle Visibility", style=discord.ButtonStyle.gray)
     # async def hide(self, button: discord.ui.button, interaction: discord.Interaction):
@@ -156,7 +157,8 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_list'
-        await self.ogView.bot._list.get_command('delete_list')(self.ogView.ctx, title=interaction.message.embeds[0].title)
+        listID = str(interaction.message.embeds[0].footer.text).split(" ")[-1]
+        await self.ogView.bot._list.get_command('delete_list')(self.ogView.ctx, title=":" + listID) #using a weird pound to avoid people who may use it in their title
         
 class TaskSettings(discord.ui.View):
     def __init__(self, ogView):
@@ -408,22 +410,24 @@ class clipboard(commands.Cog):
             await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}task delete` \nSee `{ctx.prefix}list help` for a list of examples!")
 
 #* -------    Help Command   -------
-    @_list.command()
+    @_list.command(aliases = ["h"])
     async def help(self, ctx):
         embed = discord.Embed(
             title = "Help Menu",
             description =
             f"""
             [`{ctx.prefix}list`](https://imgur.com/DI7IQcn \"Aliases: checklist, clipboard, l\") ➙ The start of any list related command
-            [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a poll
+            [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a list
             [`{ctx.prefix}list view <title>`](https://imgur.com/DI7IQcn \"Aliases: open, browse, b, v \") ➙ Brings up editing menu for that list
-            `{ctx.prefix}list view {override}<author's username>` ➙ `{ctx.prefix}list view {override}GracefulLion`
+            `{ctx.prefix}list view {override}<author's username>` 
+            ➙ `{ctx.prefix}list view {override}GracefulLion`
             [`{ctx.prefix}list rename <title> {override} <newtitle>`](http://www.howardhallis.com/tpoe/noflash.html \"Aliases: r\")
             [`{ctx.prefix}list delete <title>`](https://imgur.com/DI7IQcn \"Aliases: d\") ➙ you can override the confirmation menu using `{override}<title>`
+            ➙ `{ctx.prefix}list delete :<ListID>`
             `{ctx.prefix}list show/hide <title>` ➙ WIP, allows you to mark a list as private so that only you can see it. I don't recommend marking lists as private yet.
             
             `{ctx.prefix}list override` ➙ Return current override for server
-            `{ctx.prefix}list override <override>` ➙ The current override symbol is set to `{override}`
+            `{ctx.prefix}list override <new override>` ➙ The current override symbol is set to `{override}`
             """,
             color = randomHexGen()
         ) 
@@ -563,7 +567,12 @@ class clipboard(commands.Cog):
     @_list.command(aliases = ["remove", "delete", "d"])
     async def delete_list(self, ctx, *, title):
         member = ctx.guild.get_member(ctx.author.id)
-        selList = _checkOwner_Exists(self, ctx, title.replace(override, "")) #does this list exist? and are you the owner?
+
+        #Delete from Menu (you must own the list to click the delete button)
+        if ":" == title[0]:
+            selList = _overrideOwner_ByID(self, ctx, title.replace(":", "").strip())
+        else: #Deleting from command
+            selList = _checkOwner_Exists(self, ctx, title.replace(override, "")) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
 
@@ -589,7 +598,12 @@ class clipboard(commands.Cog):
     @_list.command(aliases = ["r"])
     async def rename(self, ctx, *, title):
         member = ctx.guild.get_member(ctx.author.id)
-        selList = _checkOwner_Exists(self, ctx, title.partition(override)[0].strip()) #does this list exist? and are you the owner?
+
+        #Renaming from Menu
+        if ":" == title[0]:
+            selList = _overrideOwner_ByID(self, ctx, title.replace(":", "").strip())
+        else: #renaming from command
+            selList = _checkOwner_Exists(self, ctx, title.partition(override)[0].strip()) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
         
@@ -796,6 +810,17 @@ def _checkOwner_Exists(self, ctx, title):
             output = f"You may not `{invoke}` this list because you do not own it!"
         else:
             return _list
+    return output
+
+def _overrideOwner_ByID(self, ctx, listID):
+    selList = db.query(Lists).filter_by(id = listID).first()
+    output = "Error!"
+    if not selList:
+        return f"No lists were found with ID: `{listID}`!"
+    if selList.author == str(ctx.author.id) or ctx.author.id == self.bot.owner_id:
+        return selList
+    invoke = str(ctx.invoked_with).replace("_list", "").strip()
+    output = f"You may not `{invoke}` this list because you do not own it!"
     return output
 
 def setup(bot):
