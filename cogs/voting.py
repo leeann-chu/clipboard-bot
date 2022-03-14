@@ -36,7 +36,6 @@ def humantimeTranslator(s):
         return int(parts.group(1)) * mult_items[parts.group(2)] + humantimeTranslator(re.sub(r'^(\d+)([^\d]*)', '', s.lower()))
     else:
         return 0
-##
 
 #* format_toString
 def format_toString(options, emojis):
@@ -48,14 +47,12 @@ def format_toString(options, emojis):
         pairedString.append(f"{emoji} {option}")
 
     return "\n".join(pairedString)
-##
 
 #* remove spaces
 def makeList_removeSpaces(string):
     splitList = string.split("\n")
     spaceless = [s.strip() for s in splitList]
     return spaceless
-##
 
 #* Poll View Class
 class Poll(discord.ui.View):
@@ -67,7 +64,7 @@ class Poll(discord.ui.View):
             if str(button.emoji) == '<a:settings:845834409869180938>':
                 button.style = discord.ButtonStyle.primary
             self.add_item(button)
-##
+
 #* Custom Button for Polls
 class PollButton(discord.ui.Button['Poll']):
     def __init__(self, currentPoll, emoji, label):
@@ -114,7 +111,7 @@ class PollButton(discord.ui.Button['Poll']):
         )
         settingsEmbed.add_field(name = "You haven't voted yet!", value = '\u200b')
         currentSettings = SettingsClass(settingsEmbed, self.view.message, isAuthor)
-    ##
+ 
         if self.emoji.name == 'settings':
             if str(interaction.user.id) in currPoll:
                 currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(str(interaction.user.id))))
@@ -140,7 +137,7 @@ class PollButton(discord.ui.Button['Poll']):
                                       description = "If you would like to see what you voted for try :grey_question:\nIf you would like to change your vote use :repeat:")
             await interaction.response.send_message(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
 
-##
+
 #* Custom Button for Settings
 class SettingsButton(discord.ui.Button['Settings']):
     def __init__(self, emoji, currentPoll, currentSettings):
@@ -161,7 +158,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             isLocked_bool = True if self.pollEmbed.fields[2].value == ":unlock:" else False
         except IndexError:
             closedPoll = True
-        ##
+     
 
         if closedPoll and not self.emoji.name == '❔':
             self.settingsEmbed.set_field_at(0, name = "The poll is now", value = '<:cancel:851278899270909993> Closed')
@@ -187,10 +184,10 @@ class SettingsButton(discord.ui.Button['Settings']):
                 elif str(button.emoji) == '🔁':
                     button.disabled = False
                     button.style = discord.ButtonStyle.success
-            ##
+         
             await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
             return
-        ##
+     
         #* If button is detective
         if self.emoji.name == '🕵️‍♂️':
             if self.currentPoll.isAnon:
@@ -206,7 +203,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             self.currentPoll.pollEmbed = self.pollEmbed
             await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
             return
-        ##
+     
         #* If button is timelimit
         if self.emoji.name == '⌛':
             pollStarted = self.pollEmbed.timestamp
@@ -258,7 +255,7 @@ class SettingsButton(discord.ui.Button['Settings']):
                     print(e)
                     return await self.ctx.send("Something went wrong!")
             return
-        ##
+     
         #* If button is print
         if self.emoji.name == '🖨':
             if currPoll:
@@ -271,7 +268,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             else:
                 embed = discord.Embed(title = "No one has voted yet!", color = randomHexGen())
                 await interaction.response.edit_message(embed = embed)
-        ##
+     
 
         #* If button is edit
         if self.emoji.name == '➕':
@@ -333,7 +330,7 @@ class SettingsButton(discord.ui.Button['Settings']):
                     print(e)
                     return await self.ctx.send("Something went wrong!")
             return
-        ##
+     
 
         #* If button is cancel
         if str(self.emoji) == '<:cancel:851278899270909993>':
@@ -350,7 +347,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             await self.pollMessage.edit(embed = resultsEmbed, view = None)
             await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
             return
-        ##
+     
         #* Buttons non-authors can click on
         if str(interaction.user.id) in currPoll:
             if self.emoji.name == '❔':
@@ -374,8 +371,8 @@ class SettingsButton(discord.ui.Button['Settings']):
                 self.settingsEmbed.set_field_at(0, name = "You haven't voted yet!", value = "\u200b")
                 await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
                 return
-        ##
-##
+     
+
 
 #* Settings View Class
 class Settings(discord.ui.View):
@@ -400,8 +397,8 @@ class Settings(discord.ui.View):
             elif str(button.emoji) == '\U0001f501': #if unlocked and refresh
                 button.style = discord.ButtonStyle.success #turn green
             self.add_item(button)
-        ##
-##
+     
+
 
 #* SelectMenu View
 class SelectMenu(discord.ui.Select):
@@ -449,7 +446,7 @@ class SelectMenu(discord.ui.Select):
             self.view.add_item(self.printButton)
             self.options.pop(self.options.index(self.printOption))
         return await interaction.response.edit_message(view = self.view)
-##
+
 
 #* Setting up Cog
 class voting(commands.Cog):
@@ -465,12 +462,12 @@ class voting(commands.Cog):
     async def vote(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}poll create`")
-##
+
     #* poll help menu
     @vote.command()
     async def help(self, ctx):
         await ctx.send(f"Use the command `{ctx.prefix}poll create` or \n`{ctx.prefix}poll create <Title>` to get started!")
-    ##
+ 
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, title = None):
@@ -516,7 +513,7 @@ class voting(commands.Cog):
             return await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
         if len(emojiList) != len(optionList):
             return await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
-    ##
+ 
     #* Forming the embed
         pairedString = format_toString(msg, emojis)
         timestamp = discord.utils.utcnow()
@@ -545,8 +542,8 @@ class voting(commands.Cog):
         "Tip #10: Click on the settings button to find out more information about this poll",
         "Tip #11: You can hover over the nicknames in the results to see their username (if the poll is not anonymous)"]
         embed.set_footer(text = random.choice(tips), icon_url = member.avatar.url)
-        ##
-    ##
+     
+ 
         try:
             fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
             fullOptionList = optionList + ["Settings"]
@@ -561,14 +558,12 @@ class voting(commands.Cog):
             errorFile.write(traceback.format_exc())
             errorFile.close()
             return await ctx.send("One of your emojis is invalid! Try making the Poll again.")
-##
 
     #* timeConvert
     @commands.command()
     async def timeConvert(self, ctx, *, inp: str):
         seconds = humantimeTranslator(inp)
         await ctx.send(seconds)
-    ##
 
     #* Create Results Embed
     @commands.command()
@@ -591,7 +586,7 @@ class voting(commands.Cog):
             winnerDict = {k: v for k, v in freqCounter.items() if v == maxNum} #Turn it into a dict to cycle through
             for key in winnerDict:
                 winners.append(key) #Add winners with the most votes to winner list
-            ##
+         
 
             if isAnon:
                 results = the_rest
@@ -616,19 +611,18 @@ class voting(commands.Cog):
                 embed.add_field(name = "As there was a tie, one has been chosen at random from our winners", value = final_winner, inline = False)
             if not isAnon: embed.add_field(name = "The totals:", value = "\n".join(the_rest), inline = False)
             embed.title = f"Our winner is {final_winner}!!"
-        ##
+     
         embed.add_field(name = "Votes Recorded:", value = len(newPoll))
         embed.add_field(name = "Date Poll Started:", value = f"<t:{int(embed.timestamp.timestamp())}:f>")
         embed.add_field(name = "Date Poll Closed:", value = pollClosingTime)
         
         return embed
-    ##
+ 
 
     #* Vote example command
     @vote.command()
     async def example(self, ctx):
         await ctx.guild.get_member(ctx.author.id).send("https://imgur.com/a/wq6swYo")
-    ##
 
     @vote.command()
     @commands.is_owner()
@@ -641,7 +635,7 @@ class voting(commands.Cog):
         privateEmbed = discord.Embed(title = "Here are the Results!", description = "\n".join(results), color = randomHexGen())
         await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
         return privateEmbed
-    ##
+
     #* Insert dictionary
     @vote.command()
     @commands.is_owner()
@@ -649,18 +643,44 @@ class voting(commands.Cog):
         newPoll = json.loads(inp.replace("'", "\""))
         writetoFile(newPoll, "storedPolls")
         await ctx.send("Dictionary inserted")
-    ##
+
     #* Clear dictionary
     @vote.command()
     @commands.is_owner()
-    async def clear(self):
+    async def clear(self, ctx):
         newPoll = readfromFile("storedPolls")
         newPoll.clear()
         writetoFile(newPoll, "storedPolls")
-    ##
-    
+        await ctx.send("Successfully cleared poll!")
+
+    #* Make a new Dictionary
+    @vote.command()
+    @commands.is_owner()
+    async def saveReset(self, ctx):
+        timestamp = discord.utils.utcnow()
+        pollName = f"storedPolls-{timestamp}"
+        oldPoll = readfromFile("storedPolls")
+
+        writetoFile(oldPoll, pollName)
+
+        oldPoll.clear()
+        writetoFile(oldPoll, "storedPolls")
+        await ctx.send("Successfully reset poll!")
+        
+    #* Help with Admin Commands
+    @vote.command(aliases = ["@help"])
+    @commands.is_owner()
+    async def adminHelp(self, ctx):
+        await ctx.send("""
+        ```
+        insertPoll <string input formatted json>
+        clear
+        saveReset
+        timeConvert
+        ```""")
+        
     #* checkVotes
-    @commands.command()
+    @commands.command(aliases = ["votecheck", "vc", "checkvote", "cv", "votescheck", "checkVote", "voteCheck"])
     @commands.is_owner()
     async def checkVotes(self, ctx, *, inp=None):
         if inp:

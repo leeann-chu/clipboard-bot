@@ -431,7 +431,7 @@ class clipboard(commands.Cog):
             """,
             color = randomHexGen()
         ) 
-        embed.add_field(name="Taks Commands", 
+        embed.add_field(name="Task Commands", 
         value=f"""
         [`{ctx.prefix}task`](https://imgur.com/DI7IQcn \"Aliases: t\") ➙ The start of any task related command
         [`{ctx.prefix}task add`](https://imgur.com/DI7IQcn \"Aliases: a\") 
