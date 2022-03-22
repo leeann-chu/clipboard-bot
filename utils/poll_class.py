@@ -1,7 +1,7 @@
 import json
 
 class PollClass:
-    def __init__(self, ctx, clipboardBot, pollEmbed, emojiList, optionList, isAnon = False, isLocked = False, newPoll = {}):
+    def __init__(self, ctx, clipboardBot, pollEmbed, emojiList, optionList, isAnon = False, isLocked = False, newPoll = {}, timeout):
         self.ctx = ctx
         self.clipboardBot = clipboardBot
         self.emojiList = emojiList
@@ -10,6 +10,7 @@ class PollClass:
         self.isAnon = isAnon
         self.isLocked = isLocked
         self.newPoll = newPoll
+        self.timeout = timeout
 
 class SettingsClass:
     def __init__(self, settingsEmbed, message, isAuthor):
