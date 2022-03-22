@@ -657,7 +657,7 @@ class voting(commands.Cog):
     @vote.command()
     @commands.is_owner()
     async def saveReset(self, ctx):
-        timestamp = datetime.date.today()
+        timestamp = datetime.today().strftime("%Y-%m-%d")
         pollName = f"storedPolls-{timestamp}"
         oldPoll = readfromFile("storedPolls")
 
