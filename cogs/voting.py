@@ -137,7 +137,6 @@ class PollButton(discord.ui.Button['Poll']):
                                       description = "If you would like to see what you voted for try :grey_question:\nIf you would like to change your vote use :repeat:")
             await interaction.response.send_message(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
 
-
 #* Custom Button for Settings
 class SettingsButton(discord.ui.Button['Settings']):
     def __init__(self, emoji, currentPoll, currentSettings):
@@ -372,8 +371,6 @@ class SettingsButton(discord.ui.Button['Settings']):
                 await interaction.response.edit_message(embed = self.settingsEmbed, view = self.view)
                 return
 
-
-
 #* Settings View Class
 class Settings(discord.ui.View):
     children: List[SettingsButton]
@@ -397,7 +394,6 @@ class Settings(discord.ui.View):
             elif str(button.emoji) == '\U0001f501': #if unlocked and refresh
                 button.style = discord.ButtonStyle.success #turn green
             self.add_item(button)
-
 
 
 #* SelectMenu View
@@ -446,7 +442,6 @@ class SelectMenu(discord.ui.Select):
             self.view.add_item(self.printButton)
             self.options.pop(self.options.index(self.printOption))
         return await interaction.response.edit_message(view = self.view)
-
 
 #* Setting up Cog
 class voting(commands.Cog):
