@@ -26,39 +26,47 @@ def get_prefix(bot, message):
     except KeyError:
         return "~"
 
-intents = discord.Intents.default()  # All but the two privileged ones
+intents = discord.Intents.all()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
-bot = commands.Bot(command_prefix=get_prefix, description=description, activity=discord.Activity(
+
+class clipboardBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
+        self.cogsList = ["botFun", "clipboard", "error_handler", "utilities", "voting"]
+
+    async def setup_hook(self) -> None:
+        for cog in self.cogsList:
+            await self.load_extension(f'cogs.{cog}')
+
+    #* on ready command
+    async def on_ready(self):
+        print(f"Logged in as {bot.user}")
+        print("------------------------------")
+    ##
+
+    #* .json manipulation
+    async def on_guild_join(self, guild):
+        prefixes = readfromFile("prefixes")
+        # Default guild value, the prefix all servers should start with
+        prefixes[str(guild.id)] = '~'
+        writetoFile(prefixes, "prefixes")
+
+    async def on_guild_remove(self, guild):
+        prefixes = readfromFile("prefixes")
+        prefixes.pop(str(guild.id))
+        writetoFile(prefixes, "prefixes")
+    ##
+
+    async def close(self):
+        await super().close()
+
+bot = clipboardBot()
 bot.remove_command('help')
-
-#* on ready command
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-    print("------------------------------")
-##
-
-#* .json manipulation
-@bot.event
-async def on_guild_join(guild):
-    prefixes = readfromFile("prefixes")
-    # Default guild value, the prefix all servers should start with
-    prefixes[str(guild.id)] = '~'
-    writetoFile(prefixes, "prefixes")
-
-@bot.event
-async def on_guild_remove(guild):
-    prefixes = readfromFile("prefixes")
-    prefixes.pop(str(guild.id))
-    writetoFile(prefixes, "prefixes")
-##
 
 #* Help command
 @bot.command(aliases = ["chelp"])
-async def help(ctx, argument=None):
-    await ctx.trigger_typing()
-    
+async def help(ctx, argument=None):    
     p = ctx.prefix
 
     if argument is None:
@@ -146,8 +154,6 @@ async def cancel(ctx):
 #* Info command
 @bot.command()
 async def info(ctx):
-    await ctx.trigger_typing()
-
     # Get my current profile pic
     member = ctx.guild.get_member(364536918362554368)
     pfp = member.avatar.url
@@ -183,14 +189,10 @@ async def info(ctx):
 async def reload(ctx, *, extension: str):
     eList = extension.split(" ")
     for extension in eList:
-        bot.unload_extension(f'cogs.{extension}')
-        bot.load_extension(f'cogs.{extension}')
+        await bot.unload_extension(f'cogs.{extension}')
+        await bot.load_extension(f'cogs.{extension}')
         print(f'{extension} is reloaded!')
         await ctx.send(f'Extension {extension} is reloaded!')
-
-cogsList = ["botFun", "clipboard", "error_handler", "utilities", "voting"]
-for cog in cogsList:
-    bot.load_extension(f'cogs.{cog}')
 
 @reload.error
 async def reload_error(ctx, error):
@@ -203,7 +205,7 @@ async def reload_error(ctx, error):
     else:
         print("\nSome other Error!")
         raise error
+#
 
-##
-
-bot.run(BOT_TOKEN)
+if __name__ == "__main__": #note to future me bot.run needs to be in name == main
+    bot.run(BOT_TOKEN)

@@ -48,5 +48,5 @@ class CommandErrorHandler(commands.Cog):
             print('This is a different error message {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
-def setup(bot):
-    bot.add_cog(CommandErrorHandler(bot))
+async def setup(bot):
+    await bot.add_cog(CommandErrorHandler(bot))

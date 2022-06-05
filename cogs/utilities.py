@@ -18,7 +18,6 @@ class utilities(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def prefix(self, ctx):
-        await ctx.trigger_typing()
         embed = discord.Embed(
             title = "Changing Server Prefix",
             description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
@@ -132,5 +131,5 @@ class utilities(commands.Cog):
             future.cancel()
     ##
 
-def setup(bot):
-    bot.add_cog(utilities(bot))
+async def setup(bot):
+    await bot.add_cog(utilities(bot))

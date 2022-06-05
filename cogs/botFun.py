@@ -236,8 +236,8 @@ class extraCommands(commands.Cog):
 
 ##
 
-def setup(bot):
-    bot.add_cog(extraCommands(bot))
+async def setup(bot):
+    await bot.add_cog(extraCommands(bot))
 
 
 
