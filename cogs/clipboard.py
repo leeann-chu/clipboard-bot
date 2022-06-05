@@ -130,7 +130,7 @@ class ListSettings(discord.ui.View):
             return await super().interaction_check(interaction)
         
     @discord.ui.button(emoji="✏", label="Rename List", style=discord.ButtonStyle.gray)
-    async def edit(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def edit(self, interaction: discord.Interaction, button: discord.ui.button):
         await interaction.response.defer()
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
@@ -153,7 +153,7 @@ class ListSettings(discord.ui.View):
     #     await self.ogView.message.delete()
         
     @discord.ui.button(emoji="<:trash:926991605615960064>", label="Delete List", style=discord.ButtonStyle.red)
-    async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.button):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_list'
@@ -174,14 +174,14 @@ class TaskSettings(discord.ui.View):
             return await super().interaction_check(interaction)
             
     @discord.ui.button(emoji="<:check:926281518266073088>", label="Change Task Status", style=discord.ButtonStyle.green)
-    async def status(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def status(self, interaction: discord.Interaction, button: discord.ui.button):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'complete'
         await self.ogView.bot.tasks.get_command('complete')(self.ogView.ctx, title=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="➕", label="Add Task", style=discord.ButtonStyle.primary)
-    async def add(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def add(self, interaction: discord.Interaction, button: discord.ui.button):
         await interaction.response.defer()
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
@@ -189,7 +189,7 @@ class TaskSettings(discord.ui.View):
         await self.ogView.bot.tasks.get_command('add')(self.ogView.ctx, inp=interaction.message.embeds[0].title)
         
     @discord.ui.button(emoji="<:cross:926283850882088990>", label="Remove Task", style=discord.ButtonStyle.red)
-    async def delete(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.button):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_task'
@@ -209,11 +209,11 @@ class PrivateView(discord.ui.View):
             return await super().interaction_check(interaction) 
         
     @discord.ui.button(emoji="<:white_check:930021702560280596>", label="Open List", style=discord.ButtonStyle.primary)
-    async def open(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def open(self, interaction: discord.Interaction, button: discord.ui.button):
         await interaction.response.send_message(embed = view(self.selList), ephemeral = True)
     
     @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
-    async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.button):
         await self.message.delete()
         
 class CompleteView(discord.ui.View):
@@ -323,13 +323,13 @@ class RemoveView(discord.ui.View):
             return await super().interaction_check(interaction)   
     
     @discord.ui.button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4)
-    async def cancel(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.button):
         await self.message.delete()
         db.delete(self.dupList)
         db.commit()
         
     @discord.ui.button(emoji = "<:white_check:930021702560280596>", label="Save Changes", style=discord.ButtonStyle.primary, custom_id = "save", row=4)
-    async def save(self, button: discord.ui.button, interaction: discord.Interaction):
+    async def save(self, interaction: discord.Interaction, button: discord.ui.button):
         sel_taskList = sorted(self.selList.rel_tasks, key = lambda task: task.number)
         dup_taskList = sorted(self.dupList.rel_tasks, key = lambda task: task.number)
         i = 1 #needs to be outside the for loop
@@ -419,11 +419,12 @@ class clipboard(commands.Cog):
             [`{ctx.prefix}list`](https://imgur.com/DI7IQcn \"Aliases: checklist, clipboard, l\") ➙ The start of any list related command
             [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a list
             [`{ctx.prefix}list view <title>`](https://imgur.com/DI7IQcn \"Aliases: open, browse, b, v \") ➙ Brings up editing menu for that list
-            `{ctx.prefix}list view {override}<author's username>` 
-            ➙ `{ctx.prefix}list view {override}GracefulLion`
+            ⤷ `{ctx.prefix}list view {override}<author's username>` 
+            ⤷ `{ctx.prefix}list view {override}GracefulLion`
             [`{ctx.prefix}list rename <title> {override} <newtitle>`](http://www.howardhallis.com/tpoe/noflash.html \"Aliases: r\")
-            [`{ctx.prefix}list delete <title>`](https://imgur.com/DI7IQcn \"Aliases: d\") ➙ you can override the confirmation menu using `{override}<title>`
-            ➙ `{ctx.prefix}list delete :<ListID>`
+            [`{ctx.prefix}list delete <title>`](https://imgur.com/DI7IQcn \"Aliases: d\") 
+            ⤷ `{ctx.prefix}list delete {override}<title>` ➙ to override the confirmation menu 
+            ⤷ `{ctx.prefix}list delete :<ListID>`
             `{ctx.prefix}list show/hide <title>` ➙ WIP, allows you to mark a list as private so that only you can see it. I don't recommend marking lists as private yet.
             
             `{ctx.prefix}list override` ➙ Return current override for server
@@ -449,7 +450,6 @@ class clipboard(commands.Cog):
         try: pfp = member.avatar.url
         except: pfp = None
 
-        await ctx.trigger_typing()
         embed = discord.Embed (
             title = "Checklist Creation",
             description = "",
@@ -823,5 +823,5 @@ def _overrideOwner_ByID(self, ctx, listID):
     output = f"You may not `{invoke}` this list because you do not own it!"
     return output
 
-def setup(bot):
-    bot.add_cog(clipboard(bot))
+async def setup(bot):
+    await bot.add_cog(clipboard(bot))

@@ -7,12 +7,8 @@ attrs==21.2.0
 chardet==4.0.0
 click==8.0.3
 configparser==5.2.0
-discord.py==2.0.0a3575+g45d498c
 greenlet==1.1.2
 idna==3.1
-itsdangerous==2.0.1
-Jinja2==3.0.3
-MarkupSafe==2.0.1
 multidict==5.1.0
 parsedatetime==2.6
 psycopg2-binary==2.9.3

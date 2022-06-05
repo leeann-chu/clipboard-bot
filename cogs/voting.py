@@ -466,7 +466,6 @@ class voting(commands.Cog):
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, title = None):
-        await ctx.trigger_typing()
         member = ctx.guild.get_member(ctx.author.id)
         embed = discord.Embed(description="")
         embed.set_author(name = ctx.author)
@@ -670,6 +669,7 @@ class voting(commands.Cog):
         clear
         saveReset
         timeConvert
+        list @view
         ```""")
 
     #* checkVotes
@@ -687,5 +687,5 @@ class voting(commands.Cog):
         else:
             await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed>`")
 
-def setup(bot):
-    bot.add_cog(voting(bot))
+async def setup(bot):
+    await bot.add_cog(voting(bot))
