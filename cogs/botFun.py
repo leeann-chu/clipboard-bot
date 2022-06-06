@@ -119,7 +119,8 @@ class extraCommands(commands.Cog):
                 "Happy people are just people you aren't acquainted enough with yet to know how miserable they really are",
                 "Always forgive your enemies; nothing annoys them so much.", "https://www.lewdlegame.com/", "https://t.co/fmog2jz7U8", 
                 "https://www.hogwartsishere.com/hogwartle",
-                "https://nerdlegame.com/", "https://zaratustra.itch.io/dordle", "https://qntm.org/files/wordle/index.html"]
+                "https://nerdlegame.com/", "https://zaratustra.itch.io/dordle", "https://qntm.org/files/wordle/index.html",
+                "https://pbs.twimg.com/media/FTxa2AYXwAEHagd.jpg"]
         await ctx.send(random.choice(eggs))
 ##
 
@@ -168,7 +169,7 @@ class extraCommands(commands.Cog):
     @commands.command()
     async def emojify(self, ctx, *, inp: str):
         emoji = inp.lower()
-        if emoji == "list":
+        if emoji.lower() in ['list', 'help']:
             embed = discord.Embed(
                 title="List of stored emojis",
                 description="",
@@ -177,25 +178,36 @@ class extraCommands(commands.Cog):
             embed.add_field(name="HGSS",
             value=""" Smug, Hide, Adore, 
             <:smug:940834492334108692> <:hide:940834492350877697> <:adore:940834492292137001> 
-            Harrysweat, Archiehehe
-            <:harrysweat:940834492212453376> <:archiehehe:940834491574927361> <:laughcry:940834492514467860> 
+            Harrysweat, Archiehehe, Laughcry, Dracostabbed
+            <:harrysweat:940834492212453376> <:archiehehe:940834491574927361> <:laughcry:940834492514467860> <:dracostabbed:982859131687956501>
             """)
             embed.add_field(name="David's Server",
             value=""" Damn, Lolric, Degrence, 
             <:damn:940834491268735046> <:loric:940834491675574272> <:degrence:940834491683971092> 
             Humber, Goppers, Teluge, 
             <:humber:940834492376039494> <:goppers:940834491730124831> <:teluge:940834491784646738> 
-            Splat, Baho
-            <:splat:940834491063226419> <:baho:940834491646242866>""")
-            embed.add_field(name="\u200b", value="\u200b",inline=False)
-            embed.add_field(name="Danny's Server", 
+            Splat, Baho, Nharwhal
+            <:splat:940834491063226419> <:baho:940834491646242866> <:nharwhal:940839334989422632>""")
+            #embed.add_field(name="\u200b", value="\u200b",inline=False)
+            embed.add_field(name="Danny & Testing Server", 
             value=""" Fear, Pain, Agony
             <:pain:940834492275359794> <:fear:940834492107620394> <:agony:940834452173623317> 
-            """)
-            embed.add_field(name="Testing Server",
-            value=""" Wave, Birdy, Murder
+            Wave, Birdy, Murder
             <:twiggwave:940834492308934706> <a:Birdy:845590890240278579> <:murder:941189017549021235>
             """)
+            embed.add_field(name="Roos & Turtles",
+            value=""" RooLove, RooClap, RooCool
+            <a:rooLove:982859137895522374> <a:rooClap:982859135118901318> <:rooCool:982859136230387752> 
+            TurtleClap, Turtleparty, Turtlepurple
+            <a:turtleclap:982859141762646086> <a:turtleparty:982859142928691240> <:turtlepurple:982859144086315078>
+            """)
+            embed.add_field(name="Animated & Happy",
+            value=""" Thisisfine, Pikawoo, Atada
+            <a:thisisfine:982859140265279498> <a:pikawoo:982859133973835856> <a:atada:982859129464967218>
+            Cathappy, Ghosthug, Stab, Ty
+            <:catHappy:982859130584858624> <:ghosthug:982859132849762374> <:stab:982859139048960020> <:ty:982859145185214484>
+            """)
+
             await ctx.send(embed=embed)
             return
 
@@ -224,11 +236,30 @@ class extraCommands(commands.Cog):
             "teluge": "https://cdn.discordapp.com/attachments/752637404828926012/940835525181452359/humber.png",
             "wave": "https://cdn.discordapp.com/attachments/752637404828926012/940835524665548810/wave.png",
             "birdy": "https://cdn.discordapp.com/attachments/806952740424384573/941188500877893672/birdy.gif",
-            "murder": "https://cdn.discordapp.com/attachments/806952740424384573/941187707068121129/murder_v_2_Custom.png"
+            "murder": "https://cdn.discordapp.com/attachments/806952740424384573/941187707068121129/murder_v_2_Custom.png",
+            "rooclap": "https://cdn.discordapp.com/attachments/806952740424384573/982855921980022815/rooClap.gif",
+            "roolove": "https://cdn.discordapp.com/attachments/806952740424384573/982855922504319016/rooLove.gif",
+            "roocool": "https://cdn.discordapp.com/attachments/806952740424384573/982855922252644382/rooCool.png",
+            "turtlepurple": "https://cdn.discordapp.com/attachments/806952740424384573/982856298112639036/turtlepurple.png",
+            "turtleparty": "https://cdn.discordapp.com/attachments/806952740424384573/982856298376867840/turtleparty.gif",
+            "turtleclap": "https://cdn.discordapp.com/attachments/806952740424384573/982856298745974805/turtleclap.gif",
+            "pikawoo": "https://cdn.discordapp.com/attachments/806952740424384573/982856634390949958/pikawoo.gif",
+            "dracostabbed": "https://cdn.discordapp.com/attachments/806952740424384573/982856634650984498/dracostabbed.png",
+            "nharwhal": "https://cdn.discordapp.com/attachments/806952740424384573/982856936091439174/nharwhal.png",
+            "ty": "https://cdn.discordapp.com/attachments/806952740424384573/982856936322105395/ty.png",
+            "ghosthug": "https://cdn.discordapp.com/attachments/806952740424384573/982856936577986660/ghosthug.png",
+            "cathappy": "https://cdn.discordapp.com/attachments/806952740424384573/982857375734202368/catHappy.png",
+            "stab": "https://cdn.discordapp.com/attachments/806952740424384573/982857526880133180/stab.png",
+            "thisisfine": "https://cdn.discordapp.com/attachments/806952740424384573/982857527140155402/thisisfine.gif",
+            "atada": "https://cdn.discordapp.com/attachments/806952740424384573/982857527383457852/atada.gif"        
         }
         if key is not None:
             if emojiDict.get(key):
-                await ctx.guild.get_member(ctx.author.id).send("Copy and paste this image to send to friends! " + emojiDict.get(key))
+                msgEmojid = "Copy and paste this image to send to friends! " + emojiDict.get(key)
+                try:
+                    await ctx.guild.get_member(ctx.author.id).send(msgEmojid)
+                except AttributeError:
+                    await ctx.send(msgEmojid)
             else:
                 await ctx.send("Emoji not found in dictionary")
         else:
