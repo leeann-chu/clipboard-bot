@@ -166,7 +166,7 @@ class extraCommands(commands.Cog):
 ##
 
 #* Emoji
-    @commands.command()
+    @commands.command(aliases = ["emoji"])
     async def emojify(self, ctx, *, inp: str):
         emoji = inp.lower()
         if emoji.lower() in ['list', 'help']:

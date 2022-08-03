@@ -407,7 +407,16 @@ class clipboard(commands.Cog):
     @commands.group(aliases = ["t", "task"])
     async def tasks(self, ctx):
         if ctx.invoked_subcommand is None:
-            await ctx.send(f"Please specify what you'd like to do. \nEx: `{ctx.prefix}task delete` \nSee `{ctx.prefix}list help` for a list of examples!")
+            allLists = db.query(Lists).filter_by(author = str(ctx.author.id)).all()
+            if allLists:
+                titlesOnly = [lists.title for lists in allLists]
+                await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <list>` to continue \nFor more help refer to `{ctx.prefix}list help`")
+            else:
+                "You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`"
+           
+        
+           
+            
 
 #* -------    Help Command   -------
     @_list.command(aliases = ["h"])
@@ -416,6 +425,9 @@ class clipboard(commands.Cog):
             title = "Help Menu",
             description =
             f"""
+            Any <> should be ignored when using the command. 
+            \nEx) `{ctx.prefix}list view <title>` 
+            ⤷ `{ctx.prefix}list view YourCoolListHere`\n
             [`{ctx.prefix}list`](https://imgur.com/DI7IQcn \"Aliases: checklist, clipboard, l\") ➙ The start of any list related command
             [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a list
             [`{ctx.prefix}list view <title>`](https://imgur.com/DI7IQcn \"Aliases: open, browse, b, v \") ➙ Brings up editing menu for that list
@@ -434,10 +446,10 @@ class clipboard(commands.Cog):
         ) 
         embed.add_field(name="Task Commands", 
         value=f"""
-        [`{ctx.prefix}task`](https://imgur.com/DI7IQcn \"Aliases: t\") ➙ The start of any task related command
-        [`{ctx.prefix}task add`](https://imgur.com/DI7IQcn \"Aliases: a\") 
-        [`{ctx.prefix}task remove`](https://imgur.com/DI7IQcn \"Aliases: r\")
-        [`{ctx.prefix}task complete`](https://imgur.com/DI7IQcn \"Aliases: checkoff, c\")
+        [`{ctx.prefix}task`](https://imgur.com/DI7IQcn \"Aliases: t\") ➙ Lists available list titles as a shortcut to task completion
+        [`{ctx.prefix}task add <title>`](https://imgur.com/DI7IQcn \"Aliases: a\") 
+        [`{ctx.prefix}task remove <title>`](https://imgur.com/DI7IQcn \"Aliases: r\")
+        [`{ctx.prefix}task complete <title>`](https://imgur.com/DI7IQcn \"Aliases: checkoff, c\")
         """)
         embed.set_footer(text=f"Tip: Don't use your override symbol in your List titles")
         await ctx.send(embed = embed)
@@ -514,7 +526,7 @@ class clipboard(commands.Cog):
                 _list.rel_tasks.append(newTask)
 
             db.commit()
-            return await confirmationEmbed.edit("Saved to Database!", embed = embed, view = None)
+            return await confirmationEmbed.edit(content="Saved to Database!", embed = embed, view = None)
         else:
             embed.description = "List canceled!"
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 5)
@@ -799,11 +811,11 @@ def chunkList(queryList, n): #chunk a list into lists of n size
     queryList = [queryList[i:i + n] for i in range(0, len(queryList), n)]
     return queryList
     
-def _checkOwner_Exists(self, ctx, title):
-    selList = db.query(Lists).filter_by(title = title).all()
+def _checkOwner_Exists(self, ctx, input_title):
+    selList = db.query(Lists).filter(Lists.title.ilike(input_title)).all()
     output = "Error!"
     if not selList:
-        return f"No lists were found with name: `{title}`!"
+        return f"No lists were found with name: `{input_title}`!"
     for _list in selList:
         if _list.author != str(ctx.author.id):
             invoke = str(ctx.invoked_with).replace("_list", "").strip()

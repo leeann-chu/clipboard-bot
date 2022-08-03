@@ -122,6 +122,7 @@ async def help(ctx, argument=None):
                         value=(f"""[`{p}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {p}add 3 4 6") ➙ Adds numbers together 
                     [`{p}repeat`](https://i.imgur.com/dV7GBcih.jpg "Aliases: mimic, copy. ex: {p}repeat doot") ➙ Repeats user input
                     [`{p}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask 🎱 questions   
+                    [`{p}emojify`](https://i.imgur.com/dV7GBcih.jpg "Aliases: emoji") ➙ Allows you to use emojis outside of the current server from handpicked list
                     """),
                         inline=True)
         embedList = [PageOneembed, PageTwoembed]
