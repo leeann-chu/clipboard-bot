@@ -245,7 +245,7 @@ class CompleteView(discord.ui.View):
             self.add_item(backButton)
             self.add_item(nextButton)
         
-        self.add_item(ScopeSelect(self))
+        # self.add_item(ScopeSelect(self)) #wasn't working well because it couldn't pass the 'tasks' to the clipboard object
         self.add_item(discord.ui.Button(emoji = "<:cancel:851278899270909993>", label="Exit", style=discord.ButtonStyle.red, custom_id = "cancel", row=4))
         self.add_item(discord.ui.Button(emoji = "<:confirm:851278899832684564>", label="Close Buttons", style=discord.ButtonStyle.green, custom_id = "done", row=4))
         
@@ -661,10 +661,10 @@ class clipboard(commands.Cog):
 #* Mark Tasks as complete
     @tasks.command(aliases = ["checkoff", "c"])
     async def complete(self, ctx, *, title: str, pagenum = 0):
-        member = ctx.guild.get_member(ctx.author.id)
+        member = ctx.guild.get_member(ctx.author.id)   
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
         if isinstance(selList, str):
-            return await ctx.send(selList)
+            return await ctx.send(selList) # if selList is a string, returns error message
         
         taskList = sorted(selList.rel_tasks, key = lambda task: task.number)
         taskListChunked = chunkList(taskList, tasksPerPage)
@@ -710,6 +710,7 @@ class clipboard(commands.Cog):
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
+
         dupList = Lists(title = "&" + selList.title, author = "0", author_name = "0")
         db.add(dupList)
         for task in selList.rel_tasks:
