@@ -498,7 +498,7 @@ class voting(commands.Cog):
             entirePoll = title
             title = re.search(r"\A.*", entirePoll).group()
             msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE)[1:])
-            emojis = "\n".join(re.findall(r"^[^*](?!\w)", entirePoll, re.MULTILINE))
+            emojis = "\n".join(re.findall(r"^[^*]{1,2}(?!\w)", entirePoll, re.MULTILINE))
 
         emojiList = makeList_removeSpaces(emojis)
         optionList = makeList_removeSpaces(msg)
