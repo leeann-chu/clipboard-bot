@@ -5,6 +5,6 @@ to push to the github you should use ctrl+shift+v, otherwise it pastes funny cha
 
 to look at databse use 
 `sqlite3 clipboard.db`
-`SELECT * FROM <table>`
+`SELECT * FROM <table>;`
 
-ex) select * from tasks where listID=10;
+ex) `select * from tasks where listID=10;`
