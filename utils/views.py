@@ -6,10 +6,10 @@ class Confirm(discord.ui.View):
         super().__init__()
         self.value = None
         self.ctx = ctx
-        
+
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user.id != self.ctx.author.id:
-            await interaction.response.send_message("This is not your menu to navigate.", ephemeral= True)  
+            await interaction.response.send_message("This is not your menu to navigate.", ephemeral= True)
             return False
         else:
             return await super().interaction_check(interaction)
@@ -30,14 +30,14 @@ class Cancel(discord.ui.View):
         super().__init__(timeout=timeout)
         self.value = None
         self.ctx = ctx
-        
+
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user.id != self.ctx.author.id:
-            await interaction.response.send_message("This is not your menu to navigate.", ephemeral= True)  
+            await interaction.response.send_message("This is not your menu to navigate.", ephemeral= True)
             return False
         else:
             return await super().interaction_check(interaction)
-        
+
     @discord.ui.button(emoji="<:cancel:851278899270909993>", label = "Exit", style=discord.ButtonStyle.red)
     async def no(self, button: discord.ui.button, interaction: discord.Interaction):
         self.value = False
@@ -49,8 +49,8 @@ class EmbedPageView(discord.ui.View):
         self.eList = eList
         self.pagenum = pagenum
         self.totpage = totpage
-        
-        if totpage > 1:                            
+
+        if totpage > 1:
                 backButton = EmbedPageButton("⇽ Back", discord.ButtonStyle.gray)
                 nextButton = EmbedPageButton("⇾ Next", discord.ButtonStyle.blurple)
                 if pagenum == 0:
@@ -59,11 +59,14 @@ class EmbedPageView(discord.ui.View):
                     nextButton.disabled = True
                 self.add_item(backButton)
                 self.add_item(nextButton)
-                
+
+    async def on_timeout(self) -> None:
+        await self.message.edit(view = None)
+
 class EmbedPageButton(discord.ui.Button):
     def __init__(self, label, style):
         super().__init__(label = label, style = style, row = 4)
-        
+
     async def callback(self, interaction:discord.Interaction):
         pagenum = self.view.pagenum
         if self.label == "⇽ Back":
