@@ -66,7 +66,7 @@ bot.remove_command('help')
 
 #* Help command
 @bot.command(aliases = ["chelp"])
-async def help(ctx, argument=None):    
+async def help(ctx, argument=None):
     p = ctx.prefix
 
     if argument is None:
@@ -78,13 +78,13 @@ async def help(ctx, argument=None):
         PageOneembed.set_footer(text="Page 1/2")
         PageOneembed.set_author(
             name="Here to help!", icon_url="https://cdn.discordapp.com/attachments/809686249999826955/845595120639672320/bigBirdy.gif")
-        
+
         PageOneembed.add_field(name="<:voteicon:881035523102236684> Voting Commands",
                         value=(f"""[`{p}poll create`](https://i.imgur.com/dV7GBcih.jpg \"Aliases: v make, vote create, p make, vote start, p m...\") ➙ Guides you through making a poll
-                               `{p}poll create <Title>` ➙ Speeds things along 
+                               `{p}poll create <Title>` ➙ Speeds things along
                                `{p}poll example` ➙ Sends you a dm with an example being created
                                """))
-        
+
         PageOneembed.add_field(name="📋 Clipboard Commands",
                         value=(f"""\n __Creation & Viewing__
                                     `{p}list make` ➙ Create your first List!
@@ -97,9 +97,9 @@ async def help(ctx, argument=None):
                                     `{p}tasks add <title>` ➙ Add more tasks to your list
                                     `{p}tasks delete <title>` ➙ Brings up delete tasks menu
                                     \n__Other__
-                                    `{p}list example` ➙ Examples of shortcuts you can take to make lists 
+                                    `{p}list example` ➙ Examples of shortcuts you can take to make lists
                                     `{p}list help` ➙ More info on the commands!
-                                    """), inline=False)                         
+                                    """), inline=False)
         PageTwoembed = discord.Embed(
             description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
@@ -117,16 +117,17 @@ async def help(ctx, argument=None):
                         `{p}prefix` ➙ Edit the prefix used for commands on this server
                     """),
                         inline=True)
-                        
+
         PageTwoembed.add_field(name="<a:pugpls:846829754036256808> Fun Commands",
-                        value=(f"""[`{p}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {p}add 3 4 6") ➙ Adds numbers together 
+                        value=(f"""[`{p}add`](https://i.imgur.com/dV7GBcih.jpg "Aliases: math. ex: {p}add 3 4 6") ➙ Adds numbers together
                     [`{p}repeat`](https://i.imgur.com/dV7GBcih.jpg "Aliases: mimic, copy. ex: {p}repeat doot") ➙ Repeats user input
-                    [`{p}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask 🎱 questions   
+                    [`{p}8ball`](https://i.imgur.com/dV7GBcih.jpg "Aliases: 8b") ➙ Ask 🎱 questions
                     [`{p}emojify`](https://i.imgur.com/dV7GBcih.jpg "Aliases: emoji") ➙ Allows you to use emojis outside of the current server from handpicked list
                     """),
                         inline=True)
         embedList = [PageOneembed, PageTwoembed]
-        await ctx.send(embed=PageOneembed, view=EmbedPageView(eList = embedList, pagenum = 0, totpage = 2))
+        embedView = EmbedPageView(eList = embedList, pagenum = 0, totpage = 2)
+        embedView.message = await ctx.send(embed=PageOneembed, view = embedView)
 ##
 
 #* Close Bot
@@ -172,9 +173,9 @@ async def info(ctx):
     embed.add_field(name="__Functionalities__",
                     value="• timer to send a reminder \n• check things off the list \n• create sticky reminders \n• create persistent reminders", inline=False)
     embed.add_field(name="__Changelog__",
-                    value = """Voting Bot Changelog: 
+                    value = """Voting Bot Changelog:
                                 *Among other things*
-                                • Prints an ephemeral message when a user votes to give them feedback that their vote was registered successfully along with other instructions 
+                                • Prints an ephemeral message when a user votes to give them feedback that their vote was registered successfully along with other instructions
                                 • Included a new button for non-poll owners to see who has voted so far
                                 • A new way to create polls that is much faster
                                 • now randomly chooses a winner if there's a tie

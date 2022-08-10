@@ -13,7 +13,7 @@ def scoreboardEmbed(type_of_board):
         board_type = readfromFile("member_emoji")
     else:
         board_type = readfromFile("emoji_count")
-    
+
     scoreboard = []
     embed = discord.Embed(
         title = "Most emotive members" if type_of_board == "member" else "Most used emojis",
@@ -24,10 +24,10 @@ def scoreboardEmbed(type_of_board):
     if board_type:
         for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
             scoreboard.append(f"{item[0]} {item[1]}")
-    
+
     #* Forming the embed
     embed.description = "\n".join(scoreboard) if scoreboard else "No data found!"
-    return embed        
+    return embed
 
 #* Emoji SB View
 class scoreboard(discord.ui.View):
@@ -38,6 +38,9 @@ class scoreboard(discord.ui.View):
         self.add_item(scoreButton("Emoji"))
         self.add_item(scoreButton("Member"))
         self.add_item(updateButton())
+
+    async def on_timeout(self) -> None:
+        await self.message.edit(view = None)
 
 class scoreButton(discord.ui.Button['scoreboard']):
     def __init__(self, label):
@@ -74,10 +77,10 @@ class emoji_sb(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot: return
-        #if message.guild.id != 370200859675721728: return
-        if message.guild.id != 416749994163568641: return
+        if message.guild.id != 370200859675721728: return
+        #if message.guild.id != 416749994163568641: return
         emoji_found = re.findall(r"[^\x00-\x7F]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
-        
+
         if not emoji_found: return #checks if there are emoji in message
 
         emoji_count = readfromFile("emoji_count")
@@ -99,13 +102,13 @@ class emoji_sb(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.member.bot: return
-        #if message.guild.id != 370200859675721728: return
-        if payload.guild_id != 416749994163568641: return
+        if payload.guild_id != 370200859675721728: return
+        #if payload.guild_id != 416749994163568641: return
         emoji_count = readfromFile("emoji_count")
         member_emoji_count = readfromFile("member_emoji")
 
         default_emoji = emoji_count.setdefault(str(payload.emoji), 0)
-        if default_emoji  >= 0: emoji_count[str(payload.emoji)] += 1
+        if default_emoji >= 0: emoji_count[str(payload.emoji)] += 1
 
         default_member = member_emoji_count.setdefault(payload.member.name, 0)
         if default_member >= 0: member_emoji_count[payload.member.name] += 1
@@ -119,7 +122,8 @@ class emoji_sb(commands.Cog):
     @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])
     async def scoreboard(self, ctx, *, type_of_board = None):
         if type_of_board == "member" or type_of_board == "emoji" or type_of_board == None:
-            await ctx.send(embed = scoreboardEmbed(type_of_board), view = scoreboard())
+            view = scoreboard()
+            view.message = await ctx.send(embed = scoreboardEmbed(type_of_board), view = view)
         else:
             await ctx.send("Uknown board type, options are `member` or `emoji`")
 
