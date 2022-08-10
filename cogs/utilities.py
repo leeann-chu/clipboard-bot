@@ -1,4 +1,6 @@
 import discord
+import json
+import os
 import asyncio
 from utils.poll_class import readfromFile, writetoFile
 from utils.views import Cancel, Confirm
@@ -35,7 +37,7 @@ class utilities(commands.Cog):
         embed.description = f"Successfully changed **standard prefix** to: `{newPrefix}`"
         await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
         await ctx.channel.purge(limit = 1)
-        
+
     @prefix.error
     async def prefix_error(self, ctx, error):
         member = ctx.message.author
@@ -79,6 +81,20 @@ class utilities(commands.Cog):
             await ctx.send(f"It's highly probable the bot does not have the permissions to fulfil your wishes, sorry")
     ##
 
+    # clear any json Dictionary (used for emoji_count and member)
+    @commands.command()
+    @commands.is_owner()
+    async def clear_dictionary(self, ctx, dictionary: str):
+        try:
+            os.remove(f'data/{dictionary}.json')
+        except OSError:
+            await ctx.send("Dictionary not found, options: emoji_count and member_emoji")
+            return
+        
+        with open(f'data/{dictionary}.json', 'x') as f:
+            json.dump({}, f,  indent=4)
+            await ctx.send("Successfully cleared dictionary!")            
+
     #➥ waitfor command
     @commands.command()
     @commands.is_owner()
@@ -104,12 +120,12 @@ class utilities(commands.Cog):
     #➥ multi_wait command
     @commands.command()
     @commands.is_owner()
-    async def multi_wait(self, ctx, view, timeout):    
-      
+    async def multi_wait(self, ctx, view, timeout):
+
         # asyncio magic?
         done, pending = await asyncio.wait([
                             self.waitCheck(ctx, timeout),
-                            view.wait()], 
+                            view.wait()],
                             timeout = timeout,
                             return_when = asyncio.FIRST_COMPLETED)
         try:
@@ -121,9 +137,9 @@ class utilities(commands.Cog):
                 return None
         except KeyError:
                 await ctx.send("You took too long, try again!", delete_after = 5)
-        except Exception as e: 
-            print(e) 
-            
+        except Exception as e:
+            print(e)
+
         for future in done:
             print("more errors?")
             future.exception()
