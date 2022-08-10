@@ -413,10 +413,7 @@ class clipboard(commands.Cog):
                 await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <list>` to continue \nFor more help refer to `{ctx.prefix}list help`")
             else:
                 "You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`"
-           
-        
-           
-            
+               
 
 #* -------    Help Command   -------
     @_list.command(aliases = ["h"])
