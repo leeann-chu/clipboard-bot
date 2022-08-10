@@ -20,9 +20,8 @@ class SettingsClass:
 def writetoFile(data, file):
     with open(f'data/{file}.json', 'w') as f:
         json.dump(data, f,  indent=4)
+
 def readfromFile(file):
     with open(f'data/{file}.json', 'r') as f:
         data = json.load(f)
     return data
-
-

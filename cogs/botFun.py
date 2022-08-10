@@ -2,8 +2,10 @@ import discord
 import random
 from discord.ext import commands
 from main import randomHexGen
+import more_itertools as mit
 import asyncio
 import re
+from utils.poll_class import readfromFile, writetoFile
 
 class extraCommands(commands.Cog):
     def __init__(self, bot):
@@ -14,7 +16,75 @@ class extraCommands(commands.Cog):
     async def on_ready(self):
         print("botFun is Ready")
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot: return
+        #if message.guild.id != 370200859675721728: return
+        if message.guild.id != 416749994163568641: return
+        emoji_found = re.findall(r"[^\x00-\x7F]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
+        
+        if not emoji_found: return #checks if there are emoji in message
+
+        emoji_count = readfromFile("emoji_count")
+        member_emoji_count = readfromFile("member_emoji")
+
+        #print(f"Emoji found list {list(emoji_found)}")
+        for emoji in emoji_found:
+            default_emoji = emoji_count.setdefault(emoji, 0)
+            if default_emoji >= 0: emoji_count[emoji] += 1
+
+            default_member = member_emoji_count.setdefault(message.author.name, 0)
+            if default_member >= 0: member_emoji_count[message.author.name] += 1
+
+        #print(member_emoji_count)
+        #print(f"{emoji_count} \n")
+        writetoFile(member_emoji_count, "member_emoji")
+        writetoFile(emoji_count, "emoji_count")
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if payload.member.bot: return
+        #if message.guild.id != 370200859675721728: return
+        if payload.guild_id != 416749994163568641: return
+        emoji_count = readfromFile("emoji_count")
+        member_emoji_count = readfromFile("member_emoji")
+
+        default_emoji = emoji_count.setdefault(str(payload.emoji), 0)
+        if default_emoji  >= 0: emoji_count[str(payload.emoji)] += 1
+
+        default_member = member_emoji_count.setdefault(payload.member.name, 0)
+        if default_member >= 0: member_emoji_count[payload.member.name] += 1
+
+        #print(member_emoji_count)
+        #print(emoji_count)
+        writetoFile(member_emoji_count, "member_emoji")
+        writetoFile(emoji_count, "emoji_count")
+
     # Commands
+    @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])
+    async def scoreboard(self, ctx, *, type_of_board):
+        board_type = {}
+        if type_of_board == "emoji":
+            board_type = readfromFile("emoji_count")
+        elif type_of_board == "member":
+            board_type = readfromFile("member_emoji")
+        
+        scoreboard = []
+        embed = discord.Embed(
+            title = "Most used emojis" if type_of_board == "emoji" else "Most emotive members",
+            description = "placeholder",
+            color = randomHexGen(),
+            timestamp = discord.utils.utcnow()
+        )
+        if board_type:
+            for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
+                scoreboard.append(f"{item[0]} {item[1]}")
+        
+        #* Forming the embed
+        embed.description = "\n".join(scoreboard) if scoreboard else "No data found!"
+
+        await ctx.send(embed = embed)
+
     @commands.command()
     async def add(self, ctx, *nums):
         eq = " + ".join(nums)
@@ -82,14 +152,14 @@ class extraCommands(commands.Cog):
         await ctx.send("Say hello!")
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel
-        try: 
+        try:
             msg = await self.bot.wait_for('message', check = check, timeout = 15)
             if (msg.content) == 'hello':
-                await ctx.send(f"Hello {msg.author.display_name}!")   
+                await ctx.send(f"Hello {msg.author.display_name}!")
             else:
-                await ctx.send("rude!")  
+                await ctx.send("rude!")
         except asyncio.TimeoutError:
-            await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)   
+            await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)
 ##
 
 #➥ Repeat Command
@@ -107,9 +177,9 @@ class extraCommands(commands.Cog):
 #➥ Easteregg
     @commands.command(aliases=['egg', 'secret'])
     async def easteregg(self, ctx):
-        eggs = ["https://imgur.com/gallery/Sn3R1", "https://cdn.discordapp.com/attachments/806952740424384573/881582644020772894/unknown.png", 
-                "https://www.youtube.com/watch?v=Xx8TQfhRVXY", "http://howardhallis.com/POE/index.html", 
-                "https://media.discordapp.net/attachments/806952740424384573/881583866249351278/name_of_the_wind_fanart_cover.jpg?width=439&height=670", 
+        eggs = ["https://imgur.com/gallery/Sn3R1", "https://cdn.discordapp.com/attachments/806952740424384573/881582644020772894/unknown.png",
+                "https://www.youtube.com/watch?v=Xx8TQfhRVXY", "http://howardhallis.com/POE/index.html",
+                "https://media.discordapp.net/attachments/806952740424384573/881583866249351278/name_of_the_wind_fanart_cover.jpg?width=439&height=670",
                 "I'm sorry I slapped you but you didn't seem like you would ever stop talking and I panicked",
                 "https://cdn.discordapp.com/attachments/806952740424384573/881585486496403487/Screenshot_20170901-221337.png",
                 "https://cdn.discordapp.com/attachments/806952740424384573/881585743510773800/sarah_cat_august.gif",
@@ -117,7 +187,7 @@ class extraCommands(commands.Cog):
                 "What is the height of stupidty? \nI don't know, how tall are you?",
                 "The most beautiful things in the world cannot be seen or touched, they are felt with the heart.",
                 "Happy people are just people you aren't acquainted enough with yet to know how miserable they really are",
-                "Always forgive your enemies; nothing annoys them so much.", "https://www.lewdlegame.com/", "https://t.co/fmog2jz7U8", 
+                "Always forgive your enemies; nothing annoys them so much.", "https://www.lewdlegame.com/", "https://t.co/fmog2jz7U8",
                 "https://www.hogwartsishere.com/hogwartle",
                 "https://nerdlegame.com/", "https://zaratustra.itch.io/dordle", "https://qntm.org/files/wordle/index.html",
                 "https://pbs.twimg.com/media/FTxa2AYXwAEHagd.jpg"]
@@ -145,7 +215,7 @@ class extraCommands(commands.Cog):
 
             minTimeHours = round(minTimeMinutes/60, 3)
             maxTimeHours = round(maxTimeMinutes/60, 3)
-            
+
             embed = discord.Embed(
                 title = "Tatsugotchi Experience Progress",
                 description = f"""
@@ -176,28 +246,28 @@ class extraCommands(commands.Cog):
                 color = randomHexGen()
             )
             embed.add_field(name="HGSS",
-            value=""" Smug, Hide, Adore, 
-            <:smug:940834492334108692> <:hide:940834492350877697> <:adore:940834492292137001> 
+            value=""" Smug, Hide, Adore,
+            <:smug:940834492334108692> <:hide:940834492350877697> <:adore:940834492292137001>
             Harrysweat, Archiehehe, Laughcry, Dracostabbed
             <:harrysweat:940834492212453376> <:archiehehe:940834491574927361> <:laughcry:940834492514467860> <:dracostabbed:982859131687956501>
             """)
             embed.add_field(name="David's Server",
-            value=""" Damn, Lolric, Degrence, 
-            <:damn:940834491268735046> <:loric:940834491675574272> <:degrence:940834491683971092> 
-            Humber, Goppers, Teluge, 
-            <:humber:940834492376039494> <:goppers:940834491730124831> <:teluge:940834491784646738> 
+            value=""" Damn, Lolric, Degrence,
+            <:damn:940834491268735046> <:loric:940834491675574272> <:degrence:940834491683971092>
+            Humber, Goppers, Teluge,
+            <:humber:940834492376039494> <:goppers:940834491730124831> <:teluge:940834491784646738>
             Splat, Baho, Nharwhal
             <:splat:940834491063226419> <:baho:940834491646242866> <:nharwhal:940839334989422632>""")
             #embed.add_field(name="\u200b", value="\u200b",inline=False)
-            embed.add_field(name="Danny & Testing Server", 
+            embed.add_field(name="Danny & Testing Server",
             value=""" Fear, Pain, Agony
-            <:pain:940834492275359794> <:fear:940834492107620394> <:agony:940834452173623317> 
+            <:pain:940834492275359794> <:fear:940834492107620394> <:agony:940834452173623317>
             Wave, Birdy, Murder
             <:twiggwave:940834492308934706> <a:Birdy:845590890240278579> <:murder:941189017549021235>
             """)
             embed.add_field(name="Roos & Turtles",
             value=""" RooLove, RooClap, RooCool
-            <a:rooLove:982859137895522374> <a:rooClap:982859135118901318> <:rooCool:982859136230387752> 
+            <a:rooLove:982859137895522374> <a:rooClap:982859135118901318> <:rooCool:982859136230387752>
             TurtleClap, Turtleparty, Turtlepurple
             <a:turtleclap:982859141762646086> <a:turtleparty:982859142928691240> <:turtlepurple:982859144086315078>
             """)
@@ -212,8 +282,8 @@ class extraCommands(commands.Cog):
             return
 
         try:
-            key = re.search(r"(?<=`).*(?=`)", emoji).group() #Finds first object 
-        except AttributeError: 
+            key = re.search(r"(?<=`).*(?=`)", emoji).group() #Finds first object
+        except AttributeError:
             key = None
 
         emojiDict = {
@@ -251,7 +321,7 @@ class extraCommands(commands.Cog):
             "cathappy": "https://cdn.discordapp.com/attachments/806952740424384573/982857375734202368/catHappy.png",
             "stab": "https://cdn.discordapp.com/attachments/806952740424384573/982857526880133180/stab.png",
             "thisisfine": "https://cdn.discordapp.com/attachments/806952740424384573/982857527140155402/thisisfine.gif",
-            "atada": "https://cdn.discordapp.com/attachments/806952740424384573/982857527383457852/atada.gif"        
+            "atada": "https://cdn.discordapp.com/attachments/806952740424384573/982857527383457852/atada.gif"
         }
         if key is not None:
             if emojiDict.get(key):
@@ -269,6 +339,3 @@ class extraCommands(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(extraCommands(bot))
-
-
-
