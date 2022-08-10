@@ -666,7 +666,7 @@ class voting(commands.Cog):
     @commands.is_owner()
     async def adminHelp(self, ctx):
         await ctx.send("""```insertPoll <string input formatted json>
-        clear
+        clear (clears dictionary)
         saveReset
         timeConvert
         list @view
