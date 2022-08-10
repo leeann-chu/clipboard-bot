@@ -2,10 +2,8 @@ import discord
 import random
 from discord.ext import commands
 from main import randomHexGen
-import more_itertools as mit
 import asyncio
 import re
-from utils.poll_class import readfromFile, writetoFile
 
 class extraCommands(commands.Cog):
     def __init__(self, bot):
@@ -16,75 +14,7 @@ class extraCommands(commands.Cog):
     async def on_ready(self):
         print("botFun is Ready")
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot: return
-        #if message.guild.id != 370200859675721728: return
-        if message.guild.id != 416749994163568641: return
-        emoji_found = re.findall(r"[^\x00-\x7F]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
-        
-        if not emoji_found: return #checks if there are emoji in message
-
-        emoji_count = readfromFile("emoji_count")
-        member_emoji_count = readfromFile("member_emoji")
-
-        #print(f"Emoji found list {list(emoji_found)}")
-        for emoji in emoji_found:
-            default_emoji = emoji_count.setdefault(emoji, 0)
-            if default_emoji >= 0: emoji_count[emoji] += 1
-
-            default_member = member_emoji_count.setdefault(message.author.name, 0)
-            if default_member >= 0: member_emoji_count[message.author.name] += 1
-
-        #print(member_emoji_count)
-        #print(f"{emoji_count} \n")
-        writetoFile(member_emoji_count, "member_emoji")
-        writetoFile(emoji_count, "emoji_count")
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if payload.member.bot: return
-        #if message.guild.id != 370200859675721728: return
-        if payload.guild_id != 416749994163568641: return
-        emoji_count = readfromFile("emoji_count")
-        member_emoji_count = readfromFile("member_emoji")
-
-        default_emoji = emoji_count.setdefault(str(payload.emoji), 0)
-        if default_emoji  >= 0: emoji_count[str(payload.emoji)] += 1
-
-        default_member = member_emoji_count.setdefault(payload.member.name, 0)
-        if default_member >= 0: member_emoji_count[payload.member.name] += 1
-
-        #print(member_emoji_count)
-        #print(emoji_count)
-        writetoFile(member_emoji_count, "member_emoji")
-        writetoFile(emoji_count, "emoji_count")
-
     # Commands
-    @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])
-    async def scoreboard(self, ctx, *, type_of_board):
-        board_type = {}
-        if type_of_board == "emoji":
-            board_type = readfromFile("emoji_count")
-        elif type_of_board == "member":
-            board_type = readfromFile("member_emoji")
-        
-        scoreboard = []
-        embed = discord.Embed(
-            title = "Most used emojis" if type_of_board == "emoji" else "Most emotive members",
-            description = "placeholder",
-            color = randomHexGen(),
-            timestamp = discord.utils.utcnow()
-        )
-        if board_type:
-            for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
-                scoreboard.append(f"{item[0]} {item[1]}")
-        
-        #* Forming the embed
-        embed.description = "\n".join(scoreboard) if scoreboard else "No data found!"
-
-        await ctx.send(embed = embed)
-
     @commands.command()
     async def add(self, ctx, *nums):
         eq = " + ".join(nums)
