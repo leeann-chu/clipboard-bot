@@ -23,7 +23,8 @@ def scoreboardEmbed(type_of_board):
     )
     if board_type:
         for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
-            scoreboard.append(f"{item[0]} {item[1]}")
+            if item[0] > 1:
+                scoreboard.append(f"{item[0]} {item[1]}")
 
     #* Forming the embed
     embed.description = "\n".join(scoreboard) if scoreboard else "No data found!"
@@ -79,7 +80,7 @@ class emoji_sb(commands.Cog):
         if message.author.bot: return
         if message.guild.id != 370200859675721728: return
         #if message.guild.id != 416749994163568641: return
-        emoji_found = re.findall(r"[^\x00-\x7F]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
+        emoji_found = re.findall(r"[^\x00-\x7F™️ę’]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
 
         if not emoji_found: return #checks if there are emoji in message
 
