@@ -1,4 +1,5 @@
 import discord
+from datetime import datetime
 
 #➥ Setting up a Confirmation Menu
 class Confirm(discord.ui.View):
@@ -61,6 +62,7 @@ class EmbedPageView(discord.ui.View):
                 self.add_item(nextButton)
 
     async def on_timeout(self) -> None:
+        print(datetime.now())
         await self.message.edit(view = None)
 
 class EmbedPageButton(discord.ui.Button):
