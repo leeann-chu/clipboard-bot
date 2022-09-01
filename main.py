@@ -33,7 +33,8 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "clipboard", "error_handler", "emoji_sb", "utilities", "voting"]
+        self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "emoji_sb", "utilities", "voting"]
+        self.recentExt = None
 
     async def setup_hook(self) -> None:
         for cog in self.cogsList:
@@ -188,13 +189,20 @@ async def info(ctx):
 #* loading and unloading
 @bot.command(aliases = ["Reload"])
 @commands.is_owner()
-async def reload(ctx, *, extension: str):
-    eList = extension.split(" ")
-    for extension in eList:
-        await bot.unload_extension(f'cogs.{extension}')
-        await bot.load_extension(f'cogs.{extension}')
-        print(f'{extension} is reloaded!')
-        await ctx.send(f'Extension {extension} is reloaded!')
+async def reload(ctx, *, ext: str = None):
+    if ext: # given extension in command
+        extension = ext
+        bot.recentExt = extension
+    else: # no given extension
+        if bot.recentExt: # use most recent reloaded extension
+            extension = bot.recentExt
+        else:
+            return await ctx.send(f"Unrecognized Extension!")
+
+    await bot.unload_extension(f'cogs.{extension}')
+    await bot.load_extension(f'cogs.{extension}')
+    print(f'{extension} is reloaded!')
+    await ctx.send(f'Extension {extension} is reloaded!')
 
 @reload.error
 async def reload_error(ctx, error):
