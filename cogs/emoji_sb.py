@@ -78,9 +78,10 @@ class emoji_sb(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot: return
+        if isinstance(message.channel, discord.channel.DMChannel): return
         if message.guild.id != 370200859675721728: return
         #if message.guild.id != 416749994163568641: return
-        emoji_found = re.findall(r"[^\x00-\x7F™️ę’]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
+        emoji_found = re.findall(r"[^\x00-\x7F™️ę’”“€]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
 
         if not emoji_found: return #checks if there are emoji in message
 
