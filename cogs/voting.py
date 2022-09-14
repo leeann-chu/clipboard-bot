@@ -665,12 +665,12 @@ class voting(commands.Cog):
     @commands.command(aliases = ["@help"])
     @commands.is_owner()
     async def adminHelp(self, ctx):
-        await ctx.send("""```insertPoll <string input formatted json>
-        clear (clears dictionary)
-        saveReset
-        timeConvert
-        list @view
-        ```""")
+        await ctx.send(f"""```
+        {ctx.prefix}insertPoll <string input formatted json>
+        {ctx.prefix}vote clear (clears dictionary)
+        {ctx.prefix}vote saveReset
+        {ctx.prefix}timeConvert
+        {ctx.prefix}list @view```""")
 
     #* checkVotes
     @commands.command(aliases = ["votecheck", "vc", "checkvote", "cv", "votescheck", "checkVote", "voteCheck"])

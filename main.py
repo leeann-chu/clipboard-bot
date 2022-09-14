@@ -166,7 +166,7 @@ async def info(ctx):
 
     # Create Embed
     embed = discord.Embed(
-        title="📋 Clipboard Bot Information",
+        title="📋 Clipboard Bot Information-- OUTDATED",
         description=description + f"\nThis server's prefix is `{prefix}`",
         color=randomHexGen()
     )
