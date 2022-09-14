@@ -1,6 +1,7 @@
 import discord
 import random
 from discord.ext import commands
+from discord.ext.commands import GuildConverter, MemberConverter 
 from main import randomHexGen
 import asyncio
 import re
@@ -30,12 +31,25 @@ class extraCommands(commands.Cog):
         await ctx.send(embed = embed)
 
     @commands.command()
-    async def avatar(self, ctx, *, member : discord.Member=None):
-        if not member:
-            member = ctx.message.author
+    async def avatar(self, ctx, *, given_id = None):
         embed = discord.Embed()
-        embed.set_image(url=member.avatar.url)
-        await ctx.send(embed=embed)
+        if given_id:
+            try:
+                guild = await GuildConverter().convert(ctx, given_id)
+                embed.set_image(url=guild.icon)
+                
+            except commands.BadArgument:
+                member = await MemberConverter().convert(ctx, given_id)
+                embed.set_image(url=member.avatar.url)
+        else:
+            given_id = ctx.message.author
+            embed.set_image(url=given_id.avatar.url)
+        
+        await ctx.send(embed = embed)
+
+    @avatar.error
+    async def avatar_error(self, ctx, error):
+            await ctx.send(f"Server/{error} \nOnly works with members I've seen or servers I'm in...")
 
     @commands.command()
     async def chooseOne(self, ctx, *, inp : str):

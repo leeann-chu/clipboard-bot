@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import TextChannelConverter 
-from discord.ext.commands import CategoryChannelConverter 
-from discord.ext.commands import RoleConverter 
+from discord.ext.commands import TextChannelConverter, CategoryChannelConverter, RoleConverter
 
 class category_org(commands.Cog):
     def __init__(self, bot):
