@@ -3,6 +3,7 @@ import random
 from discord.ext import commands
 from discord.ext.commands import GuildConverter, MemberConverter 
 from main import randomHexGen
+from utils.poll_class import readfromFile, writetoFile
 import asyncio
 import re
 
@@ -279,6 +280,31 @@ class extraCommands(commands.Cog):
         else:
             await ctx.send(f"Syntax: {ctx.prefix}emojify \`{emoji}\`")
 
+##
+
+#* Profile Pictures
+    @commands.command(aliases = ["pfps", "profiles"])
+    async def pfp(self, ctx, inp: str, newKey = None, newLink = None):
+        flag = inp.lower()
+        if flag == "help":
+            return await ctx.send("Options are `display/show`, `save`, `help`")
+        
+        pfps_dict = readfromFile("pfps")
+        if flag == "display" or flag == "show":
+            for key, link in pfps_dict.items():
+                await ctx.send(f"**{key}**\n{link}")
+
+        elif flag == "save":
+            pfps_dict[newKey] = newLink
+            writetoFile(pfps_dict, "pfps")
+            return await ctx.send("pfp saved!")
+
+        elif flag == "delete":
+            del pfps_dict[newKey]
+            writetoFile(pfps_dict, "pfps")
+
+        else:
+            await ctx.send("Options are `display/show`, `save <key> <link>`, `help`")
 ##
 
 async def setup(bot):

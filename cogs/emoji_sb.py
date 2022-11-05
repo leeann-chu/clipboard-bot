@@ -23,7 +23,7 @@ def scoreboardEmbed(type_of_board):
     )
     if board_type:
         for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
-            if item[0] > 1:
+            if item[0] > 5:
                 scoreboard.append(f"{item[0]} {item[1]}")
 
     #* Forming the embed
