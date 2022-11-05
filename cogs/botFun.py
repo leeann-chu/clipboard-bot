@@ -286,11 +286,9 @@ class extraCommands(commands.Cog):
     @commands.command(aliases = ["pfps", "profiles"])
     async def pfp(self, ctx, inp: str, newKey = None, newLink = None):
         flag = inp.lower()
-        if flag == "help":
-            return await ctx.send("Options are `display/show`, `save`, `help`")
-        
+
         pfps_dict = readfromFile("pfps")
-        if flag == "display" or flag == "show":
+        if flag == "display" or flag == "show" or flag == "list":
             for key, link in pfps_dict.items():
                 await ctx.send(f"**{key}**\n{link}")
 
@@ -302,9 +300,10 @@ class extraCommands(commands.Cog):
         elif flag == "delete":
             del pfps_dict[newKey]
             writetoFile(pfps_dict, "pfps")
+            return await ctx.send("pfp deleted!")
 
         else:
-            await ctx.send("Options are `display/show`, `save <key> <link>`, `help`")
+            await ctx.send("Options are `list/show`, `delete <key>`, `save <key> <link>`, `help`")
 ##
 
 async def setup(bot):
