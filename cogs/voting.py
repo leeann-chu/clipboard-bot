@@ -654,38 +654,13 @@ class voting(commands.Cog):
         timestamp = datetime.today().strftime("%Y-%m-%d")
         pollName = f"storedPolls-{timestamp}"
         oldPoll = readfromFile("storedPolls")
-
+        if oldPoll == {}:
+            return await ctx.send("Poll has already been reset!")
         writetoFile(oldPoll, pollName)
 
         oldPoll.clear()
         writetoFile(oldPoll, "storedPolls")
         await ctx.send("Successfully reset poll!")
-
-    #* Help with Admin Commands
-    @commands.command(aliases = ["@help"])
-    @commands.is_owner()
-    async def adminHelp(self, ctx):
-        await ctx.send(f"""```
-        {ctx.prefix}insertPoll <string input formatted json>
-        {ctx.prefix}vote clear (clears dictionary)
-        {ctx.prefix}vote saveReset
-        {ctx.prefix}timeConvert
-        {ctx.prefix}list @view```""")
-
-    #* checkVotes
-    @commands.command(aliases = ["votecheck", "vc", "checkvote", "cv", "votescheck", "checkVote", "voteCheck"])
-    @commands.is_owner()
-    async def checkVotes(self, ctx, *, inp=None):
-        if inp:
-            today = datetime.now()
-            lastday = date(today.year, today.month + 1, 1) - timedelta(days=1)
-            daysLeft = lastday.day - today.day
-
-            votesNeeded = int(inp.split(" ")[1]) - int(inp.split(" ")[0])
-            await ctx.send(round(votesNeeded/daysLeft, 2))
-
-        else:
-            await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed>`")
 
 async def setup(bot):
     await bot.add_cog(voting(bot))

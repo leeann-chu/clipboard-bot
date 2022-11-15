@@ -178,6 +178,21 @@ class extraCommands(commands.Cog):
 
         else:
             await ctx.send(f"`{ctx.prefix}tgCheck <current xp> <xp needed for next level>`")
+
+    #* checkVotes
+    @commands.command(aliases = ["checkVotes"])
+    @commands.is_owner()
+    async def voteCheck(self, ctx, *, inp=None):
+        if inp:
+            today = datetime.now()
+            lastday = date(today.year, today.month + 1, 1) - timedelta(days=1)
+            daysLeft = lastday.day - today.day
+
+            votesNeeded = int(inp.split(" ")[1]) - int(inp.split(" ")[0])
+            await ctx.send(round(votesNeeded/daysLeft, 2))
+
+        else:
+            await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed>`")
 ##
 
 #* Emoji
@@ -288,9 +303,15 @@ class extraCommands(commands.Cog):
         flag = inp.lower()
 
         pfps_dict = readfromFile("pfps")
-        if flag == "display" or flag == "show" or flag == "list":
+        if flag == "show":
+            if newKey:
+                return await ctx.send(f"**{newKey}**\n{pfps_dict[newKey]}")
             for key, link in pfps_dict.items():
                 await ctx.send(f"**{key}**\n{link}")
+
+        elif flag == "list":
+            for key, link in pfps_dict.items():
+                await ctx.send(f"**{key}**")
 
         elif flag == "save":
             pfps_dict[newKey] = newLink
@@ -303,8 +324,22 @@ class extraCommands(commands.Cog):
             return await ctx.send("pfp deleted!")
 
         else:
-            await ctx.send("Options are `list/show`, `delete <key>`, `save <key> <link>`, `help`")
+            await ctx.send("Options are `list/show`, `show <key>`, `delete <key>`, `save <key> <link>`, `help`")
 ##
+
+    #* Help with Admin Commands
+    @commands.command(aliases = ["@help"])
+    @commands.is_owner()
+    async def adminHelp(self, ctx):
+        await ctx.send(f"""```
+        {ctx.prefix}insertPoll <string input formatted json>
+        {ctx.prefix}vote clear (clears dictionary)
+        {ctx.prefix}vote saveReset
+        {ctx.prefix}timeConvert (runs humantimeTranslator)
+        {ctx.prefix}tgCheck <current xp> <xp needed for next level>
+        {ctx.prefix}voteCheck <# of votes so far> <total votes needed>
+        {ctx.prefix}pfps help
+        {ctx.prefix}list @view```""")
 
 async def setup(bot):
     await bot.add_cog(extraCommands(bot))
