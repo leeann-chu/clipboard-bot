@@ -33,7 +33,8 @@ def humantimeTranslator(s):
 
     parts = re.search(r'^(\d+)([^\d]*)', s.lower().replace(' ', ''))
     if parts:
-        return int(parts.group(1)) * mult_items[parts.group(2)] + humantimeTranslator(re.sub(r'^(\d+)([^\d]*)', '', s.lower()))
+        num_seconds = int(parts.group(1)) * mult_items[parts.group(2)] + humantimeTranslator(re.sub(r'^(\d+)([^\d]*)', '', s.lower()))
+        return f"{num_seconds} seconds"
     else:
         return 0
 

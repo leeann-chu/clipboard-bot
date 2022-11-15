@@ -18,15 +18,23 @@ class extraCommands(commands.Cog):
 
     # Commands
     @commands.command()
-    async def add(self, ctx, *nums):
-        eq = " + ".join(nums)
-        try:
-            summation = sum([int(i) for i in nums])
-        except Exception:
-            await ctx.send(f"Only integers, format is {ctx.prefix}add 2 3 4")
+    async def math(self, ctx, flag:str, *nums):
+        if flag == "add" or flag == "+":
+            eq = " + ".join(nums)
+            try:
+                result = sum([int(i) for i in nums])
+            except Exception:
+                await ctx.send(f"Only integers, format is {ctx.prefix}math add 2 3 4")
+        elif flag == "multiply" or flag == "*":
+            eq = " * ".join(nums)
+            try:
+                result = [b := 1, [b := b * a for a in [int(i) for i in nums]]][-1][-1]
+            except Exception:
+                await ctx.send(f"Only integers, format is {ctx.prefix}math multiply 2 3 4")
+
         embed = discord.Embed (
-            title = "Summation",
-            description = f"{eq} = {summation}",
+            title = "Result",
+            description = f"{eq} = {result}",
             color = randomHexGen()
         )
         await ctx.send(embed = embed)
@@ -331,15 +339,25 @@ class extraCommands(commands.Cog):
     @commands.command(aliases = ["@help"])
     @commands.is_owner()
     async def adminHelp(self, ctx):
-        await ctx.send(f"""```
-        {ctx.prefix}insertPoll <string input formatted json>
-        {ctx.prefix}vote clear (clears dictionary)
-        {ctx.prefix}vote saveReset
-        {ctx.prefix}timeConvert (runs humantimeTranslator)
-        {ctx.prefix}tgCheck <current xp> <xp needed for next level>
-        {ctx.prefix}voteCheck <# of votes so far> <total votes needed>
-        {ctx.prefix}pfps help
-        {ctx.prefix}list @view```""")
+        await ctx.send(f"""
+```
+{" POLL ":.^10}
+{ctx.prefix}vote insertPoll <string input formatted json>
+{ctx.prefix}vote clear (clears dictionary)
+{ctx.prefix}vote saveReset
+```
+```
+{" FUN ":.^11}
+{ctx.prefix}timeConvert (runs humantimeTranslator)
+{ctx.prefix}tgCheck <current xp> <xp needed for next level>
+{ctx.prefix}voteCheck <# of votes so far> <total votes needed>
+{ctx.prefix}pfps help
+```
+```
+{"CLIBOPBOPRD":📋^13}
+{ctx.prefix}list @view
+```
+""")
 
 async def setup(bot):
     await bot.add_cog(extraCommands(bot))
