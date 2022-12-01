@@ -3,6 +3,8 @@ import random
 from discord.ext import commands
 from discord.ext.commands import GuildConverter, MemberConverter 
 from main import randomHexGen
+from datetime import datetime, timedelta, timezone, date
+from math import ceil
 from utils.poll_class import readfromFile, writetoFile
 import asyncio
 import re
@@ -30,7 +32,9 @@ class extraCommands(commands.Cog):
             try:
                 result = [b := 1, [b := b * a for a in [int(i) for i in nums]]][-1][-1]
             except Exception:
-                await ctx.send(f"Only integers, format is {ctx.prefix}math multiply 2 3 4")
+                return await ctx.send(f"Only integers, format is {ctx.prefix}math multiply 2 3 4")
+        else:
+            return await ctx.send("Cannot do division, sorry!")
 
         embed = discord.Embed (
             title = "Result",
@@ -188,19 +192,42 @@ class extraCommands(commands.Cog):
             await ctx.send(f"`{ctx.prefix}tgCheck <current xp> <xp needed for next level>`")
 
     #* checkVotes
-    @commands.command(aliases = ["checkVotes"])
+    @commands.command(aliases = ["checkVote", "checkvote", "votecheck", "checkVotes", "checkvotes"])
     @commands.is_owner()
-    async def voteCheck(self, ctx, *, inp=None):
+    async def voteCheck(self, ctx, *, inp = None):
         if inp:
+            #today = datetime(2022, 11, 26, 11, 59) # currently includes the 26th interestingly, need to calculate differently modulo?
             today = datetime.now()
-            lastday = date(today.year, today.month + 1, 1) - timedelta(days=1)
-            daysLeft = lastday.day - today.day
+            nextMonth = today.month + 1 # Calculate next month
+            if nextMonth == 13: # if December wrap around
+                nextMonth = 1;                
+            # don't need to subtract one, I was not fully counting last day
+            lastDay = date(today.year, nextMonth, 1) - timedelta(days = 1)
+            
+            daysLeft = lastDay.day - today.day
+            print(daysLeft)
+            timeLeft = today - datetime(today.year, nextMonth, 1)
 
-            votesNeeded = int(inp.split(" ")[1]) - int(inp.split(" ")[0])
-            await ctx.send(round(votesNeeded/daysLeft, 2))
+            inp = inp.split(" ")
+            try:
+                currVotes, totalVotes, coolDown = inp
+            except ValueError:
+                currVotes, totalVotes = inp
+                coolDown = 0
 
+            votesNeeded = int(totalVotes) - int(currVotes)
+            timeLeft = timeLeft + timedelta(hours = int(coolDown)) # datetime object
+            hoursLeft = timeLeft.total_seconds()/3600 * -1 # hours float
+            chances = hoursLeft/24 * 4 # integer
+
+            await ctx.send(f"""
+votes needed: `{votesNeeded}`
+hours left (minus cooldown): `{round(hoursLeft, 3)}`
+chances left to vote (rounded up to next even): `{ceil(chances/2.) * 2}`
+expected votes per day: `{votesNeeded/daysLeft}`
+            """)
         else:
-            await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed>`")
+            await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed> [cooldown(hrs)]`")
 ##
 
 #* Emoji
