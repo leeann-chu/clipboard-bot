@@ -549,6 +549,8 @@ class voting(commands.Cog):
             pollView.message = await ctx.send(embed = embed, view = pollView)
         except Exception:
             print(traceback.format_exc())
+            print(msg)
+            print(emojis)
             errorFile = open("data\error.txt","a")
             errorFile.write(traceback.format_exc())
             errorFile.close()

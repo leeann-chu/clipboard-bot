@@ -186,8 +186,6 @@ class extraCommands(commands.Cog):
             )
             await ctx.send(embed=embed)
 
-            #embed.set_footer(text=f"")
-
         else:
             await ctx.send(f"`{ctx.prefix}tgCheck <current xp> <xp needed for next level>`")
 

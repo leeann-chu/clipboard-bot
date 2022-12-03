@@ -97,6 +97,13 @@ class category_org(commands.Cog):
         else:
             await ctx.send(error)
     
+    # Shuffle Members
+    @commands.command()
+    @commands.has_permissions(manage_guild=True)
+    async def shuffleMembers(self, ctx):
+        members = [member.name for member in ctx.guild.members if not member.bot]
+        print(members)
+
     # Send list of channels to another category
     @commands.command()
     @commands.has_permissions(manage_guild=True)
