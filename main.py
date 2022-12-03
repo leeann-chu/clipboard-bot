@@ -33,7 +33,7 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "emoji_sb", "utilities", "voting"]
+        self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "embedBuilder", "emoji_sb", "utilities", "voting"]
         self.recentExt = None
 
     async def setup_hook(self) -> None:
