@@ -549,11 +549,11 @@ class voting(commands.Cog):
             pollView.message = await ctx.send(embed = embed, view = pollView)
         except Exception:
             print(traceback.format_exc())
-            print(msg)
-            print(emojis)
-            errorFile = open("data\error.txt","a")
-            errorFile.write(traceback.format_exc())
-            errorFile.close()
+            # print(msg)
+            # print(emojis)
+            # errorFile = open("data\error.txt","a")
+            # errorFile.write(traceback.format_exc())
+            # errorFile.close()
             return await ctx.send("One of your emojis is invalid! Try making the Poll again.")
 
     #* timeConvert
