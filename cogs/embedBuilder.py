@@ -176,9 +176,7 @@ def generate_ao3_work_summary(link):
 
     return ficPieces
 
-def makeEmbed(ficPieces, ctx):
-    await ctx.channel.typing()
-    
+def makeEmbed(ficPieces):
     words_kudos_bookmarks = f"""
         {ficPieces["words"]} **words**
         {ficPieces["kudos"]} **kudos**
@@ -193,9 +191,9 @@ def makeEmbed(ficPieces, ctx):
     if "category" in ficPieces:
         category = ficPieces["category"]
         if len(category.split()) > 1:
-            emoji_category = "Multi"
+            category = "Multi"
     else:
-        emoji_category = ""
+        category = ""
 
     embed = discord.Embed(
         title = ficPieces["title"],
@@ -218,7 +216,7 @@ def makeEmbed(ficPieces, ctx):
         embed.add_field(name=ficPieces["status"], value=datetime.strftime(datetime.strptime(ficPieces["updated"], "%Y-%m-%d"), "%B %d, %Y"))
     
     if "category" in ficPieces:
-        embed.add_field(name=f"Category: {ratingEmoji[emoji_category]}", value=ficPieces["category"]) 
+        embed.add_field(name=f"Category: {ratingEmoji[category]}", value=ficPieces["category"]) 
     if "warnings" in ficPieces:
         embed.add_field(name="Warnings:", value=ficPieces["warnings"])
 
@@ -250,63 +248,14 @@ class embedBuilder(commands.Cog):
     # Commands
     @commands.command()
     async def sendFic(self, ctx, link):
-        embed = makeEmbed(generate_ao3_work_summary(link), ctx)
+        print(datetime.now())
+        the_stuff = generate_ao3_work_summary(link)
+        await ctx.channel.typing()
+        print(datetime.now())
+        embed = makeEmbed(the_stuff)
         embed.set_footer(text=f"Linked by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         await ctx.send(embed=embed)
-
-    @commands.command()
-    async def sendEmbed(self, ctx):
-        fandoms = "Harry Potter - J. K. Rowling"
-        author = "by [Snickerdoodlepop](https://archiveofourown.org/users/Snickerdoodlepop/pseuds/Snickerdoodlepop)"
-        # summary = """
-        # Once Voldemort realizes that Harry Potter is his horcrux, his plans change drastically. So does Draco Malfoy's assignment for the school year.
-        # Harry's sixth year starts going very differently. Snape is on a mission. Harry needs to learn pureblood politics…        
-        # """
-        summary = None
-        rating = "<:Teens:1048513348599304252> Teen And Up Audiences"
-        warnings = "Graphic Depictions Of Violence, Underage"
-        
-        series = "**Part 1** of [Harry Potter and the Search for Ancient Magic](https://archiveofourown.org/series/1133141)"
-        words_kudos_bookmarks = """302405 **words** \n6560 **kudos** \n1900 **bookmarks** 
-        """
-        chapters = "28/28 Completed ✓"
-
-        relationships = "Harry Potter/Voldemort, Harry Potter/Tom Riddle, Remus Lupin/Nymphadora Tonks, …"
-        #characters = "Ron Weasley, Hermione Granger, Severus Snape, …"
-        characters = None
-        tags = "Political!Harry, light!harry, Dark!Voldemort, Well-Meaning Dumbledore, Possessive Voldemort, … "
-
-
-        embed = discord.Embed(
-            title = "Mind Magic",
-            description = author,
-            color = ratingColors["Teen And Up Audiences"]
-        )
-        embed.add_field(name="Fandoms:", value=fandoms, inline=False)
-        embed.add_field(name="Summary:", value=summary, inline=False)
-        embed.add_field(name="Series:", value=series, inline=False)
-
-        embed.add_field(name="Rating:", value=rating)
-        embed.add_field(name="Chapters:", value=chapters)
-        embed.add_field(name="Updated:", value=datetime.strftime(datetime.strptime("2021-02-06", "%Y-%m-%d"), "%B %d, %Y"))
-        
-        embed.add_field(name="Category:", value="Multi") 
-        embed.add_field(name="Warnings:", value=warnings)
-        embed.add_field(name="Stats:", value=words_kudos_bookmarks)
-
-        embed.add_field(name="Relationships:", value=relationships, inline=False)
-        embed.add_field(name="Characters:", value=characters, inline=False)
-        embed.add_field(name="Tags:", value=tags, inline=False)
-
-        # embed.add_field(name="\u2800", value=field2, inline=False)
-
-        embed.url = "https://archiveofourown.org/works/15994781/chapters/37317395"
-        #embed.set_thumbnail(url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
-        embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
-        embed.set_footer(text=f"Linked by {ctx.message.author}")
-
-        await ctx.send(embed=embed)
-
+        print(datetime.now())
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))
