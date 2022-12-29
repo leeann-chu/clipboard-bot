@@ -206,6 +206,9 @@ async def reload(ctx, *, ext: str = None):
 
 @reload.error
 async def reload_error(ctx, error):
+    if isinstance(error, commands.errors.NotOwner):
+        return await ctx.send("Nice Try.")
+        
     if isinstance(error, commands.CommandInvokeError):
         error = error.original
     extensionErrors = (commands.ExtensionNotLoaded,
