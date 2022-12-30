@@ -2,44 +2,41 @@ import discord
 import random
 from discord.ext import commands
 from datetime import datetime
+from utils.views import EmbedPageView
 from bs4 import BeautifulSoup
-import cloudscraper 
 import requests
-
-# The regular expressions to identify AO3 and FFN links.
-# Note there may be an extra character at the beginning, due to checking
-# the previous character to verify it is not ! (which would not match)
-# AO3_MATCH = re.compile (
-#     "(^|[^!])https?:\\/\\/(www\\.)?archiveofourown.org(\\/collections\\/\\w+)?\\/(works|series)\\/\\d+")
+import copy
+import re
 
 HEADERS = {"User-Agent": "fanfiction-abstractor-bot"}
 FFN_GENRES = set()
-# create scraper to bypass cloudflare, always download desktop pages
-options = {"desktop": True, "browser": "firefox", "platform": "linux"}
-scraper = cloudscraper.create_scraper(browser=options)
 
 ratingColors = {
     "Teen And Up Audiences": 0xE5D100,
     "Explicit": 0x9B0000,
-    "General Audiences": 0x78A704,
+    "General Audiences": 0x7de242,
     "Mature": 0xE1730D,
     "Not Rated":0xFFFFFF
 }
 
 ratingEmoji = {
-    "Teen And Up Audiences": "<:teens:1057882444654706728>",
-    "Explicit": "<:explicit:1057882406176165950>",
-    "General Audiences": "<:general:1057882417580494878>",
-    "Mature": "<:mature:1057882440334585907>",
-    "Not Rated":":white_medium_square:",
+    "Teen And Up Audiences": "<:TeenAndUpAudiences:1057882444654706728>",
+    "Explicit": "<:Explicit:1057882406176165950>",
+    "General Audiences": "<:GeneralAudiences:1057906281580597258>",
+    "Mature": "<:Mature:1057926297646534697>",
+    "Not Rated":":white_large_square:",
 
-    "Gen": "<:gen_cat:1057884762842353734>",
-    "F/M": "<:het:1057882423234404463>",
-    "M/M": "<:mm:1057882427558744124>",
-    "F/F": "<:ff:1057882410097852466>",
-    "Other": "<:other:1057882436568100935>",
+    "Gen": "<:Gen:1057907181044891719>",
+    "F/M": "<:FM:1057882423234404463>",
+    "M/M": "<:MM:1057885176455237763>",
+    "F/F": "<:FF:1057882410097852466>",
+    "Other": "<:Other:1057882436568100935>",
+    "Multi": "<:Multi:1057882432239583282>",
+    "No category": ":white_large_square:",
 
-    "Multi": "<:multi:1057882432239583282>"
+    "No Archive Warnings Apply": ":white_large_square:",
+    "Creator Chose Not To Use Archive Warnings": "<:exclaimquestion:1057929664133349416>",
+    "Exclaim": "<:exclaim:1057929667253915648>"
 }
 
 def format_html(field):
@@ -70,24 +67,30 @@ def generate_ao3_work_summary(link):
     link should be a link to an AO3 fic
     Returns the message with the fic info, or else a blank string
     """
+    ficPieces = {}
     r = requests.get(link, headers=HEADERS)
     if r.status_code != requests.codes.ok:
-        return ""
+        return ficPieces, "Request not okay :c"
     if r.url == "https://archiveofourown.org/users/login?restricted=true":
-        return ""
+        return ficPieces, ":lock: Restricted fic"
     soup = BeautifulSoup(r.text, "lxml")
-    ficPieces = {}
+
+    # if chapter link, replace with work link
+    if "/chapters/" in link:
+        share = soup.find(class_="share")
+        work_id = share.a["href"].strip("/works/").strip("/share")
+        link = f"https://archiveofourown.org/works/{work_id}"
+    ficPieces["link"] = link
 
     preface = soup.find(class_="preface group")
     ficPieces["title"] = preface.h2.string.strip()
-    ficPieces["link"] = link
     author = preface.h3.string
     multi_author = []
     if author is None:
         multi_author = [f"""[{name.string}](https://archiveofourown.org{name["href"]})""" for name in preface.h3.find_all("a")]
         ficPieces["author"] = "by " + ", ".join(multi_author)
     else:
-        ficPieces["author"] = "" +  author.strip()
+        ficPieces["author"] = author.strip()
 
     summary = preface.find(class_="summary module")
     if summary:
@@ -117,17 +120,17 @@ def generate_ao3_work_summary(link):
     if updated or completed: # updated & published / completed & published
         ficPieces["status"] = completed.string
         ficPieces["updated"] = updated.string
-        checkmark = " Completed :white_check_mark:"
+        ficPieces["status_emoji"] = "<:not_finished:1057949352338927658>"
     else: # neither updated or completed
         ficPieces["status"] = "Published:"
         ficPieces["updated"] = tags.find("dd", class_="published").string
+        ficPieces["status_emoji"] = ":white_large_square"
 
     if chapters:
         part, whole = chapters.string.split("/")
-    if part == whole:
-        ficPieces["chapters"] = chapters.string + checkmark 
-    else:
         ficPieces["chapters"] = chapters.string
+    if part == whole:
+        ficPieces["status_emoji"] = "<:Completed:1057962897017421884>"
 
     multi_series = ""
     if series:
@@ -147,9 +150,20 @@ def generate_ao3_work_summary(link):
     if rating:
         ficPieces["rating"] = ", ".join(map(lambda x: x.string, rating.find_all("a")))
     if category: 
-        ficPieces["category"] = ", ".join(map(lambda x: x.string, category.find_all("a")))  
-        
-    ficPieces["warnings"] = ", ".join(map(lambda x: x.string, warnings.find_all("a")))
+        category = list(map(lambda x: x.string, category.find_all("a")))
+        ficPieces["category"] = ", ".join(category)
+        if len(category) > 1:
+            ficPieces["category_emoji"] = "Multi"
+        else:
+            ficPieces["category_emoji"] = category[0]
+
+    warnings = list(map(lambda x: x.string, warnings.find_all("a")))
+    ficPieces["warnings"] = ", ".join(warnings)
+    if warnings[0] in ratingEmoji:
+        ficPieces["warnings_emoji"] = warnings[0]
+    else:
+        ficPieces["warnings_emoji"] = "Exclaim"
+
     if relationships:
         ficPieces["character_heading"] = "Additional Characters:"
         relationships = list(map(lambda x: x.string, relationships.find_all("a")))
@@ -162,6 +176,25 @@ def generate_ao3_work_summary(link):
 
     if characters:
         characters = list(map(lambda x: x.string, characters.find_all("a")))
+        # hides characters already listed in relationships
+        if relationships:
+            already_listed = set() 
+            for r in relationships[:4]:
+                r = r.replace(" & ", "/").split("/")
+                for c in r:
+                    if " (" in c:
+                        c = c.split(" (")[0] 
+                    already_listed.add(c)
+            chars_static = characters.copy()
+            for c in chars_static:
+                before = c
+                if " (" in c:
+                    c = c.split(" (")[0] 
+                if " - " in c:
+                    c = c.split(" - ")[0]
+                if c in already_listed:
+                    characters.remove(before)
+
         if len(characters) > 4:
             ficPieces["characters"] = ", ".join(characters[:4]) + "…"
         else:
@@ -174,64 +207,131 @@ def generate_ao3_work_summary(link):
         else:
             ficPieces["tags"] = ", ".join(freeform)
 
-    return ficPieces
+    return ficPieces, ""
 
-def makeEmbed(ficPieces):
-    words_kudos_bookmarks = f"""
-        {ficPieces["words"]} **words**
-        {ficPieces["kudos"]} **kudos**
-        {ficPieces["bookmarks"]} **bookmarks**
+def generate_ao3_series_summary(link):
+    """Generate the summary of an AO3 work.
+    link should be a link to an AO3 series
+    Returns the message with the series info, or else a blank string
     """
-
-    if "rating" in ficPieces:
-        rating = ficPieces["rating"]
-    else:
-        rating = ""
-
-    if "category" in ficPieces:
-        category = ficPieces["category"]
-        if len(category.split()) > 1:
-            category = "Multi"
-    else:
-        category = ""
+    embed_list = []
+    r = requests.get(link, headers=HEADERS)
+    if r.status_code != requests.codes.ok:
+        return embed_list, "Request not okay :c"
+    if r.url == "https://archiveofourown.org/users/login?restricted=true":
+        return embed_list, ":lock: Restricted fic"
+    soup = BeautifulSoup(r.text, "lxml")
 
     embed = discord.Embed(
-        title = ficPieces["title"],
-        description = ficPieces["author"],
+        title = soup.find("h2", class_="heading").string.strip(),
+        color = 0x2F3136
+    )
+    embed.url = link
+ 
+    preface = soup.find(class_="series meta group")
+    next_field = preface.dd
+    multi_author = [f"""[{name.string}](https://archiveofourown.org{name["href"]})""" for name in next_field.find_all("a")]
+    embed.description = "by " + ", ".join(multi_author)
+    # author = ", ".join(map(lambda x: x.string, next_field.find_all("a")))
+    next_field = next_field.find_next_sibling("dd")
+    embed.add_field(name="Begun:", value=next_field.string) 
+    next_field = next_field.find_next_sibling("dd")
+    embed.add_field(name="Updated:", value=next_field.string) 
+    next_field = next_field.find_next_sibling("dt")
+    if next_field.string == "Description:":
+        next_field = next_field.find_next_sibling("dd")
+        embed.add_field(name="Description:", value=format_html(next_field), inline=False) 
+        next_field = next_field.find_next_sibling("dt")
+
+    # Get kind of long, removed in abtractor? 
+    if next_field.string == "Notes:":
+        next_field = next_field.find_next_sibling("dd")
+        # embed.add_field(name="Notes:", value=format_html(next_field), inline=False) 
+        next_field = next_field.find_next_sibling("dt")
+
+    next_field = next_field.find_next_sibling("dd").dl.dd
+    words = next_field.string
+    next_field = next_field.find_next_sibling("dd")
+    works = next_field.string
+    complete = next_field.find_next_sibling("dd").string
+    complete = "<:Completed:1057962897017421884>" if complete == "Yes" else "<:not_finished:1057949352338927658>"
+    embed.add_field(name="Stats:", value=f"`{words}` *words* | `{works}` *works* | {complete} *complete*", inline=False)
+    # Find titles and links to first few works
+    works = soup.find_all(class_=re.compile("work blurb group work-.*"))
+    multi_works = [f"""{i+1}. [{work.h4.a.string}](https://archiveofourown.org{work.h4.a["href"]})""" for i, work in enumerate(works)]
+    chunked_works = [multi_works[i:i + 4] for i in range(0, len(multi_works), 4)]
+    embed_list = []
+    for index, chunk in enumerate(chunked_works):
+        dummy_embed = copy.deepcopy(embed)
+        dummy_embed.add_field(name="\u2800", value="\n".join(chunk))
+        dummy_embed.set_footer(text=f"Page {index+1}/{len(chunked_works)}")
+        embed_list.append(dummy_embed)
+
+    return embed_list, ""
+
+def makeEmbed(pieces):
+    words_kudos_bookmarks = f"""`{pieces["words"]}` *words* | `{pieces["kudos"]}` *kudos* | `{pieces["bookmarks"]}` *bookmarks*
+    """
+
+    if "chapters" in pieces:
+        chapters = pieces["chapters"]
+    if "updated" in pieces:
+        updated = pieces["updated"]
+
+    if "rating" in pieces:
+        rating = pieces["rating"]
+    else: rating = "Not Rated"
+
+    if "category" in pieces:
+        category = pieces["category"]
+    else: 
+        category = "No category"
+        pieces["category_emoji"] = "No category"
+
+    embed = discord.Embed(
+        title = pieces["title"],
+        description = pieces["author"],
         color = ratingColors[rating]
     )
 
-    if "fandoms" in ficPieces:
-        embed.add_field(name="Fandoms:", value=ficPieces["fandoms"], inline=False)
-    if "summary" in ficPieces:
-        embed.add_field(name="Summary:", value=ficPieces["summary"], inline=False)
-    if "series" in ficPieces:  
-        embed.add_field(name="Series:", value=ficPieces["series"], inline=False)
+    if "fandoms" in pieces:
+        embed.add_field(name="Fandoms:", value=pieces["fandoms"], inline=False)
+    if "summary" in pieces:
+        embed.add_field(name="Summary:", value=pieces["summary"], inline=False)
+    if "series" in pieces:  
+        embed.add_field(name="Series:", value=pieces["series"], inline=False)
 
-    if rating:
-        embed.add_field(name="Rating:", value=f"{ratingEmoji[rating]} {rating}")
-    if "chapters" in ficPieces:
-        embed.add_field(name="Chapters:", value=ficPieces["chapters"])
-    if "updated" in ficPieces:
-        embed.add_field(name=ficPieces["status"], value=datetime.strftime(datetime.strptime(ficPieces["updated"], "%Y-%m-%d"), "%B %d, %Y"))
+    if rating != "Not Rated" and category != "No category":        
+        embed.add_field(name="**Rating:**", value=f"""{rating}\n**Category**: {category}""")
+    elif rating != "Not Rated":
+        embed.add_field(name=f"Rating:", value=rating)
+    elif category != "No category":
+        embed.add_field(name=f"Category:", value=category) 
+
+    if chapters and updated:
+        embed.add_field(name="**Chapters:**", value=f"""{chapters}\n**{pieces["status"]}**\n{datetime.strftime(datetime.strptime(updated, "%Y-%m-%d"), "%B %d, %Y")}""")
+    elif chapters:
+        embed.add_field(name="Chapters:", value=chapters)
+    elif updated:
+        embed.add_field(name=pieces["status"], value=datetime.strftime(datetime.strptime(updated, "%Y-%m-%d"), "%B %d, %Y"))
+
+    embed.add_field(name="**Symbols:**", value=f"""{ratingEmoji[rating]} {ratingEmoji[pieces["category_emoji"]]}\n{ratingEmoji[pieces["warnings_emoji"]]} {pieces["status_emoji"]}""")
     
-    if "category" in ficPieces:
-        embed.add_field(name=f"Category: {ratingEmoji[category]}", value=ficPieces["category"]) 
-    if "warnings" in ficPieces:
-        embed.add_field(name="Warnings:", value=ficPieces["warnings"])
+    if pieces["warnings"] != "No Archive Warnings Apply":
+        embed.add_field(name="Warnings:", value=pieces["warnings"])
 
-    embed.add_field(name="Stats:", value=words_kudos_bookmarks)
+    if "relationships" in pieces:
+        embed.add_field(name="Relationships:", value=pieces["relationships"], inline=False)
+    if "characters" in pieces:
+        embed.add_field(name=pieces["character_heading"], value=pieces["characters"], inline=False)
+    if "tags" in pieces:
+        embed.add_field(name="Tags:", value=pieces["tags"], inline=False)
 
-    if "relationships" in ficPieces:
-        embed.add_field(name="Relationships:", value=ficPieces["relationships"], inline=False)
-    if "characters" in ficPieces:
-        embed.add_field(name=ficPieces["character_heading"], value=ficPieces["characters"], inline=False)
-    if "tags" in ficPieces:
-        embed.add_field(name="Tags:", value=ficPieces["tags"], inline=False)
+    embed.add_field(name="Stats:", value=words_kudos_bookmarks, inline=False)
+    embed.url = pieces["link"]
 
     # embed.add_field(name="\u2800", value=field2, inline=False)
 
-    embed.url = ficPieces["link"]
     embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
 
     return embed
@@ -249,13 +349,24 @@ class embedBuilder(commands.Cog):
     @commands.command()
     async def sendFic(self, ctx, link):
         print(datetime.now())
-        the_stuff = generate_ao3_work_summary(link)
+        pieces, error = generate_ao3_work_summary(link)
+        if error:
+            return await ctx.send(error)
         await ctx.channel.typing()
         print(datetime.now())
-        embed = makeEmbed(the_stuff)
+        embed = makeEmbed(pieces)
         embed.set_footer(text=f"Linked by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         await ctx.send(embed=embed)
-        print(datetime.now())
+        print(f"{datetime.now()}\n")
+
+    @commands.command()
+    async def sendSeries(self, ctx, link):
+        embed_list, error = generate_ao3_series_summary(link)
+        if error:
+            return await ctx.send(error)
+        await ctx.channel.typing()
+        pageView = EmbedPageView(eList = embed_list, pagenum = 0, totpage = len(embed_list))
+        pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))

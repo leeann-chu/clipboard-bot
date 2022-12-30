@@ -46,7 +46,7 @@ class Cancel(discord.ui.View):
 
 class EmbedPageView(discord.ui.View):
     def __init__(self, eList, pagenum, totpage):
-        super().__init__()
+        super().__init__(timeout=20)
         self.eList = eList
         self.pagenum = pagenum
         self.totpage = totpage
@@ -62,8 +62,10 @@ class EmbedPageView(discord.ui.View):
                 self.add_item(nextButton)
 
     async def on_timeout(self) -> None:
-        print(datetime.now())
-        await self.message.edit(view = None)
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+        # await self.message.edit(view=None)
 
 class EmbedPageButton(discord.ui.Button):
     def __init__(self, label, style):

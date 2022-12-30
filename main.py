@@ -128,7 +128,7 @@ async def help(ctx, argument=None):
                         inline=True)
         embedList = [PageOneembed, PageTwoembed]
         embedView = EmbedPageView(eList = embedList, pagenum = 0, totpage = 2)
-        embedView.message = await ctx.send(embed=PageOneembed, view = embedView)
+        embedView.message = await ctx.send("press me",embed=PageOneembed, view = embedView)
 ##
 
 #* Close Bot
