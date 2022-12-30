@@ -365,7 +365,9 @@ class embedBuilder(commands.Cog):
         if error:
             return await ctx.send(error)
         await ctx.channel.typing()
-        pageView = EmbedPageView(eList = embed_list, pagenum = 0, totpage = len(embed_list))
+        if len(embed_list) < 2:
+            return await ctx.send(embed=embed_list[0])
+        pageView = EmbedPageView(eList = embed_list, pagenum = 0)
         pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
 
 async def setup(bot):
