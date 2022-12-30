@@ -44,37 +44,32 @@ class Cancel(discord.ui.View):
         self.value = False
         self.stop()
 
+## 
+
 class EmbedPageView(discord.ui.View):
-    def __init__(self, eList, pagenum, totpage):
-        super().__init__(timeout=20)
+    def __init__(self, eList, pagenum):
+        super().__init__(timeout=10)
         self.eList = eList
         self.pagenum = pagenum
-        self.totpage = totpage
+        self.totpage = len(self.eList)
+    
+    async def update_children(self, i: discord.Interaction):
+        self.back.disabled = self.pagenum <= 0
+        self.next.disabled = self.pagenum + 1 >= self.totpage
 
-        if totpage > 1:
-                backButton = EmbedPageButton("⇽ Back", discord.ButtonStyle.gray)
-                nextButton = EmbedPageButton("⇾ Next", discord.ButtonStyle.blurple)
-                if pagenum == 0:
-                    backButton.disabled = True
-                if pagenum == totpage - 1:
-                    nextButton.disabled = True
-                self.add_item(backButton)
-                self.add_item(nextButton)
+        await i.response.edit_message(embed=self.eList[self.pagenum], view=self)
 
     async def on_timeout(self) -> None:
         for child in self.children:
             child.disabled = True
         await self.message.edit(view=self)
-        # await self.message.edit(view=None)
+    
+    @discord.ui.button(label = "⇽ Back", style = discord.ButtonStyle.gray)
+    async def back(self, i:  discord.Interaction, button: discord.ui.Button):
+        self.pagenum -= 1
+        await self.update_children(i)
 
-class EmbedPageButton(discord.ui.Button):
-    def __init__(self, label, style):
-        super().__init__(label = label, style = style, row = 4)
-
-    async def callback(self, interaction:discord.Interaction):
-        pagenum = self.view.pagenum
-        if self.label == "⇽ Back":
-            pagenum -= 1
-        else:
-            pagenum += 1
-        await interaction.response.edit_message(embed=self.view.eList[pagenum], view=EmbedPageView(self.view.eList, pagenum, self.view.totpage))
+    @discord.ui.button(label = "⇾ Next", style = discord.ButtonStyle.blurple)
+    async def next(self, i:  discord.Interaction, button: discord.ui.Button):
+        self.pagenum += 1
+        await self.update_children(i)

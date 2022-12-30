@@ -127,7 +127,7 @@ async def help(ctx, argument=None):
                     """),
                         inline=True)
         embedList = [PageOneembed, PageTwoembed]
-        embedView = EmbedPageView(eList = embedList, pagenum = 0, totpage = 2)
+        embedView = EmbedPageView(eList = embedList, pagenum = 0)
         embedView.message = await ctx.send("press me",embed=PageOneembed, view = embedView)
 ##
 
