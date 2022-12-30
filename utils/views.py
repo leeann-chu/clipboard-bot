@@ -48,10 +48,12 @@ class Cancel(discord.ui.View):
 
 class EmbedPageView(discord.ui.View):
     def __init__(self, eList, pagenum):
-        super().__init__(timeout=10)
+        super().__init__(timeout=20)
         self.eList = eList
         self.pagenum = pagenum
         self.totpage = len(self.eList)
+
+        self.children[0].disabled = True # back button should be disabled on init
     
     async def update_children(self, i: discord.Interaction):
         self.back.disabled = self.pagenum <= 0

@@ -34,37 +34,24 @@ def scoreboardEmbed(type_of_board):
 class scoreboard(discord.ui.View):
     def __init__(self):
         super().__init__()
+    #Add our three buttons
+    @discord.ui.button(label = "Emoji")
+    async def back(self, i:  discord.Interaction, button: discord.ui.Button):
+        await i.response.edit_message(embed = scoreboardEmbed("emoji"))
 
-        #Add our three buttons
-        self.add_item(scoreButton("Emoji"))
-        self.add_item(scoreButton("Member"))
-        self.add_item(updateButton())
+    @discord.ui.button(label = "Member")
+    async def member(self, i:  discord.Interaction, button: discord.ui.Button):
+        await i.response.edit_message(embed = scoreboardEmbed("member"))
+
+    @discord.ui.button(emoji="🔄", style=discord.ButtonStyle.primary)
+    async def refresh(self, i:  discord.Interaction, button: discord.ui.Button):
+        if i.message.embeds[0].title == "Most emotive members":
+            await i.response.edit_message(embed = scoreboardEmbed("member"))
+        else:
+            await i.response.edit_message(embed = scoreboardEmbed("emoji"))
 
     async def on_timeout(self) -> None:
         await self.message.edit(view = None)
-
-class scoreButton(discord.ui.Button['scoreboard']):
-    def __init__(self, label):
-        super().__init__()
-        self.label = label
-
-    #Make the buttons do what I want
-    async def callback(self, interaction:discord.Interaction):
-        if self.label == "Emoji":
-            await interaction.response.edit_message(embed = scoreboardEmbed("emoji"))
-        else:
-            await interaction.response.edit_message(embed = scoreboardEmbed("member"))
-
-class updateButton(discord.ui.Button['scoreboard']):
-    def __init__(self):
-        super().__init__(emoji="🔄", style=discord.ButtonStyle.primary)
-
-    async def callback(self, interaction:discord.Interaction):
-        if interaction.message.embeds[0].title == "Most emotive members":
-            await interaction.response.edit_message(embed = scoreboardEmbed("member"))
-        else:
-            await interaction.response.edit_message(embed = scoreboardEmbed("emoji"))
-
 
 class emoji_sb(commands.Cog):
     def __init__(self, bot):
