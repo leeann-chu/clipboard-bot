@@ -46,6 +46,26 @@ ratingEmoji = {
     "Exclaim": "<:exclaim:1057929667253915648>"
 }
 
+#* ExtraInfo View for AO3
+class ExtraInfo(discord.ui.View):
+    def __init__(self, summary, tags):
+        super().__init__()
+        self.summary = summary
+        self.tags = tags        
+    #Add our buttons
+    @discord.ui.button(label = "Summary")
+    async def back(self, i:  discord.Interaction, button: discord.ui.Button):
+        await i.response.send_message(f"__Summary__\n{self.summary}", ephemeral = True)
+        return
+
+    @discord.ui.button(label = "Tags")
+    async def member(self, i:  discord.Interaction, button: discord.ui.Button):
+        await i.response.send_message(f"__Tags__\n{self.tags}", ephemeral = True)
+        return
+
+    async def on_timeout(self) -> None:
+        await self.message.edit(view = None)
+
 def format_date(given_date):
     return datetime.strftime(datetime.strptime(given_date, "%Y-%m-%d"), "%B %d, %Y")
 
@@ -71,7 +91,33 @@ def format_html(field):
     if len(result) > 250:
         result = result[:250] + "…"
     return result
-    
+
+def fic_update_alert_embed(pieces):
+    # rating for ao3, rated for ffn
+    rating = "Not Rated"
+    if "rating" in pieces:
+        rating = pieces["rating"]
+    elif "rated" in pieces:
+        rating = pieces["rated"]
+
+    if "category" in pieces:
+        category = pieces["category"]
+    else: 
+        category = "No category" 
+        pieces["category_emoji"] = "No category" # I can't do what I did for rating because of Multi complicating things
+
+    embed = discord.Embed(
+        title = f"""{pieces["lock"]}{pieces["title"]}""",
+        description = pieces["author"] + "\n",
+        color = ratingColors[rating])
+
+    if "updated" in pieces:
+        embed.add_field(name=pieces["status"].capitalize() + ":", value=format_date(pieces["updated"]))
+
+    embed.add_field(name="**Chapters:**", value=pieces["chapters"])
+    embed.add_field(name="**Symbols:**", value=f"""{ratingEmoji[rating]} {ratingEmoji[pieces["category_emoji"]]}\n{ratingEmoji[pieces["warnings_emoji"]]} {pieces["status_emoji"]}""") 
+    return embed
+
 def generate_ao3_work_summary(link):
     """Generate the summary of an AO3 work.
     link should be a link to an AO3 fic
@@ -130,7 +176,6 @@ def generate_ao3_work_summary(link):
     
     completed = tags.find("dt", class_="status") # can be none
     updated = tags.find("dd", class_="status") 
-    checkmark = ""
     if updated or completed: # updated & published / completed & published
         ficPieces["status"] = completed.string[:-1]
         ficPieces["updated"] = updated.string
@@ -138,7 +183,7 @@ def generate_ao3_work_summary(link):
     else: # neither updated or completed
         ficPieces["status"] = "Published"
         ficPieces["updated"] = tags.find("dd", class_="published").string
-        ficPieces["status_emoji"] = ":white_large_square"
+        ficPieces["status_emoji"] = ":white_large_square:"
 
     if chapters:
         part, whole = chapters.string.split("/")
@@ -300,21 +345,26 @@ def generate_ffn_work_summary(link):
     if r.status_code != requests.codes.ok:
         return {}, "Request not okay :c"
     metadata = json.loads(r.text)["meta"]
-    extra_metadata = json.loads(r.text)["meta"]["rawExtendedMeta"]
+    extra_metadata = metadata.get("rawExtendedMeta")
+    if extra_metadata is None: extra_metadata = {}
     combined = {**metadata, **extra_metadata}
     ficPieces = { k: combined[k] for k in combined.keys() & 
     {"title", "status", "chapters", "characters", "genres", "rated", "favorites", "reviews", "words"} } # filters out relevant keys
     ficPieces["summary"] = metadata["description"].strip("<p>").strip("</p>")
     ficPieces["updated"] = metadata["updated"].split("T")[0]
-    ficPieces["fandoms"] = extra_metadata["raw_fandom"]
+
+    if extra_metadata:
+        ficPieces["fandoms"] = extra_metadata["raw_fandom"]
+    else:
+        ficPieces["ffnstuff"] = metadata.get("extraMeta", None)
     ficPieces["author"] = f"""by [{metadata["author"]}]({metadata["authorUrl"]})"""
     ficPieces["link"] = link # avoid key error 
     return ficPieces, ""
 
 def makeEmbed(pieces):
-    if "lock" in pieces:
+    if "lock" in pieces: ## ao3 link
         stats_line = f"""`{pieces["words"]}` *words* | `{pieces["kudos"]}` *kudos* | `{pieces["bookmarks"]}` *bookmarks* | `{pieces["chapters"]}` *chapter(s)* """
-    else:
+    else: # ffn link
         pieces["lock"] = ""
         favorites = pieces.get("favorites", 0)
         reviews = pieces.get("reviews", 0)
@@ -335,13 +385,17 @@ def makeEmbed(pieces):
 
     embed = discord.Embed(
         title = f"""{pieces["lock"]}{pieces["title"]}""",
-        description = pieces["author"],
+        description = pieces["author"] + "\n",
         color = ratingColors[rating])
 
     if "fandoms" in pieces:
-        embed.add_field(name="Fandoms:", value=pieces["fandoms"], inline=False)
+        # embed.add_field(name="Fandoms:", value=pieces["fandoms"], inline=False)
+        embed.description += f"""**Fandoms:** {pieces["fandoms"]}\n"""
+    if "ffnstuff" in pieces:
+        embed.add_field(name="Misc Info:", value=pieces["ffnstuff"], inline=False)
     if "summary" in pieces:
-        embed.add_field(name="Summary:", value=pieces["summary"], inline=False)
+        # embed.add_field(name="Summary:", value=pieces["summary"], inline=False)
+        embed.description += f"""**Summary:** {pieces["summary"]}\n"""
     if "series" in pieces:  
         embed.add_field(name="Series:", value=pieces["series"], inline=False)
 
@@ -369,7 +423,8 @@ def makeEmbed(pieces):
         if pieces["characters"]: # catch if characters are an empty set
             embed.add_field(name=character_heading, value=pieces["characters"], inline=False)
     if "tags" in pieces:
-        embed.add_field(name="Tags:", value=pieces["tags"], inline=False)
+        # embed.add_field(name="Tags:", value=pieces["tags"], inline=False)
+        embed.description += f"""**Tags:** {pieces["tags"]}\n"""
 
     embed.add_field(name="Stats:", value=stats_line, inline=False)
     embed.url = pieces["link"]
@@ -396,6 +451,8 @@ class embedBuilder(commands.Cog):
         embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
         embed.set_footer(text=f"Linked by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         await ctx.send(embed=embed)
+        # extraInfo = ExtraInfo(pieces["summary"], pieces["tags"])
+        # extraInfo.message = await ctx.send(embed=embed, view=extraInfo)
 
     @commands.command()
     async def sendFFN(self, ctx, link):
@@ -418,6 +475,17 @@ class embedBuilder(commands.Cog):
             return await ctx.send(embed=embed_list[0])
         pageView = EmbedPageView(eList = embed_list, pagenum = 0)
         pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
+
+    @commands.command()
+    async def alertMe(self, ctx, link):
+        await ctx.channel.typing()
+        pieces, error = generate_ao3_work_summary(link)
+        if error:
+            return await ctx.send(error)
+        embed = fic_update_alert_embed(pieces)
+        embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
+        embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))

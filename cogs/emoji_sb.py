@@ -23,7 +23,7 @@ def scoreboardEmbed(type_of_board):
     )
     if board_type:
         for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
-            if item[0] > 10:
+            if item[0] > 15:
                 scoreboard.append(f"{item[0]} {item[1]}")
 
     #* Forming the embed
@@ -107,7 +107,7 @@ class emoji_sb(commands.Cog):
         writetoFile(member_emoji_count, "member_emoji")
         writetoFile(emoji_count, "emoji_count")
 
-    # Commands
+    # Scoreboard
     @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])
     async def scoreboard(self, ctx, *, type_of_board = None):
         if type_of_board == "member" or type_of_board == "emoji" or type_of_board == None:
@@ -115,6 +115,13 @@ class emoji_sb(commands.Cog):
             view.message = await ctx.send(embed = scoreboardEmbed(type_of_board), view = view)
         else:
             await ctx.send("Uknown board type, options are `member` or `emoji`")
+
+    # Cull the small ones
+    @commands.command()
+    async def purge_sb(self, ctx):
+        emoji_count = readfromFile("emoji_count")
+        purged_dict = {key:val for key, val in emoji_count.items() if val > 1}
+        writetoFile(purged_dict, "emoji_count")
 
 async def setup(bot):
     await bot.add_cog(emoji_sb(bot))

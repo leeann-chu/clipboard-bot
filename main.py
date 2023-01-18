@@ -1,5 +1,6 @@
 import discord
 import random
+from datetime import datetime
 from utils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
 from utils.poll_class import readfromFile, writetoFile
@@ -201,7 +202,7 @@ async def reload(ctx, *, ext: str = None):
 
     await bot.unload_extension(f'cogs.{extension}')
     await bot.load_extension(f'cogs.{extension}')
-    print(f'{extension} is reloaded!')
+    print(f'{datetime.now()}: {extension} is reloaded!')
     await ctx.send(f'Extension {extension} is reloaded!')
 
 @reload.error
