@@ -1,6 +1,8 @@
 import discord
+from discord import app_commands 
 import random
 from datetime import datetime
+from termcolor import colored
 from utils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
 from utils.poll_class import readfromFile, writetoFile
@@ -20,15 +22,20 @@ def randomHexGen():
 def get_prefix(bot, message):
     try:
         if message.guild is None:
-            return "~"
+            return "~" # in dms
         else:
             prefixes = readfromFile("prefixes")
-            return prefixes[str(message.guild.id)]
+            server_prefix = prefixes[str(message.guild.id)] # normal server
+            if message.author.id == 364536918362554368:
+                prefix_list = [server_prefix, "~"] # it's me, baby
+                return prefix_list            
+            return server_prefix
     except KeyError:
         return "~"
 
 intents = discord.Intents.all()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
+TEST_GUILD = discord.Object(416749994163568641)
 
 class clipboardBot(commands.Bot):
     def __init__(self):
@@ -37,14 +44,21 @@ class clipboardBot(commands.Bot):
         self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "embedBuilder", "emoji_sb", "utilities", "voting"]
         self.recentExt = None
 
+        # tried to register app commands, but commands.Bot already has command tree. unneeded
+        # self.tree = app_commands.CommandTree(self)
+
     async def setup_hook(self) -> None:
+        await self.tree.sync(guild=TEST_GUILD)
         for cog in self.cogsList:
             await self.load_extension(f'cogs.{cog}')
 
     #* on ready command
     async def on_ready(self):
-        print(f"Logged in as {bot.user}")
+        print(f"Logged in as {colored(bot.user, 'green')}")
         print("------------------------------")
+        print(colored(f"Using discord.py: {discord.__version__}", 'yellow'))
+        synced = await self.tree.sync()
+               
     ##
 
     #* .json manipulation

@@ -3,9 +3,9 @@ import json
 import os
 import asyncio
 from utils.poll_class import readfromFile, writetoFile
-from utils.views import Cancel, Confirm
+from utils.views import Cancel, Confirm, ResponseView
 from discord.ext import commands
-from main import randomHexGen
+from main import randomHexGen, get_prefix
 
 class utilities(commands.Cog):
     def __init__(self, bot):
@@ -20,29 +20,21 @@ class utilities(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def prefix(self, ctx):
+        prefixList = get_prefix(self.bot, ctx.message) # necessary for the whole list instead of the one in current use
         embed = discord.Embed(
             title = "Changing Server Prefix",
-            description = f"The **current** standard prefix is `{ctx.prefix}`\n\nPlease enter the new prefix:",
+            description = f"The **current** standard prefix is `{prefixList[0]}`\n\nPlease enter the new prefix:",
             color = randomHexGen()
         )
-        view = Cancel(ctx)
-        prefixEmbed = await ctx.send(embed = embed, view = view)
-        newPrefix = await self.multi_wait(ctx, view, 50)
-        if not newPrefix:
-            embed.description = f"Prefix menu canceled. \n**Standard prefix**: `{ctx.prefix}`"
-            return await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
-        prefixes = readfromFile("prefixes")
-        prefixes[str(ctx.guild.id)] = newPrefix
-        writetoFile(prefixes, "prefixes")
-        embed.description = f"Successfully changed **standard prefix** to: `{newPrefix}`"
-        await prefixEmbed.edit(embed = embed, view = None, delete_after = 5)
-        await ctx.channel.purge(limit = 1)
+        # could say "if ctx.message.author.id == owner, and edit personal prefix. personally that's too much work but i could"
+        response_view = ResponseView(ctx) # view that holds modal
+        response_view.message = await ctx.send(embed = embed, view = response_view)
 
     @prefix.error
     async def prefix_error(self, ctx, error):
         member = ctx.message.author
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send(f"sorry {member.display_name}, you do not have permission edit server prefix!", delete_after = 3)
+            await ctx.send(f"sorry {member.display_name}, you are not powerful enough to edit the server prefix!", delete_after = 3)
     ##
 
     #➥ Clear Command and Error
@@ -121,11 +113,10 @@ class utilities(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def multi_wait(self, ctx, view, timeout):
-
         # asyncio magic?
         done, pending = await asyncio.wait([
-                            self.waitCheck(ctx, timeout),
-                            view.wait()],
+                            self.waitCheck(ctx, timeout), 
+                            v.wait()], # broken
                             timeout = timeout,
                             return_when = asyncio.FIRST_COMPLETED)
         try:

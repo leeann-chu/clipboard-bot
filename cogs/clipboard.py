@@ -510,7 +510,7 @@ class clipboard(commands.Cog):
         view = Confirm(ctx)
         confirmationEmbed = await ctx.send(f"> Does this look correct? • [{member}]", embed = embed, view=view)
     ##
-        await view.wait()
+        await view.wait() # consider one day changing this to something better view.wait == bad
         if view.value is None:
             embed.description = "Confirmation menu timed out!"
             return await confirmationEmbed.edit(embed = embed, view = None, delete_after = 3)
@@ -588,7 +588,7 @@ class clipboard(commands.Cog):
         if override not in title:
             confirmView = Confirm(ctx)
             confirmationEmbed = await ctx.send(f"> Are you sure you want to delete this list? • [{member}]", embed = view(selList), view = confirmView)
-            await confirmView.wait()
+            await confirmView.wait() # consider one day changing this to something better view.wait == bad
             if confirmView.value is None:
                 await ctx.send("Confirmation menu timed out!", delete_after = 5)
             elif confirmView.value:

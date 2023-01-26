@@ -4,6 +4,7 @@ from discord.ext import commands
 from datetime import datetime
 from utils.views import EmbedPageView
 from utils.API_KEYS import AO3_PASSWORD, AO3_USERNAME
+from utils.poll_class import readfromFile, writetoFile
 from bs4 import BeautifulSoup
 import AO3
 import json
@@ -45,6 +46,8 @@ ratingEmoji = {
     "Creator Chose Not To Use Archive Warnings": "<:exclaimquestion:1057929664133349416>",
     "Exclaim": "<:exclaim:1057929667253915648>"
 }
+
+alertDB = {} 
 
 #* ExtraInfo View for AO3
 class ExtraInfo(discord.ui.View):
@@ -476,7 +479,7 @@ class embedBuilder(commands.Cog):
         pageView = EmbedPageView(eList = embed_list, pagenum = 0)
         pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
 
-    @commands.command()
+    @commands.command(aliases=["alertme", "am"])
     async def alertMe(self, ctx, link):
         await ctx.channel.typing()
         pieces, error = generate_ao3_work_summary(link)
@@ -485,7 +488,37 @@ class embedBuilder(commands.Cog):
         embed = fic_update_alert_embed(pieces)
         embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
         embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
-        await ctx.send(embed=embed)
+        # Fic is already completed, return early
+        if pieces["status"] == "Completed" or pieces["status"] == "Published":
+            return await ctx.send("This fic is <:Completed:1057962897017421884>", embed=embed)
+        # ------------- ALERTME SCRIPT -------------- #
+        alertDB = readfromFile("alertMe")
+        work_link = pieces["link"] # cleaned in case it's a chapter link
+        alert_info = alertDB.setdefault(work_link, [])
+        sendEmbed = True
+        alert_message = None
+
+        if not alert_info: # creating a new link in db 
+            alert_info = [pieces["chapters"].split("/")[0]] # create a new one 
+            alert_message = ":mega: You've been added to the alerts for this fic!"
+        else:
+            updated_chap = int(pieces["chapters"].split("/")[0]) 
+            if int(alert_info[0]) < updated_chap: #setup to ping
+                embed.add_field(name=":tada: Fic Updated! :tada:", value=f"""{alert_info[0]} → {updated_chap}""", inline=False)
+            else:
+                if not alert_message: # Fic already linked
+                    await ctx.send("No new updates on this fic :pensive:") # Nothing updated
+                    sendEmbed = False # send nothing      
+
+            if ctx.message.author.id not in alert_info:
+                alert_info.append(ctx.message.author.id)
+
+        if sendEmbed:
+            await ctx.send(alert_message, embed=embed)
+
+        print(alert_info)
+        alertDB[work_link] = alert_info # save updates
+        writetoFile(alertDB, "alertMe")
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))

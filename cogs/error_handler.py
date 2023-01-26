@@ -33,6 +33,8 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, ignored):
             if message.content.startswith('~help'):
                 return
+            elif message.content.startswith('~~'):
+                return
             await ctx.send(f"Unknown command `{message.content}`." + " Type `{0.prefix}chelp` for list of commands".format(ctx))
             return
 

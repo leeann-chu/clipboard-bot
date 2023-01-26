@@ -75,8 +75,8 @@ class emoji_sb(commands.Cog):
         emoji_count = readfromFile("emoji_count")
         member_emoji_count = readfromFile("member_emoji")
 
-        #print(f"Emoji found list {list(emoji_found)}")
         for emoji in emoji_found:
+            # if emoji exists #emoji's == default_emoji. If not, create it and initialize it to 0. 
             default_emoji = emoji_count.setdefault(emoji, 0)
             if default_emoji >= 0: emoji_count[emoji] += 1
 
