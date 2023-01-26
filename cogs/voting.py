@@ -226,7 +226,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             await interaction.edit_original_message(embed = self.settingsEmbed, view = view)
             await self.ctx.channel.purge(limit=1)
 
-            await view.wait()
+            await view.wait() # consider one day changing this to something better view.wait == bad
             if view.value == None:
                 return await self.ctx.send(f"Confirmation menu timed out!", delete_after = 3)
             elif view.value:
@@ -299,7 +299,7 @@ class SettingsButton(discord.ui.Button['Settings']):
             self.settingsEmbed.description = pairedString
             confirmationMenu = await interaction.followup.send(embed = self.settingsEmbed, view = view)
 
-            await view.wait()
+            await view.wait() # consider one day changing this to something better view.wait == bad
             if view.value == None:
                 await confirmationMenu.delete()
                 return await self.ctx.send(f"Confirmation menu timed out!", delete_after = 3)

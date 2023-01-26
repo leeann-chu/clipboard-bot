@@ -1,5 +1,6 @@
 import discord
 from datetime import datetime
+from utils.poll_class import readfromFile, writetoFile
 
 #➥ Setting up a Confirmation Menu
 class Confirm(discord.ui.View):
@@ -75,3 +76,39 @@ class EmbedPageView(discord.ui.View):
     async def next(self, i:  discord.Interaction, button: discord.ui.Button):
         self.pagenum += 1
         await self.update_children(i)
+
+# Modals
+class ResponseModal(discord.ui.Modal, title='Prefix Manager'):
+    prefix = discord.ui.TextInput(label='New Prefix', placeholder="Your new prefix here...")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        prefixes = readfromFile("prefixes")
+        prefixes[str(interaction.guild_id)] = self.prefix.value
+        writetoFile(prefixes, "prefixes")
+        await interaction.response.send_message(f"Successfully changed **standard prefix** to: `{self.prefix.value}`")
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)
+        traceback.print_exception(type(error), error, error.__traceback__)
+
+
+# Model View 
+class ResponseView(discord.ui.View):
+    def __init__(self, ctx):
+        super().__init__(timeout=150)
+        self.ctx = ctx
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("This is not for you to poke around with.", ephemeral= True)
+            return False
+        else:
+            return await super().interaction_check(interaction)
+
+    async def on_timeout(self) -> None:
+        self.children[0].disabled = True 
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="Open Modal", style=discord.ButtonStyle.blurple)
+    async def modal_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ResponseModal())
