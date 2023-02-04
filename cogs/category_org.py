@@ -1,5 +1,6 @@
 import discord
 import csv
+import random
 from discord.ext import commands
 from discord.ext.commands import TextChannelConverter, VoiceChannelConverter, CategoryChannelConverter, RoleConverter
 
@@ -42,6 +43,10 @@ channel_list = ["general", "memes", "art", "counting", "bot", "vidya", "pets", "
 voice_list = ["general_vc", "virgin_vc", "chad_vc", "afk_vc"]
 role_list = ["role1", "role2", "role3", "role4", "botrole"]
 
+def partition (members_list, n):
+    random.shuffle(members_list)
+    return [members_list[i::n] for i in range(n)]
+
 class category_org(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -64,26 +69,27 @@ class category_org(commands.Cog):
             for (default, new) in csv.reader(csv_file):
                 default = default.strip(' "\'\t\r\n')
                 new = new.strip(' "\'\t\r\n')
+                channel_from_dict = channel_id[default]
                 if new == "":
                     continue
                 if default in channel_list:
-                    channel_obj = await TextChannelConverter().convert(ctx, channel_id[default])
+                    channel_obj = await TextChannelConverter().convert(ctx, channel_from_dict)
                     await channel_obj.edit(name=new)
                     continue
                 if default in role_list:
-                    role_obj = await RoleConverter().convert(ctx, channel_id[default])
+                    role_obj = await RoleConverter().convert(ctx, channel_from_dict)
                     await role_obj.edit(name=new)
                     continue 
                 if default in category_list:
-                    category_obj = await CategoryChannelConverter().convert(ctx, channel_id[default])
+                    category_obj = await CategoryChannelConverter().convert(ctx, channel_from_dict)
                     await category_obj.edit(name=new)
                     continue
                 if default in voice_list:
-                    vc_obj = await VoiceChannelConverter().convert(ctx, channel_id[default])
+                    vc_obj = await VoiceChannelConverter().convert(ctx, channel_from_dict)
                     await vc_obj.edit(name=new)
                     continue
                 if default == "icon_idea":
-                    channel_obj = await TextChannelConverter().convert(ctx, channel_id[default])
+                    channel_obj = await TextChannelConverter().convert(ctx, channel_from_dict)
                     await channel_obj.send(f"Submitted Icon Prompt: {new}")
                     continue
 
@@ -101,8 +107,33 @@ class category_org(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def shuffleMembers(self, ctx):
-        members = [member.name for member in ctx.guild.members if not member.bot]
-        print(members)
+        members = [member for member in ctx.guild.members if not member.bot]
+
+        red, yellow, green, blue = partition(members, 4)
+        #await ctx.send(f"{red}\n{yellow}\n{green}\n{blue}")
+
+        red_role = await RoleConverter().convert(ctx, "871957977370878052")
+        yellow_role = await RoleConverter().convert(ctx, "871958094899462154")
+        green_role = await RoleConverter().convert(ctx, "871958129666060298")
+        blue_role = await RoleConverter().convert(ctx, "871958159168782357")
+        for member in members: # for visual effect, remove all roles at once — could look cooler
+            await member.remove_roles(red_role, yellow_role, green_role, blue_role)  
+
+        for member in members: # then add them back 
+            if member in red:
+                await member.add_roles(red_role) # add_roles takes a long time because rate limited
+                print(member.name, "was given red_role")
+            elif member in yellow:
+                await member.add_roles(yellow_role)
+                print(member.name, "was given yellow_role")    
+            elif member in green:
+                await member.add_roles(green_role)
+                print(member.name, "was given green_role") 
+            elif member in blue:
+                await member.add_roles(blue_role)
+                print(member.name, "was given blue_role")   
+
+        await ctx.send("Done with shuffling roles!")    
 
     # Send list of channels to another category
     @commands.command()
