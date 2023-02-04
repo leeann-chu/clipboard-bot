@@ -351,13 +351,22 @@ expected votes per day: `{votesNeeded/daysLeft}`
             writetoFile(pfps_dict, "pfps")
             return await ctx.send("pfp saved!")
 
-        elif flag == "delete":
+        elif flag == "delete" or flag == "remove":
             del pfps_dict[newKey]
             writetoFile(pfps_dict, "pfps")
             return await ctx.send("pfp deleted!")
 
         else:
-            await ctx.send("Options are `list/show`, `show <key>`, `delete <key>`, `save <key> <link>`, `help`")
+            await ctx.send("Options are `list/show`, `show <key>`, `delete/remove <key>`, `save <key> <link>`, `help`")
+##
+
+#* Shuffle a list
+    @commands.command()
+    async def shuffle(self, ctx, *, inp: str):
+        inp_list = inp.split("\n")
+        random.shuffle(inp_list)
+        await ctx.send("\n".join(inp_list))
+
 ##
 
     #* Help with Admin Commands
@@ -366,12 +375,14 @@ expected votes per day: `{votesNeeded/daysLeft}`
     async def adminHelp(self, ctx):
         await ctx.send(f"""
 ```
+Don't need to put `@` in front
 {" POLL ":.^10}
 {ctx.prefix}vote insertPoll <string input formatted json>
 {ctx.prefix}vote clear (clears dictionary)
 {ctx.prefix}vote saveReset
 ```
 ```
+Don't need to put `@` in front
 {" FUN ":.^11}
 {ctx.prefix}timeConvert (runs humantimeTranslator)
 {ctx.prefix}tgCheck <current xp> <xp needed for next level>
