@@ -1,11 +1,11 @@
-from main import randomHexGen
-from main import db as db
-from main import override as override
-from utils.models import Lists, Tasks, recreate
-from utils.views import Cancel, Confirm
-from discord.ext import commands
-import discord
 import re
+import discord
+from discord.ext import commands
+from myutils.models import Lists, Tasks, recreate
+from myutils.views import Cancel, Confirm
+from main import randomHexGen
+from main import db 
+from main import override
 
 listsPerPage = 5
 tasksPerPage = 15
@@ -412,7 +412,7 @@ class clipboard(commands.Cog):
                 titlesOnly = [lists.title for lists in allLists]
                 await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <list>` to continue \nFor more help refer to `{ctx.prefix}list help`")
             else:
-                "You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`"
+                await ctx.send(f"You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`")
                
 
 #* -------    Help Command   -------
@@ -428,7 +428,7 @@ class clipboard(commands.Cog):
             [`{ctx.prefix}list`](https://imgur.com/DI7IQcn \"Aliases: checklist, clipboard, l\") ➙ The start of any list related command
             [`{ctx.prefix}list make`](https://imgur.com/DI7IQcn \"Aliases: create, new, c, m\") ➙ Guides you through making a list
             [`{ctx.prefix}list view <title>`](https://imgur.com/DI7IQcn \"Aliases: open, browse, b, v \") ➙ Brings up editing menu for that list
-            ⤷ `{ctx.prefix}list view {override}<author's username>` 
+            ⤷ `{ctx.prefix}list view {override}<author's username>`
             ⤷ `{ctx.prefix}list view {override}GracefulLion`
             [`{ctx.prefix}list rename <title> {override} <newtitle>`](http://www.howardhallis.com/tpoe/noflash.html \"Aliases: r\")
             [`{ctx.prefix}list delete <title>`](https://imgur.com/DI7IQcn \"Aliases: d\") 
@@ -448,7 +448,7 @@ class clipboard(commands.Cog):
         [`{ctx.prefix}task remove <title>`](https://imgur.com/DI7IQcn \"Aliases: r\")
         [`{ctx.prefix}task complete <title>`](https://imgur.com/DI7IQcn \"Aliases: checkoff, c\")
         """)
-        embed.set_footer(text=f"Tip: Don't use your override symbol in your List titles")
+        embed.set_footer(text="Tip: Don't use your override symbol in your List titles")
         await ctx.send(embed = embed)
 
 #*  --------------------- LIST COMMANDS --------------------------- 
@@ -472,7 +472,7 @@ class clipboard(commands.Cog):
             titlePrompt = await ctx.send(f"> This question will time out in `3 minutes` • [{member}]", embed = embed, view = view)
             title = await self.bot.get_command('multi_wait')(ctx, view, 180)
             if not title:
-                embed.description = f"List Creation canceled."
+                embed.description = "List Creation canceled."
                 embed.remove_footer()
                 return await titlePrompt.edit(embed = embed, view = None, delete_after = 5)
             if len(title) > 200:
@@ -488,7 +488,7 @@ class clipboard(commands.Cog):
             taskString = await self.bot.get_command('multi_wait')(ctx, view, 400)
             taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', taskString)).split("\n")
             if not taskString:
-                embed.description = f"List Creation canceled."
+                embed.description = "List Creation canceled."
                 embed.remove_footer()
                 return await tasksPrompt.edit(embed = embed, view = None, delete_after = 5)
             await tasksPrompt.delete()
@@ -570,7 +570,7 @@ class clipboard(commands.Cog):
         else:
             return await ctx.send(f"List(s) not found! Create a list using `{ctx.prefix}list create`")
         viewListObject = ListView(ctx, self, allListsChunked, pagenum, len(allListsChunked))
-        viewListObject.message = await ctx.send(f"Viewing all possible lists", view = viewListObject)
+        viewListObject.message = await ctx.send("Viewing all possible lists", view = viewListObject)
 
 #* Delete a List
     @_list.command(aliases = ["remove", "delete", "d"])
@@ -683,7 +683,7 @@ class clipboard(commands.Cog):
         
         if "\n" not in inp: 
             cancelView = Cancel(ctx) 
-            tasksPrompt = await ctx.send(f"Enter the tasks you wish to add separated by *new lines* \nThis question will time out in `6 minutes`", view = cancelView)
+            tasksPrompt = await ctx.send("Enter the tasks you wish to add separated by *new lines* \nThis question will time out in `6 minutes`", view = cancelView)
             taskString = await self.bot.get_command('multi_wait')(ctx, cancelView, 400)
             if not taskString:
                 await tasksPrompt.delete()
@@ -797,7 +797,7 @@ def view(selList, numbered=None):
         taskList = [f"{task.status} {task.taskItem}" for task in sortedTasks]
     embed = discord.Embed(
         title = selList.title.replace("^", ""),
-        description = f"\n".join(taskList),
+        description = "\n".join(taskList),
         color = 0x2F3136,
         timestamp = selList.created
     )

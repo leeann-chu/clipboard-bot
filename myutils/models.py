@@ -1,9 +1,9 @@
-from utils.API_KEYS import DATABASE_URI
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
-from datetime import datetime
+from myutils.API_KEYS import DATABASE_URI
 
 engine = create_engine(DATABASE_URI)
 Base = declarative_base()

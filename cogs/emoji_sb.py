@@ -1,8 +1,8 @@
+import re
 import discord
 from discord.ext import commands
 from main import randomHexGen
-from utils.poll_class import readfromFile, writetoFile
-import re
+from myutils.poll_class import readfromFile, writetoFile
 
 # Functions
 def scoreboardEmbed(type_of_board):
