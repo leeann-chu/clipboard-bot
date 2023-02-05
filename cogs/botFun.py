@@ -43,7 +43,7 @@ class extraCommands(commands.Cog):
         )
         await ctx.send(embed = embed)
 
-    @commands.command()
+    @commands.command(aliases=["pfp"])
     async def avatar(self, ctx, *, given_id = None):
         embed = discord.Embed()
         if given_id:
@@ -329,8 +329,8 @@ expected votes per day: `{votesNeeded/daysLeft}`
 ##
 
 #* Profile Pictures
-    @commands.command(aliases = ["pfps", "profiles"])
-    async def pfp(self, ctx, inp: str, newKey = None, newLink = None):
+    @commands.command(aliases = ["profiles"])
+    async def pfps(self, ctx, inp: str, newKey = None, newLink = None):
         flag = inp.lower()
 
         pfps_dict = readfromFile("pfps")
