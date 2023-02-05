@@ -110,7 +110,7 @@ class emoji_sb(commands.Cog):
     # Scoreboard
     @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])
     async def scoreboard(self, ctx, *, type_of_board = None):
-        if type_of_board == "member" or type_of_board == "emoji" or type_of_board == None:
+        if type_of_board == "member" or type_of_board == "emoji" or type_of_board is None:
             view = scoreboard()
             view.message = await ctx.send(embed = scoreboardEmbed(type_of_board), view = view)
         else:

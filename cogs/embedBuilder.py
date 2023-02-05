@@ -85,7 +85,7 @@ def format_html(field):
     for ul in uls:
         ul.name = "p"
     for li in field.find_all("li"):
-        li.string = "- {}".format(li.text.strip())
+        li.string = f"- {li.text.strip()}"
         li.unwrap()
     field = field.blockquote.find_all("p")
     result = list(map(lambda x: x.text.strip(), field))
@@ -404,9 +404,9 @@ def makeEmbed(pieces):
     if rating != "Not Rated" and category != "No category":        
         embed.add_field(name="**Rating:**", value=f"""{rating}\n**Category**: {category}""")
     elif rating != "Not Rated":
-        embed.add_field(name=f"Rating:", value=rating)
+        embed.add_field(name="Rating:", value=rating)
     elif category != "No category":
-        embed.add_field(name=f"Category:", value=category) 
+        embed.add_field(name="Category:", value=category) 
 
     if "updated" in pieces:
         embed.add_field(name=pieces["status"].capitalize() + ":", value=format_date(pieces["updated"]))
