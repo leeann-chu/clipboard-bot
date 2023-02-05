@@ -1,15 +1,13 @@
-import discord, traceback
-from main import randomHexGen
-from utils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
-from utils.views import Confirm
-from datetime import datetime, timedelta, timezone, date
-from discord.ext import commands
-from collections import defaultdict, Counter
 import random
 import json
 import re
-
+from datetime import datetime, timedelta, timezone, date
+from collections import defaultdict, Counter
+import discord, traceback
+from discord.ext import commands
+from myutils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
 from typing import List
+from main import randomHexGen
 
 #* humanTime
 def humantimeTranslator(s):
@@ -190,8 +188,8 @@ class SettingsButton(discord.ui.Button['Settings']):
             if currPoll:
                 results = []
                 for key in currPoll:
-                        member = self.ctx.guild.get_member(int(key))
-                        results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") has voted")
+                    member = self.ctx.guild.get_member(int(key))
+                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") has voted")
                 embed = discord.Embed(title = "Here's a list of people who have voted so far!", description = "\n".join(results), color = randomHexGen())
             else:
                 embed = discord.Embed(title = "No one has voted yet!", color = randomHexGen())
@@ -281,7 +279,7 @@ class SelectMenu(discord.ui.Select):
             self.options.remove(self.anonOption)
             try: 
                 self.view.remove_item(self.lockedButton)
-            except Exception: 
+            except Exception:
                 print(traceback.format_exc())
 
         return await interaction.response.edit_message(view = self.view)
@@ -314,7 +312,7 @@ class voting(commands.Cog):
         embed.set_author(name = ctx.author)
         oldPoll = readfromFile("storedPolls")
         if oldPoll: # commented out while debugging
-          return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
+            return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
         if title is None: 
@@ -407,8 +405,8 @@ class voting(commands.Cog):
             else:
                 # Creating the large list of what everyone voted for
                 for key, values in newPoll.items():
-                        member = currentPoll.ctx.guild.get_member(int(key))
-                        results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+                    member = currentPoll.ctx.guild.get_member(int(key))
+                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
 
         #* Forming the embed
         embed.description = "\n".join(results) if results else "No one voted!"
@@ -443,8 +441,8 @@ class voting(commands.Cog):
         newPoll = readfromFile("storedPolls")
         results = []
         for key, values in newPoll.items():
-                member = ctx.guild.get_member(int(key))
-                results.append(f"[{member}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+            member = ctx.guild.get_member(int(key))
+            results.append(f"[{member}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
         privateEmbed = discord.Embed(title = "Here are the Results!", description = "\n".join(results), color = randomHexGen())
         await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
         return privateEmbed

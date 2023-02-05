@@ -1,16 +1,15 @@
-import discord
-import random
-from discord.ext import commands
 from datetime import datetime
-from utils.views import EmbedPageView
-from utils.API_KEYS import AO3_PASSWORD, AO3_USERNAME
-from utils.poll_class import readfromFile, writetoFile
-from bs4 import BeautifulSoup
-import AO3
 import json
-import requests
-import copy
 import re
+import copy
+import requests
+import AO3
+from bs4 import BeautifulSoup
+import discord
+from discord.ext import commands
+from myutils.views import EmbedPageView
+from myutils.API_KEYS import AO3_PASSWORD, AO3_USERNAME
+from myutils.poll_class import readfromFile, writetoFile
 
 HEADERS = {"User-Agent": "fanfiction-abstractor-bot"}
 

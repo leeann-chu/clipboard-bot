@@ -1,13 +1,13 @@
-import discord
 import random
-from discord.ext import commands
-from discord.ext.commands import GuildConverter, MemberConverter 
-from main import randomHexGen
-from datetime import datetime, timedelta, timezone, date
-from math import ceil
-from utils.poll_class import readfromFile, writetoFile
-import asyncio
 import re
+from datetime import datetime, timedelta, date
+from math import ceil
+import asyncio
+import discord
+from discord.ext import commands
+from discord.ext.commands import GuildConverter, MemberConverter
+from myutils.poll_class import readfromFile, writetoFile
+from main import randomHexGen
 
 class extraCommands(commands.Cog):
     def __init__(self, bot):
@@ -50,19 +50,17 @@ class extraCommands(commands.Cog):
             try:
                 guild = await GuildConverter().convert(ctx, given_id)
                 embed.set_image(url=guild.icon)
-                
             except commands.BadArgument:
                 member = await MemberConverter().convert(ctx, given_id)
                 embed.set_image(url=member.avatar.url)
         else:
             given_id = ctx.message.author
             embed.set_image(url=given_id.avatar.url)
-        
         await ctx.send(embed = embed)
 
     @avatar.error
     async def avatar_error(self, ctx, error):
-            await ctx.send(f"Server/{error} \nOnly works with members I've seen or servers I'm in...")
+        await ctx.send(f"Server/{error} \nOnly works with members I've seen or servers I'm in...")
 
     @commands.command()
     async def chooseOne(self, ctx, *, inp : str):
@@ -155,7 +153,7 @@ class extraCommands(commands.Cog):
     @commands.command(aliases = ["tgCheck"])
     @commands.is_owner()
     async def tgcheck(self, ctx, *, inp=None):
-        xp50Total = 255000
+        # xp50Total = 255000
         if inp:
             total = int(inp.split(" ")[1])
             xpNow = int(inp.split(" ")[0])
@@ -198,7 +196,7 @@ class extraCommands(commands.Cog):
             today = datetime.now()
             nextMonth = today.month + 1 # Calculate next month
             if nextMonth == 13: # if December wrap around
-                nextMonth = 1;                
+                nextMonth = 1
             # don't need to subtract one, I was not fully counting last day
             lastDay = date(today.year, nextMonth, 1) - timedelta(days = 1)
             

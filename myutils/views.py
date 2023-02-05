@@ -1,8 +1,7 @@
-import discord
-from datetime import datetime
-from utils.poll_class import readfromFile, writetoFile
+import discord, traceback
+from myutils.poll_class import readfromFile, writetoFile
 
-#➥ Setting up a Confirmation Menu
+#➥ Setting up a Confirmation Menu — Want to get rid of
 class Confirm(discord.ui.View):
     def __init__(self, ctx):
         super().__init__()

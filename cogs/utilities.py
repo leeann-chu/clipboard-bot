@@ -1,11 +1,11 @@
-import discord
 import json
 import os
 import asyncio
-from utils.poll_class import readfromFile, writetoFile
-from utils.views import Cancel, Confirm, ResponseView
+# from myutils.poll_class import readfromFile, writetoFile
+import discord
 from discord.ext import commands
 from main import randomHexGen, get_prefix
+from myutils.views import Cancel, Confirm, ResponseView
 
 class utilities(commands.Cog):
     def __init__(self, bot):
@@ -46,7 +46,7 @@ class utilities(commands.Cog):
             msg = await ctx.send(f"Clear {amount} messages?", view = view)
             await view.wait()
             if view.value is None:
-                return await ctx.send(f"Confirmation menu timed out!", delete_after = 3)
+                return await ctx.send("Confirmation menu timed out!", delete_after = 3)
             elif view.value:
                 if amount>501 or amount<0:
                     await msg.delete()
@@ -56,7 +56,7 @@ class utilities(commands.Cog):
                 await ctx.send(f"Cleared {amount} messages!", delete_after = 3)
             else:
                 await msg.delete()
-                return await ctx.send(f"Confirmation menu canceled", delete_after = 3)
+                return await ctx.send("Confirmation menu canceled", delete_after = 3)
         else:
             await ctx.channel.purge(limit = amount + 1)
             await ctx.send(f"Cleared {amount} messages!", delete_after = 3)
@@ -70,7 +70,7 @@ class utilities(commands.Cog):
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{member.display_name}, you forgot to include the number of messages you wanted to ")
         else:
-            await ctx.send(f"It's highly probable the bot does not have the permissions to fulfil your wishes, sorry")
+            await ctx.send("It's highly probable the bot does not have the permissions to fulfil your wishes, sorry")
     ##
 
     # clear any json Dictionary (used for emoji_count and member)
@@ -116,7 +116,7 @@ class utilities(commands.Cog):
         # asyncio magic?
         done, pending = await asyncio.wait([
                             self.waitCheck(ctx, timeout), 
-                            v.wait()], # broken
+                            view.wait()], # broken
                             timeout = timeout,
                             return_when = asyncio.FIRST_COMPLETED)
         try:
@@ -127,7 +127,7 @@ class utilities(commands.Cog):
                 pending.pop().cancel()
                 return None
         except KeyError:
-                await ctx.send("You took too long, try again!", delete_after = 5)
+            await ctx.send("You took too long, try again!", delete_after = 5)
         except Exception as e:
             print(e)
 

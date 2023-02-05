@@ -3,11 +3,11 @@ from discord import app_commands
 import random
 from datetime import datetime
 from termcolor import colored
-from utils.API_KEYS import BOT_TOKEN
+from myutils.API_KEYS import BOT_TOKEN
 from discord.ext import commands
-from utils.poll_class import readfromFile, writetoFile
-from utils.models import Session
-from utils.views import EmbedPageView
+from myutils.poll_class import readfromFile, writetoFile
+from myutils.models import Session
+from myutils.views import EmbedPageView
 
 db = Session()
 override = "^"
@@ -87,7 +87,7 @@ async def help(ctx, argument=None):
 
     if argument is None:
         PageOneembed = discord.Embed(
-            description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
+            description="Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
             timestamp=discord.utils.utcnow()
         )
@@ -117,7 +117,7 @@ async def help(ctx, argument=None):
                                     `{p}list help` ➙ More info on the commands!
                                     """), inline=False)
         PageTwoembed = discord.Embed(
-            description=f"Help menu for all your clipboard commands\nHover over the command to see more info",
+            description="Help menu for all your clipboard commands\nHover over the command to see more info",
             color=randomHexGen(),
             timestamp=discord.utils.utcnow()
         )
