@@ -58,7 +58,7 @@ def makeList_removeSpaces(string):
 #* Poll View Class
 class Poll(discord.ui.View):
     def __init__(self, currentPoll):
-        super().__init__(timeout = 15) # 86400 for a day
+        super().__init__(timeout = 86400) # 86400 for a day
         self.currentPoll = currentPoll
 
         for emoji, label in zip(currentPoll.emojiList, currentPoll.optionList):
@@ -205,9 +205,6 @@ class SettingsButton(discord.ui.Button['Settings']):
                 resultsEmbed = await self.clipboardBot.get_command('createResultsEmbed')(self.currentPoll)
             except Exception:
                 print(traceback.format_exc())
-                # errorFile = open("data\error.txt","a")
-                # errorFile.write(traceback.format_exc())
-                # errorFile.close()
                 return
             await self.pollMessage.edit(embed = resultsEmbed, view = None)
             return await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
@@ -316,8 +313,8 @@ class voting(commands.Cog):
         embed = discord.Embed(description="")
         embed.set_author(name = ctx.author)
         oldPoll = readfromFile("storedPolls")
-        #if oldPoll: # commented out while debugging
-         #  return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
+        if oldPoll: # commented out while debugging
+          return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
         if title is None: 
@@ -365,7 +362,7 @@ class voting(commands.Cog):
         "Tip #9: Locked polls cannot have their votes changed",
         "Tip #10: Click on the settings button to find out more information about this poll",
         "Tip #11: You can hover over the nicknames in the results to see their username (if the poll is not anonymous)"]
-        embed.set_footer(text = random.choice(tips), icon_url = member.avatar.url)
+        embed.set_footer(text = f"{random.choice(tips)}\n", icon_url = member.avatar.url)
 
         try:
             fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
