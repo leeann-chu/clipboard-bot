@@ -1,10 +1,9 @@
-import discord
-from discord import app_commands 
 import random
 from datetime import datetime
 from termcolor import colored
-from myutils.API_KEYS import BOT_TOKEN
+import discord
 from discord.ext import commands
+from myutils.API_KEYS import BOT_TOKEN
 from myutils.poll_class import readfromFile, writetoFile
 from myutils.models import Session
 from myutils.views import EmbedPageView
@@ -56,9 +55,7 @@ class clipboardBot(commands.Bot):
     async def on_ready(self):
         print(f"Logged in as {colored(bot.user, 'green')}")
         print("------------------------------")
-        print(colored(f"Using discord.py: {discord.__version__}", 'yellow'))
-        synced = await self.tree.sync()
-               
+        print(colored(f"Using discord.py: {discord.__version__}", 'yellow'))               
     ##
 
     #* .json manipulation
@@ -212,7 +209,7 @@ async def reload(ctx, *, ext: str = None):
         if bot.recentExt: # use most recent reloaded extension
             extension = bot.recentExt
         else:
-            return await ctx.send(f"Unrecognized Extension!")
+            return await ctx.send(f"Unrecognized Extension: `{ext}`!")
 
     await bot.unload_extension(f'cogs.{extension}')
     await bot.load_extension(f'cogs.{extension}')
@@ -229,7 +226,7 @@ async def reload_error(ctx, error):
     extensionErrors = (commands.ExtensionNotLoaded,
                        commands.ExtensionNotFound, commands.MissingRequiredArgument, )
     if isinstance(error, extensionErrors):
-        await ctx.send(f"Unrecognized Extension!")
+        return await ctx.send("Unrecognized Extension!")
     else:
         print("\nSome other Error!")
         raise error

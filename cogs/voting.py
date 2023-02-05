@@ -1,12 +1,12 @@
 import random
 import json
 import re
-from datetime import datetime, timedelta, timezone, date
+from datetime import datetime, timedelta
 from collections import defaultdict, Counter
+from typing import List
 import discord, traceback
 from discord.ext import commands
 from myutils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
-from typing import List
 from main import randomHexGen
 
 #* humanTime

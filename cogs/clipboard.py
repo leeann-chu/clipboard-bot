@@ -457,7 +457,7 @@ class clipboard(commands.Cog):
     async def make(self, ctx, *, title=None):
         member = ctx.guild.get_member(ctx.author.id)
         try: pfp = member.avatar.url
-        except: pfp = None
+        except Exception: pfp = None
 
         embed = discord.Embed (
             title = "Checklist Creation",

@@ -1,6 +1,6 @@
-import discord
 import csv
 import random
+import discord
 from discord.ext import commands
 from discord.ext.commands import TextChannelConverter, VoiceChannelConverter, CategoryChannelConverter, RoleConverter
 
@@ -204,3 +204,4 @@ class category_org(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(category_org(bot))
+    

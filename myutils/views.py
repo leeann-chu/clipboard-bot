@@ -1,5 +1,5 @@
-import discord, traceback
 from myutils.poll_class import readfromFile, writetoFile
+import discord, traceback
 
 #➥ Setting up a Confirmation Menu — Want to get rid of
 class Confirm(discord.ui.View):
