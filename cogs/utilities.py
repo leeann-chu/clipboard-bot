@@ -87,7 +87,7 @@ class utilities(commands.Cog):
             json.dump({}, f,  indent=4)
             await ctx.send("Successfully cleared dictionary!")            
 
-    #➥ waitfor command
+    #➥ waitfor command — Depreciated
     @commands.command()
     @commands.is_owner()
     async def waitCheck(self, ctx, timeout):
@@ -109,7 +109,7 @@ class utilities(commands.Cog):
             return await ctx.send("You took too long, try again! ", delete_after = 5)
     ##
 
-    #➥ multi_wait command
+    #➥ multi_wait command — Depreciated 
     @commands.command()
     @commands.is_owner()
     async def multi_wait(self, ctx, view, timeout):

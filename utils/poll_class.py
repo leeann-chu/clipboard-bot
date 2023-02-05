@@ -1,9 +1,8 @@
 import json
 
 class PollClass:
-    def __init__(self, ctx, clipboardBot, pollEmbed, emojiList, optionList, isAnon = False, isLocked = False, newPoll = {}):
+    def __init__(self, ctx, pollEmbed, emojiList, optionList, isAnon = False, isLocked = False, newPoll = {}):
         self.ctx = ctx
-        self.clipboardBot = clipboardBot
         self.emojiList = emojiList
         self.optionList = optionList
         self.pollEmbed = pollEmbed
