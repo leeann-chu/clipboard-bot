@@ -202,6 +202,13 @@ class category_org(commands.Cog):
     async def massmatch_error(self, ctx, error):
         await ctx.send(error)
 
+    @commands.command()
+    @commands.has_permissions(manage_guild=True)
+    async def gibRole(self, ctx, *, role):
+        role_obj = await RoleConverter().convert(ctx, role)
+        await ctx.author.add_roles(role_obj)
+        await ctx.send("Role Added!")
+
 async def setup(bot):
     await bot.add_cog(category_org(bot))
     

@@ -107,6 +107,7 @@ class PageButton(discord.ui.Button['ListView']):
             pagenum -= 1
         else:
             pagenum += 1
+
         if isinstance(self.view, ListView):
             newView = ListView(self.view.ctx, self.view.bot, self.view.allLists, pagenum, self.view.totpage)
         elif isinstance(self.view, CompleteView):
