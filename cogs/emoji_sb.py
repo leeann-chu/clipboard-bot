@@ -1,4 +1,5 @@
 import re
+import time
 import discord
 from discord.ext import commands
 from main import randomHexGen
@@ -23,11 +24,12 @@ def scoreboardEmbed(type_of_board):
     )
     if board_type:
         for item in sorted(((v, k) for k, v in board_type.items()), reverse=True):
-            if item[0] > 15:
+            if item[0] > 25:
                 scoreboard.append(f"{item[0]} {item[1]}")
 
     #* Forming the embed
     embed.description = "\n".join(scoreboard) if scoreboard else "No data found!"
+    embed.set_footer(text="Scoreboard currently frozen, data last updated 2/21/22")
     return embed
 
 #* Emoji SB View
@@ -62,50 +64,51 @@ class emoji_sb(commands.Cog):
     async def on_ready(self):
         print("emoji_sb is Ready")
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot: return
-        if isinstance(message.channel, discord.channel.DMChannel): return
-        if message.guild.id != 370200859675721728: return
-        #if message.guild.id != 416749994163568641: return
-        emoji_found = re.findall(r"[^\x00-\x7F™️ę’”“€]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
+    # @commands.Cog.listener()
+    # async def on_message(self, message):
+    #     if message.author.bot: return
+    #     if isinstance(message.channel, discord.channel.DMChannel): return
+    #     #if message.guild.id != 370200859675721728: return
+    #     if message.guild.id != 416749994163568641: return
 
-        if not emoji_found: return #checks if there are emoji in message
+        # emoji_found = re.findall(r"[^\x00-\x7F™️ę’”“€]+|(?::|<:|<a:)(?:\w{1,64}:\d{17,18}|(?:\w{1,64}))(?::|>)", message.content, re.IGNORECASE)
 
-        emoji_count = readfromFile("emoji_count")
-        member_emoji_count = readfromFile("member_emoji")
+        # if not emoji_found: return #checks if there are emoji in message
 
-        for emoji in emoji_found:
-            # if emoji exists #emoji's == default_emoji. If not, create it and initialize it to 0. 
-            default_emoji = emoji_count.setdefault(emoji, 0)
-            if default_emoji >= 0: emoji_count[emoji] += 1
+        # emoji_count = readfromFile("emoji_count")
+        # member_emoji_count = readfromFile("member_emoji")
 
-            default_member = member_emoji_count.setdefault(message.author.name, 0)
-            if default_member >= 0: member_emoji_count[message.author.name] += 1
+        # for emoji in emoji_found:
+        #     # if emoji exists #emoji's == default_emoji. If not, create it and initialize it to 0. 
+        #     default_emoji = emoji_count.setdefault(emoji, 0)
+        #     if default_emoji >= 0: emoji_count[emoji] += 1
 
-        #print(member_emoji_count)
-        #print(f"{emoji_count} \n")
-        writetoFile(member_emoji_count, "member_emoji")
-        writetoFile(emoji_count, "emoji_count")
+        #     default_member = member_emoji_count.setdefault(message.author.name, 0)
+        #     if default_member >= 0: member_emoji_count[message.author.name] += 1
 
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if payload.member.bot: return
-        if payload.guild_id != 370200859675721728: return
-        #if payload.guild_id != 416749994163568641: return
-        emoji_count = readfromFile("emoji_count")
-        member_emoji_count = readfromFile("member_emoji")
+        # #print(member_emoji_count)
+        # #print(f"{emoji_count} \n")
+        # writetoFile(member_emoji_count, "member_emoji")
+        # writetoFile(emoji_count, "emoji_count")
 
-        default_emoji = emoji_count.setdefault(str(payload.emoji), 0)
-        if default_emoji >= 0: emoji_count[str(payload.emoji)] += 1
+    # @commands.Cog.listener()
+    # async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+    #     if payload.member.bot: return
+    #     if payload.guild_id != 370200859675721728: return
+    #     #if payload.guild_id != 416749994163568641: return
+    #     emoji_count = readfromFile("emoji_count")
+    #     member_emoji_count = readfromFile("member_emoji")
 
-        default_member = member_emoji_count.setdefault(payload.member.name, 0)
-        if default_member >= 0: member_emoji_count[payload.member.name] += 1
+    #     default_emoji = emoji_count.setdefault(str(payload.emoji), 0)
+    #     if default_emoji >= 0: emoji_count[str(payload.emoji)] += 1
 
-        #print(member_emoji_count)
-        #print(emoji_count)
-        writetoFile(member_emoji_count, "member_emoji")
-        writetoFile(emoji_count, "emoji_count")
+    #     default_member = member_emoji_count.setdefault(payload.member.name, 0)
+    #     if default_member >= 0: member_emoji_count[payload.member.name] += 1
+
+    #     #print(member_emoji_count)
+    #     #print(emoji_count)
+    #     writetoFile(member_emoji_count, "member_emoji")
+    #     writetoFile(emoji_count, "emoji_count")
 
     # Scoreboard
     @commands.command(aliases=["lb", "sb", "leaderboard", "score board", "leader board"])

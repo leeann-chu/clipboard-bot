@@ -1,4 +1,4 @@
-import random
+from random import choice
 import json
 import re
 from datetime import datetime, timedelta
@@ -6,6 +6,7 @@ from collections import defaultdict, Counter
 from typing import List
 import discord, traceback
 from discord.ext import commands
+from myutils.views import PollModal, ResponseView
 from myutils.poll_class import PollClass, SettingsClass, writetoFile, readfromFile
 from main import randomHexGen
 
@@ -35,7 +36,7 @@ def humantimeTranslator(s):
         return f"{num_seconds} seconds"
     else:
         return 0
-
+    
 #* format_toString
 def format_toString(options, emojis):
     pairedString = []
@@ -46,12 +47,6 @@ def format_toString(options, emojis):
         pairedString.append(f"{emoji} {option}")
 
     return "\n".join(pairedString)
-
-#* remove spaces
-def makeList_removeSpaces(string):
-    splitList = string.split("\n")
-    spaceless = [s.strip() for s in splitList]
-    return spaceless
 
 #* Poll View Class
 class Poll(discord.ui.View):
@@ -307,33 +302,31 @@ class voting(commands.Cog):
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, title = None):
-        member = ctx.guild.get_member(ctx.author.id)
-        embed = discord.Embed(description="")
-        embed.set_author(name = ctx.author)
         oldPoll = readfromFile("storedPolls")
-        if oldPoll: # commented out while debugging
+        if oldPoll: 
             return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
         if title is None: 
-            # do modal things
-            print("title was none")
+            poll_modal = PollModal()
+            poll_response_view = ResponseView(ctx, "Create Poll", poll_modal)
+            poll_response_view.message = await ctx.send("In the options input, please enter them in `<emoji> <option>` format, with a newline in between each option. \n\nExample: \n>>> 🪁 Blue\n🍏 Green\n🚗 Red\n🪙 Yellow", view = poll_response_view)
+
+            await poll_modal.wait()
+            title = poll_modal._title
+            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, poll_modal.msg, poll_modal.emojis)
 
         else: # need to fix what happens when no title is given
             entirePoll = title
             title = re.search(r"\A.*", entirePoll).group()
             msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE)[1:])
             emojis = "\n".join(re.findall(r"^[^*]{1,2}(?!\w)", entirePoll, re.MULTILINE))
-
-        emojiList = makeList_removeSpaces(emojis)
-        optionList = makeList_removeSpaces(msg)
-
-        if len(emojiList) > 25:
-            return await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
-        if len(emojiList) != len(optionList):
-            return await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
-
+            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, msg, emojis)
+        if not success:
+            return # failed
+    
     #* Forming the embed
+        member_url = ctx.author.avatar.url 
         pairedString = format_toString(msg, emojis)
         timestamp = discord.utils.utcnow()
         embed = discord.Embed(
@@ -343,7 +336,7 @@ class voting(commands.Cog):
             timestamp = timestamp
         )
         pollClose = timestamp + timedelta(seconds =+ 86400) # 86400 is day
-        embed.add_field(name = "Votes Recorded:", value = len(oldPoll))
+        embed.add_field(name = "Votes Recorded:", value = 0) # should always be 0 as should ping me if not reset
         embed.add_field(name = "Date Poll Closes:", value=f"<t:{int(pollClose.timestamp())}:f>")
         embed.add_field(name = "Poll is", value = ":unlock:")
 
@@ -360,8 +353,7 @@ class voting(commands.Cog):
         "Tip #9: Locked polls cannot have their votes changed",
         "Tip #10: Click on the settings button to find out more information about this poll",
         "Tip #11: You can hover over the nicknames in the results to see their username (if the poll is not anonymous)"]
-        embed.set_footer(text = f"{random.choice(tips)}\n", icon_url = member.avatar.url)
-
+        embed.set_footer(text = f"{choice(tips)}\n", icon_url = member_url)
         try:
             fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
             fullOptionList = optionList + ["Settings"]
@@ -373,6 +365,7 @@ class voting(commands.Cog):
         except Exception:
             print(traceback.format_exc())
             return await ctx.send("One of your emojis is invalid! Try making the Poll again.")
+
 
     #* timeConvert
     @commands.command()
@@ -418,7 +411,7 @@ class voting(commands.Cog):
                 final_winner = winners[0]
                 embed.add_field(name = f"The winner (with {maxNum} votes)...", value = final_winner, inline = False)
             else:
-                final_winner = random.choice(winners)
+                final_winner = choice(winners)
                 embed.add_field(name = f"The winners (with {maxNum} votes)...", value = "\n".join(winners), inline = False)
                 embed.add_field(name = "As there was a tie, one has been chosen at random from our winners", value = final_winner, inline = False)
             if not isAnon: embed.add_field(name = "The totals:", value = "\n".join(the_rest), inline = False)

@@ -2,10 +2,16 @@ import json
 import os
 import asyncio
 # from myutils.poll_class import readfromFile, writetoFile
-import discord
+import discord, traceback
 from discord.ext import commands
 from main import randomHexGen, get_prefix
-from myutils.views import Cancel, Confirm, ResponseView
+from myutils.views import Cancel, Confirm, ResponseView, PrefixModal
+
+#* remove spaces
+def makeList_removeSpaces(string):
+    splitList = string.split("\n")
+    spaceless = [s.strip() for s in splitList]
+    return spaceless
 
 class utilities(commands.Cog):
     def __init__(self, bot):
@@ -23,11 +29,11 @@ class utilities(commands.Cog):
         prefixList = get_prefix(self.bot, ctx.message) # necessary for the whole list instead of the one in current use
         embed = discord.Embed(
             title = "Changing Server Prefix",
-            description = f"The **current** standard prefix is `{prefixList[0]}`\n\nPlease enter the new prefix:",
+            description = f"The **current** standard prefix is `{prefixList[0]}`",
             color = randomHexGen()
         )
-        # could say "if ctx.message.author.id == owner, and edit personal prefix. personally that's too much work but i could"
-        response_view = ResponseView(ctx) # view that holds modal
+        # could add the ability to edit personal prefix. personally that's too much work but i could
+        response_view = ResponseView(ctx, "Change Prefix", PrefixModal(embed)) # view that holds modal
         response_view.message = await ctx.send(embed = embed, view = response_view)
 
     @prefix.error
@@ -35,7 +41,27 @@ class utilities(commands.Cog):
         member = ctx.message.author
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(f"sorry {member.display_name}, you are not powerful enough to edit the server prefix!", delete_after = 3)
+        else:
+            print(traceback.format_exc())
     ##
+
+    @commands.command()
+    @commands.is_owner()
+    async def emoji_msg_error_check(self, ctx, msg, emojis):
+        emojiList = makeList_removeSpaces(emojis)
+        optionList = makeList_removeSpaces(msg)
+        success = True
+
+        if len(emojiList) > 25:
+            print("emojilist is > 25")
+            await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
+            success = False
+        elif len(emojiList) != len(optionList):
+            print("emoji list is not == optionlist")
+            await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
+            success = False
+            
+        return emojiList, optionList, success
 
     #➥ Clear Command and Error
     @commands.command(aliases=["purge", "c"])
