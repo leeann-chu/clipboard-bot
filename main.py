@@ -43,8 +43,7 @@ class clipboardBot(commands.Bot):
         self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "embedBuilder", "emoji_sb", "utilities", "voting"]
         self.recentExt = None
 
-        # tried to register app commands, but commands.Bot already has command tree. unneeded
-        # self.tree = app_commands.CommandTree(self)
+        # self.tree = commands.Bot.tree # used for slash commands
 
     async def setup_hook(self) -> None:
         await self.tree.sync(guild=TEST_GUILD)

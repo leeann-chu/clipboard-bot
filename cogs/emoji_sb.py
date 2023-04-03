@@ -1,5 +1,3 @@
-import re
-import time
 import discord
 from discord.ext import commands
 from main import randomHexGen
