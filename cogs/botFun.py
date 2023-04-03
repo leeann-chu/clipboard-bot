@@ -2,7 +2,6 @@ import random
 import re
 from datetime import datetime, timedelta, date
 from math import ceil
-import asyncio
 import discord
 from discord.ext import commands
 from discord.ext.commands import GuildConverter, MemberConverter
@@ -101,20 +100,21 @@ class extraCommands(commands.Cog):
         await ctx.send(f"{member.display_name}: {question}\n<:8ball:845546744665735178> says {random.choice(responses)}")
 ##
 
-#➥ Hello Command
-    @commands.command()
-    async def hello(self, ctx):
-        await ctx.send("Say hello!")
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-        try:
-            msg = await self.bot.wait_for('message', check = check, timeout = 15)
-            if (msg.content) == 'hello':
-                await ctx.send(f"Hello {msg.author.display_name}!")
-            else:
-                await ctx.send("rude!")
-        except asyncio.TimeoutError:
-            await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)
+#➥ Hello Command - depreciated because bot.wait_for is dumb
+    # @commands.command()
+    # async def hello(self, ctx):
+    #     await ctx.send("Say hello!")
+    #     def check(m):
+    #         return m.author == ctx.author and m.channel == ctx.channel
+    #     try:
+    #         msg = await self.bot.wait_for('message', check = check, timeout = 15)
+    #         if (msg.content) == 'hello':
+    #             await ctx.send(f"Hello {msg.author.display_name}!")
+    #         else:
+    #             await ctx.send("rude!")
+    #     except asyncio.TimeoutError:
+    #         await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)
+
 ##
 
 #➥ Repeat Command
@@ -335,14 +335,13 @@ expected votes per day: `{votesNeeded/daysLeft}`
 
         pfps_dict = readfromFile("pfps")
         if flag == "show":
-            if newKey:
+            if newKey in pfps_dict:
                 return await ctx.send(f"**{newKey}**\n{pfps_dict[newKey]}")
-            for key, link in pfps_dict.items():
-                await ctx.send(f"**{key}**\n{link}")
+            else:
+                return await ctx.send("No image with that key found!")
 
         elif flag == "list":
-            for key, link in pfps_dict.items():
-                await ctx.send(f"**{key}**")
+            await ctx.send(f"**{', '.join(list(pfps_dict.keys()))}**")
 
         elif flag == "save":
             pfps_dict[newKey] = newLink
@@ -392,6 +391,15 @@ Don't need to put `@` in front
 {ctx.prefix}list @view
 ```
 """)
+
+    @commands.tree.command()
+    async def hello(interaction: discord.Interaction):
+        """ Says Hello """
+        print("user is using slash command")
+
+        await interaction.response.send_message(f"""
+Hi! your slash command worked?
+        """)
 
 async def setup(bot):
     await bot.add_cog(extraCommands(bot))
