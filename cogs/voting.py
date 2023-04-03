@@ -1,6 +1,7 @@
 from random import choice
 import json
 import re
+import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 from typing import List
@@ -60,9 +61,12 @@ class Poll(discord.ui.View):
                 button.style = discord.ButtonStyle.primary
             self.add_item(button)
 
-    async def on_timeout(self) -> None:
+    async def stop(self) -> None:
         resultsEmbed = await self.currentPoll.ctx.bot.get_command('createResultsEmbed')(self.currentPoll)
         await self.message.edit(embed = resultsEmbed, view = None)
+
+    async def on_timeout(self) -> None:
+        await self.stop()
 
 #* Custom Button for Polls
 class PollButton(discord.ui.Button['Poll']):
@@ -362,10 +366,11 @@ class voting(commands.Cog):
 
             pollView = Poll(currentPoll)
             pollView.message = await ctx.send(embed = embed, view = pollView)
+            await asyncio.sleep(86400) # override timeout - maybe this will finally fix that bug
+            await pollView.stop()
         except Exception:
             print(traceback.format_exc())
             return await ctx.send("One of your emojis is invalid! Try making the Poll again.")
-
 
     #* timeConvert
     @commands.command()
@@ -449,7 +454,7 @@ class voting(commands.Cog):
         await ctx.send("Dictionary inserted")
 
     #* Clear dictionary
-    @vote.command()
+    @vote.command(aliases = ["reset"])
     @commands.is_owner()
     async def clear(self, ctx):
         newPoll = readfromFile("storedPolls")
@@ -471,6 +476,17 @@ class voting(commands.Cog):
         oldPoll.clear()
         writetoFile(oldPoll, "storedPolls")
         await ctx.send("Successfully reset poll!")
+
+    #* Load old dictionary
+    @vote.command()
+    @commands.is_owner()
+    async def load(self, ctx, *, pollName):
+        oldPoll = readfromFile(pollName)
+        if oldPoll == {}:
+            return await ctx.send("Poll is empty")
+        
+        writetoFile(oldPoll, "storedPolls")
+        await ctx.send("Successfully loaded poll!")
 
 async def setup(bot):
     await bot.add_cog(voting(bot))
