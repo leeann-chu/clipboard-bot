@@ -101,23 +101,6 @@ class extraCommands(commands.Cog):
         await ctx.send(f"{member.display_name}: {question}\n<:8ball:845546744665735178> says {random.choice(responses)}")
 ##
 
-#➥ Hello Command - depreciated because bot.wait_for is dumb
-    # @commands.command()
-    # async def hello(self, ctx):
-    #     await ctx.send("Say hello!")
-    #     def check(m):
-    #         return m.author == ctx.author and m.channel == ctx.channel
-    #     try:
-    #         msg = await self.bot.wait_for('message', check = check, timeout = 15)
-    #         if (msg.content) == 'hello':
-    #             await ctx.send(f"Hello {msg.author.display_name}!")
-    #         else:
-    #             await ctx.send("rude!")
-    #     except asyncio.TimeoutError:
-    #         await ctx.send(f"{ctx.author.display_name} did not respond in time!", delete_after = 5)
-
-##
-
 #➥ Repeat Command
     @commands.command(aliases=['mimic', 'copy'])
     async def repeat(self, ctx, *, inp: str):
