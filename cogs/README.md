@@ -13,8 +13,8 @@ https://user-images.githubusercontent.com/80134915/233943963-13842a57-1da1-436d-
 Modal input is optional. Can also be done using:
 ```
 > ~poll make Which is better?
-> 🐧 Emacs 
-> 👾 Vim
+🐧 Emacs 
+👾 Vim
 ```
 
 *A public release is not currently planned unless people actually think this would be something they'd want. Right now it's kind of grafted onto my Clipboard Bot which does something else entirely.*
