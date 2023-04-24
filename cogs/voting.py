@@ -39,12 +39,9 @@ def humantimeTranslator(s):
         return 0
     
 #* format_toString
-def format_toString(options, emojis):
+def format_toString(emojis, options):
     pairedString = []
-    oList = options.split("\n")
-    eList = emojis.split("\n")
-
-    for option, emoji in zip(oList, eList):
+    for emoji, option in zip(emojis, options):
         pairedString.append(f"{emoji} {option}")
 
     return "\n".join(pairedString)
@@ -314,24 +311,31 @@ class voting(commands.Cog):
         if title is None: 
             poll_modal = PollModal()
             poll_response_view = ResponseView(ctx, "Create Poll", poll_modal)
-            poll_response_view.message = await ctx.send("In the options input, please enter them in `<emoji> <option>` format, with a newline in between each option. \n\nExample: \n>>> 🪁 Blue\n🍏 Green\n🚗 Red\n🪙 Yellow", view = poll_response_view)
+            modalinfo = discord.Embed(
+            description = """
+                In the options input, please enter them in `<emoji> <option>` format, \nwith a newline between each option
+            """,
+            color = 0x419e85,
+            )
+            modalinfo.add_field(name="Example:", value="🪁 Blue\n🍏 Green\n🚗 Red\n🪙 Yellow")
+            poll_response_view.message = await ctx.send(embed = modalinfo, view = poll_response_view)
 
             await poll_modal.wait()
             title = poll_modal._title
             emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, poll_modal.msg, poll_modal.emojis)
 
-        else: # need to fix what happens when no title is given
+        else: # need to fix what happens when options are given but no title
             entirePoll = title
             title = re.search(r"\A.*", entirePoll).group()
-            msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE)[1:])
+            msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE))
             emojis = "\n".join(re.findall(r"^[^*]{1,2}(?!\w)", entirePoll, re.MULTILINE))
             emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, msg, emojis)
         if not success:
-            return # failed
+            return # it failed you fked up 
     
     #* Forming the embed
         member_url = ctx.author.avatar.url 
-        pairedString = format_toString(msg, emojis)
+        pairedString = format_toString(emojiList, optionList)
         timestamp = discord.utils.utcnow()
         embed = discord.Embed(
             title = title,

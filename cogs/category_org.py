@@ -204,10 +204,31 @@ class category_org(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(manage_guild=True)
-    async def gibRole(self, ctx, *, role):
+    async def gibRole(self, ctx, *, role, receiver=None): # receiver to be implemented later
         role_obj = await RoleConverter().convert(ctx, role)
         await ctx.author.add_roles(role_obj)
         await ctx.send("Role Added!")
+
+    @commands.command()
+    @commands.has_permissions(manage_guild=True)
+    async def yeetRole(self, ctx, *, role):
+        role_obj = await RoleConverter().convert(ctx, role)
+        await ctx.author.remove_roles(role_obj)
+        await ctx.send("Role Removed!")
+
+    @commands.hybrid_command(name="rename", description="renames either channel or category")
+    @commands.has_permissions(manage_guild=True)
+    async def renameThing(self, ctx, *, channel=None, category=None, name: str):
+        if channel:
+            channel_obj = await TextChannelConverter().convert(ctx, channel)
+            await channel_obj.edit(name=name)
+
+        if category:
+            category_obj = await CategoryChannelConverter().convert(ctx, category)
+            await category_obj.edit(name=name)
+
+        await ctx.send("Channel name updated!")
+
 
 async def setup(bot):
     await bot.add_cog(category_org(bot))

@@ -57,6 +57,8 @@ class utilities(commands.Cog):
             await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
             success = False
         elif len(emojiList) != len(optionList):
+            print(emojiList)
+            print(optionList)
             print("emoji list is not == optionlist")
             await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
             success = False

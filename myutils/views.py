@@ -101,9 +101,10 @@ class PollModal(discord.ui.Modal, title='Poll Maker'):
             return await interaction.response.send_message("You have an unmatched number of options and emojis. Try making the Poll again.")
         elif len(self.emojis.split("\n")) > 25:
             return await interaction.response.send_message("Polls may only have up to 24 options. Try making the Poll again.")
-        else:
-            await interaction.response.send_message("Poll has been successfuly created! You may dismiss this message now", ephemeral= True)
-            return await interaction.message.delete()
+        # else:
+        #     await interaction.response.send_message("Poll has been successfuly created! You may dismiss this message now", ephemeral= True)
+        await interaction.response.defer(thinking=False)
+        return await interaction.message.delete()
 
     async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)
@@ -156,4 +157,4 @@ class ResponseView(discord.ui.View):
         try:
             await self.message.edit(view=self)
         except Exception: # message deleted
-            print(traceback.format_exc())
+            print("message was deleted after success")

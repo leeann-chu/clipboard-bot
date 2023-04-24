@@ -67,7 +67,7 @@ class extraCommands(commands.Cog):
         inputList = inp.split(" ")
         await ctx.send(random.choice(inputList))
 
-    @commands.command()
+    @commands.hybrid_command(name="joined", description="tells you when member joined this server")
     async def joined(self, ctx, *, member: discord.Member=None):
         if not member:
             member = ctx.message.author
@@ -102,7 +102,7 @@ class extraCommands(commands.Cog):
 ##
 
 #➥ Repeat Command
-    @commands.command(aliases=['mimic', 'copy'])
+    @commands.hybrid_command(name="repeat", aliases=['mimic', 'copy'], description="repeats your input")
     async def repeat(self, ctx, *, inp: str):
         await ctx.send(inp)
 
@@ -250,7 +250,7 @@ expected votes per day: `{votesNeeded/daysLeft}`
             value=""" Thisisfine, Pikawoo, Atada
             <a:thisisfine:982859140265279498> <a:pikawoo:982859133973835856> <a:atada:982859129464967218>
             Cathappy, Ghosthug, Stab, Ty
-            <:catHappy:982859130584858624> <:ghosthug:982859132849762374> <:stab:982859139048960020> <:ty:982859145185214484>
+            <:catHappy:1099933504889946143> <:ghosthug:982859132849762374> <:stab:982859139048960020> <:ty:982859145185214484>
             """)
 
             await ctx.send(embed=embed)
