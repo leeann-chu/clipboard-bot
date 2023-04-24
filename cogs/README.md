@@ -1,7 +1,7 @@
 # Anonymous Voting
 - for when you don't want to get canceled for your r/unpopular opinions
 
-![demo video](../resources/botshowcase.mp4)
+![demo video](../resources/botshowcase_small.mp4)
 
 ## Features
 - poll author can toggle if the results should be printed with names
