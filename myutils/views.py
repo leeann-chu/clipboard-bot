@@ -103,7 +103,7 @@ class PollModal(discord.ui.Modal, title='Poll Maker'):
             return await interaction.response.send_message("Polls may only have up to 24 options. Try making the Poll again.")
         # else:
         #     await interaction.response.send_message("Poll has been successfuly created! You may dismiss this message now", ephemeral= True)
-        await interaction.response.defer(thinking=False)
+        await interaction.response.defer(thinking=False) # this satisfies the modal so it thinks it sent a response even though it didn't
         return await interaction.message.delete()
 
     async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
