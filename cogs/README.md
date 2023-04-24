@@ -1,7 +1,7 @@
 # Anonymous Voting
 - for when you don't want to get canceled for your r/unpopular opinions
 
-![demo video](../resources/botshowcase_small.mp4)
+https://user-images.githubusercontent.com/80134915/233943963-13842a57-1da1-436d-a3e5-355d4900882b.mp4
 
 ## Features
 - poll author can toggle if the results should be printed with names
@@ -11,8 +11,10 @@
 
 **Note:**
 Modal input is optional. Can also be done using:
+```
 > ~poll make Which is better?
 > 🐧 Emacs 
 > 👾 Vim
+```
 
 *A public release is not currently planned unless people actually think this would be something they'd want. Right now it's kind of grafted onto my Clipboard Bot which does something else entirely.*
