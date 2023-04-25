@@ -2,6 +2,7 @@ import random
 import re
 from datetime import datetime, timedelta, date
 from math import ceil
+from functools import reduce
 import discord
 from discord.ext import commands
 from discord.ext.commands import GuildConverter, MemberConverter
@@ -20,25 +21,23 @@ class extraCommands(commands.Cog):
 
     # Commands
     @commands.command()
-    async def math(self, ctx, flag:str, *nums):
-        if flag == "add" or flag == "+":
-            eq = " + ".join(nums)
-            try:
-                result = sum([int(i) for i in nums])
-            except Exception:
-                await ctx.send(f"Only integers, format is {ctx.prefix}math add 2 3 4")
-        elif flag == "multiply" or flag == "*":
-            eq = " * ".join(nums)
-            try:
-                result = [b := 1, [b := b * a for a in [int(i) for i in nums]]][-1][-1]
-            except Exception:
-                return await ctx.send(f"Only integers, format is {ctx.prefix}math multiply 2 3 4")
-        else:
-            return await ctx.send("Cannot do division, sorry!")
+    async def math(self, ctx, op:str, *nums:int):
+        if not all(isinstance(num, int) for num in nums): # validates all nums
+            return await ctx.send("Please input equation following this format: `* 2 4 4`")
+        if op not in {'+', '*', '-', '/'}:
+            return await ctx.send("Flag not recognized! Please input equation following this format: `* 2 4 4`")
+            
+        op_funcs = { # dictionary of lambda operations
+            '/': (lambda x, y: x / y if y != 0 else x),
+            '*': (lambda x, y: x * y),
+            '+': (lambda x, y: x + y),
+            '-': (lambda x, y: x - y)
+        }
+        op_func = op_funcs[op]
 
         embed = discord.Embed (
             title = "Result",
-            description = f"{eq} = {result}",
+            description = f"{f' {op} '.join(map(str, nums))} = {reduce(op_func, nums)}",
             color = randomHexGen()
         )
         await ctx.send(embed = embed)
