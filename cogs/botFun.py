@@ -28,7 +28,7 @@ class extraCommands(commands.Cog):
             return await ctx.send("Flag not recognized! Please input equation following this format: `* 2 4 4`")
             
         op_funcs = { # dictionary of lambda operations
-            '/': (lambda x, y: x / y if y != 0 else x),
+            '/': (lambda x, y: x / y if y != 0 else "**DNE**"),
             '*': (lambda x, y: x * y),
             '+': (lambda x, y: x + y),
             '-': (lambda x, y: x - y)
@@ -41,6 +41,12 @@ class extraCommands(commands.Cog):
             color = randomHexGen()
         )
         await ctx.send(embed = embed)
+    @math.error
+    async def math_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            await ctx.send("Please input equation following this format: `* 2 4 4`")
+        else:
+            await ctx.send("Something else went wrong oops")
 
     @commands.command(aliases=["pfp"])
     async def avatar(self, ctx, *, given_id = None):
@@ -313,31 +319,33 @@ expected votes per day: `{votesNeeded/daysLeft}`
 
 #* Profile Pictures
     @commands.command(aliases = ["profiles"])
-    async def pfps(self, ctx, inp: str, newKey = None, newLink = None):
-        flag = inp.lower()
+    async def pfps(self, ctx, arg1 = None, arg2 = None):
+        if (arg1 == "help") or not arg1:
+            return await ctx.send("Options are `list/show`, `delete/remove <key>`, `<key>`, `<key> <link>`, `help`")
 
         pfps_dict = readfromFile("pfps")
-        if flag == "show":
-            if newKey in pfps_dict:
-                return await ctx.send(f"**{newKey}**\n{pfps_dict[newKey]}")
-            else:
-                return await ctx.send("No image with that key found!")
-
-        elif flag == "list":
-            await ctx.send(f"**{', '.join(list(pfps_dict.keys()))}**")
-
-        elif flag == "save":
-            pfps_dict[newKey] = newLink
+        if arg1 == "list" or arg1 == "show":
+            return await ctx.send(f"**{', '.join(list(pfps_dict.keys()))}**")
+        
+        if (arg1 == "delete" or arg1 == "remove") and arg2:
+            if arg2 in pfps_dict:
+                del pfps_dict[arg2] 
+                writetoFile(pfps_dict, "pfps")
+                return await ctx.send("pfp deleted!")
+            elif arg2 not in pfps_dict:
+                return await ctx.send(f"No image with key: `{arg2}` found to delete!")
+        elif (arg1 == "delete" or arg1 == "remove") and not arg2:
+            return await ctx.send("You forgot to specify what key delete!")
+        
+        if arg1 not in pfps_dict and arg2:
+            pfps_dict[arg1] = arg2
             writetoFile(pfps_dict, "pfps")
             return await ctx.send("pfp saved!")
-
-        elif flag == "delete" or flag == "remove":
-            del pfps_dict[newKey]
-            writetoFile(pfps_dict, "pfps")
-            return await ctx.send("pfp deleted!")
-
-        else:
-            await ctx.send("Options are `list/show`, `show <key>`, `delete/remove <key>`, `save <key> <link>`, `help`")
+        
+        if arg1 in pfps_dict:
+            return await ctx.send(f"**{arg1}**\n{pfps_dict[arg1]}")
+        elif arg1 not in pfps_dict:
+            return await ctx.send(f"No image with key: `{arg1}` found to show! If you want to save a new image include an image link")
 ##
 
 #* Shuffle a list

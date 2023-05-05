@@ -38,11 +38,11 @@ def humantimeTranslator(s):
     else:
         return 0
     
-#* format_toString
+#* takes two lists and combines them to a string
 def format_toString(emojis, options):
     pairedString = []
     for emoji, option in zip(emojis, options):
-        pairedString.append(f"{emoji} {option}")
+        pairedString.append(f"{emoji.strip()}  {option.strip()}")
 
     return "\n".join(pairedString)
 
@@ -327,9 +327,12 @@ class voting(commands.Cog):
         else: # need to fix what happens when options are given but no title
             entirePoll = title
             title = re.search(r"\A.*", entirePoll).group()
-            msg = "\n".join(re.findall(r"[\w\s()'-]+$", entirePoll, re.MULTILINE))
-            emojis = "\n".join(re.findall(r"^[^*]{1,2}(?!\w)", entirePoll, re.MULTILINE))
-            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, msg, emojis)
+            emojis_msg_pairs = re.findall(r"([^*\r\n]{1,2})\s([^\r\n]*)", entirePoll)
+            emojis, msg = map(list, zip(*emojis_msg_pairs))
+            pairedString = format_toString(emojis, msg)
+            await ctx.send(pairedString)
+            return
+            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, emojis, msg)
         if not success:
             return # it failed you fked up 
     
