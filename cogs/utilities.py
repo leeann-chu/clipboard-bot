@@ -7,12 +7,6 @@ from discord.ext import commands
 from main import randomHexGen, get_prefix
 from myutils.views import Cancel, Confirm, ResponseView, PrefixModal
 
-#* remove spaces
-def makeList_removeSpaces(string):
-    splitList = string.split("\n")
-    spaceless = [s.strip() for s in splitList]
-    return spaceless
-
 class utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -47,23 +41,20 @@ class utilities(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def emoji_msg_error_check(self, ctx, msg, emojis):
-        emojiList = makeList_removeSpaces(emojis)
-        optionList = makeList_removeSpaces(msg)
+    async def emoji_msg_error_check(self, ctx, emojiList, msgList):
         success = True
-
         if len(emojiList) > 25:
             print("emojilist is > 25")
             await ctx.send("Polls may only have up to 24 options. Try making the Poll again.")
             success = False
-        elif len(emojiList) != len(optionList):
+        elif len(emojiList) != len(msgList):
             print(emojiList)
-            print(optionList)
+            print(msgList)
             print("emoji list is not == optionlist")
             await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
             success = False
             
-        return emojiList, optionList, success
+        return success
 
     #➥ Clear Command and Error
     @commands.command(aliases=["purge", "c"])
