@@ -54,7 +54,7 @@ class utilities(commands.Cog):
             await ctx.send("You have an unmatched number of options and emojis. Try making the Poll again.")
             success = False
             
-        return success
+        return emojiList, msgList, success
 
     #➥ Clear Command and Error
     @commands.command(aliases=["purge", "c"])
