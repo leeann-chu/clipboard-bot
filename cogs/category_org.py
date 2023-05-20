@@ -181,6 +181,14 @@ class category_org(commands.Cog):
         else:
             await ctx.send(error)
 
+    # Mass create roles that match channel name 
+    @commands.command()
+    @commands.has_permissions(manage_guild=True)
+    async def masscreate(self, ctx, *, category):
+        category_obj = await CategoryChannelConverter().convert(ctx, category)
+        for channel in category_obj.channels:
+            await ctx.guild.create_role(name=channel.name)
+        await ctx.send(f"Roles created for channels in {category_obj}")
     # Mass change channel permissions to match role name and makes channel private
     @commands.command()
     @commands.has_permissions(manage_guild=True)

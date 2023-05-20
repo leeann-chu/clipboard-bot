@@ -302,18 +302,18 @@ class voting(commands.Cog):
 
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
-    async def make(self, ctx, *, title = None):
+    async def make(self, ctx, *, poll = None):
         oldPoll = readfromFile("storedPolls")
         if oldPoll: 
             return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
-        if title is None: 
+        if poll is None: 
             poll_modal = PollModal()
             poll_response_view = ResponseView(ctx, "Create Poll", poll_modal)
             modalinfo = discord.Embed(
             description = """
-                In the options input, please enter them in `<emoji> <option>` format, \nwith a newline between each option
+                In the options input, please enter them in `<emoji> <option>` format, \nwith a newline between each, and a space between the emoji and the option
             """,
             color = 0x419e85,
             )
@@ -322,26 +322,24 @@ class voting(commands.Cog):
 
             await poll_modal.wait()
             title = poll_modal._title
-            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, poll_modal.msg, poll_modal.emojis)
+            emojis, opts, success = await self.bot.get_command('emoji_msg_error_check')(ctx, poll_modal.msg, poll_modal.emojis)
 
-        else: # need to fix what happens when options are given but no title
-            entirePoll = title
-            title = re.search(r"\A.*", entirePoll).group()
-            emojis_msg_pairs = re.findall(r"([^*\r\n]{1,2})\s([^\r\n]*)", entirePoll)
-            emojis, msg = map(list, zip(*emojis_msg_pairs))
-            pairedString = format_toString(emojis, msg)
-            await ctx.send(pairedString)
-            return
-            emojiList, optionList, success = await self.bot.get_command('emoji_msg_error_check')(ctx, emojis, msg)
+        else: 
+            title = "".join(re.findall(r"^[A-Za-z].*", poll)) # match everything not title
+            emojis_options = poll.replace(title, '', 1) # remove title if it exists            
+            emojis_opts_pairs = re.findall(r"^(\S+)\s+(.*)", emojis_options, re.MULTILINE)
+            emojis, opts = map(list, zip(*emojis_opts_pairs)) # lists pre-check
+            emojis, opts, success = await self.bot.get_command('emoji_msg_error_check')(ctx, emojis, opts)
+            
         if not success:
             return # it failed you fked up 
     
     #* Forming the embed
         member_url = ctx.author.avatar.url 
-        pairedString = format_toString(emojiList, optionList)
         timestamp = discord.utils.utcnow()
+        pairedString = format_toString(emojis, opts)
         embed = discord.Embed(
-            title = title,
+            title = title.strip(),
             description = "React with the corresponding emote to cast a vote. \n\n" + pairedString,
             color = randomHexGen(),
             timestamp = timestamp
@@ -366,8 +364,8 @@ class voting(commands.Cog):
         "Tip #11: You can hover over the nicknames in the results to see their username (if the poll is not anonymous)"]
         embed.set_footer(text = f"{choice(tips)}\n", icon_url = member_url)
         try:
-            fullEmojiList = emojiList + ['<a:settings:845834409869180938>']
-            fullOptionList = optionList + ["Settings"]
+            fullEmojiList = emojis + ['<a:settings:845834409869180938>']
+            fullOptionList = opts + ["Settings"]
 
             currentPoll = PollClass(ctx, embed, fullEmojiList, fullOptionList)
 

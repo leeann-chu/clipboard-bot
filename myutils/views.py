@@ -93,16 +93,10 @@ class PollModal(discord.ui.Modal, title='Poll Maker'):
         self._title = _title
     
     async def on_submit(self, interaction: discord.Interaction):
-        self.msg = "\n".join(findall(r"[\w\s()'-]+$", self.options.value, MULTILINE))
-        self.emojis = "\n".join(findall(r"^[^*]{1,2}(?!\w)", self.options.value, MULTILINE))
+        emojis_opts_pairs = findall(r"^(\S+)\s+(.*)", self.options.value, MULTILINE)
+        self.msg, self.emojis = map(list, zip(*emojis_opts_pairs))
         self._title = self.title_input.value
 
-        if len(self.emojis.split("\n")) != len(self.msg.split("\n")):
-            return await interaction.response.send_message("You have an unmatched number of options and emojis. Try making the Poll again.")
-        elif len(self.emojis.split("\n")) > 25:
-            return await interaction.response.send_message("Polls may only have up to 24 options. Try making the Poll again.")
-        # else:
-        #     await interaction.response.send_message("Poll has been successfuly created! You may dismiss this message now", ephemeral= True)
         await interaction.response.defer(thinking=False) # this satisfies the modal so it thinks it sent a response even though it didn't
         return await interaction.message.delete()
 
