@@ -3,12 +3,12 @@ import re
 from datetime import datetime, timedelta, date
 from math import ceil
 from functools import reduce
-import discord
+from typing import Optional, Literal
 from discord.ext import commands
 from discord.ext.commands import GuildConverter, MemberConverter
-from myutils.poll_class import readfromFile, writetoFile
+import discord
 from main import randomHexGen
-from typing import Optional, Literal
+from myutils.poll_class import readfromFile, writetoFile
 
 class extraCommands(commands.Cog):
     def __init__(self, bot):
@@ -107,7 +107,7 @@ class extraCommands(commands.Cog):
 ##
 
 #➥ Repeat Command
-    @commands.hybrid_command(name="repeat", aliases=['mimic', 'copy'], description="repeats your input")
+    @commands.hybrid_command(name="repeat", aliases=['mimic', 'copy', 'echo'], description="repeats your input")
     async def repeat(self, ctx, *, inp: str):
         await ctx.send(inp)
 
@@ -357,6 +357,13 @@ expected votes per day: `{votesNeeded/daysLeft}`
 
 ##
 
+#* Replace newlines with the literal "\n"
+    @commands.command()
+    async def textReplace(self, ctx, *, inp:str):
+        replaced = re.sub(r"\n", r"\\n", inp)
+        # replaced = re.sub(r"`", r"``", replaced)
+        await ctx.send(f"```{replaced}```")
+
     #* Help with Admin Commands
     @commands.command(aliases = ["@help"])
     @commands.is_owner()
@@ -387,9 +394,7 @@ Don't need to put `@` in front
     async def hello(self, ctx):
         """ Says Hello """
 
-        await ctx.send(f"""
-Hi! your slash command worked?
-        """)
+        await ctx.send("Hi! your slash command worked?")
 
     @commands.is_owner()
     @commands.command() # ?tag whatsync for more information 
