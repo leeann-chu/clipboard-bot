@@ -2,10 +2,10 @@ import json
 import os
 import asyncio
 # from myutils.poll_class import readfromFile, writetoFile
-import discord, traceback
 from discord.ext import commands
+import discord, traceback
 from main import randomHexGen, get_prefix
-from myutils.views import Cancel, Confirm, ResponseView, PrefixModal
+from myutils.views import Confirm, ResponseView, PrefixModal
 
 class utilities(commands.Cog):
     def __init__(self, bot):

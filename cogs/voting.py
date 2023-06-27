@@ -49,7 +49,7 @@ def format_toString(emojis, options):
 #* Poll View Class
 class Poll(discord.ui.View):
     def __init__(self, currentPoll):
-        super().__init__(timeout = 86400) # 86400 for a day
+        super().__init__(timeout = 60) # 86400 for a day
         self.currentPoll = currentPoll
 
         for emoji, label in zip(currentPoll.emojiList, currentPoll.optionList):
@@ -312,6 +312,7 @@ class voting(commands.Cog):
             poll_modal = PollModal()
             poll_response_view = ResponseView(ctx, "Create Poll", poll_modal)
             modalinfo = discord.Embed(
+            title = "Instructions:",
             description = """
                 In the options input, please enter them in `<emoji> <option>` format, \nwith a newline between each, and a space between the emoji and the option
             """,
@@ -409,7 +410,7 @@ class voting(commands.Cog):
                 # Creating the large list of what everyone voted for
                 for key, values in newPoll.items():
                     member = currentPoll.ctx.guild.get_member(int(key))
-                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+                    results.append(f"[{member.nick}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.global_name}\") voted {values}")
 
         #* Forming the embed
         embed.description = "\n".join(results) if results else "No one voted!"

@@ -107,13 +107,15 @@ class PageButton(discord.ui.Button['ListView']):
             pagenum -= 1
         else:
             pagenum += 1
-
+        
+        newView = None # Initialize newView with a default value
         if isinstance(self.view, ListView):
             newView = ListView(self.view.ctx, self.view.bot, self.view.allLists, pagenum, self.view.totpage)
         elif isinstance(self.view, CompleteView):
             newView = CompleteView(self.view.ctx, self.view.bot, self.view.selList, self.view.allTasks, pagenum, self.view.totpage)
         elif isinstance(self.view, RemoveView):
             newView = RemoveView(self.view.ctx, self.view.bot, self.view.selList, self.view.dupList, self.view.allTasks, pagenum, self.view.totpage)
+        
         newView.message = self.view.message
         await interaction.response.edit_message(view=newView)
         
@@ -136,7 +138,7 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'rename'
-        listID = str(interaction.message.embeds[0].footer.text).split(" ")[-1]
+        listID = str(interaction.message.embeds[0].footer.text).rsplit(' ', maxsplit=1)[-1]
         await self.ogView.bot._list.get_command('rename')(self.ogView.ctx, title=":" + listID)
         
     # @discord.ui.button(emoji="🙈", label="Toggle Visibility", style=discord.ButtonStyle.gray)
@@ -158,7 +160,7 @@ class ListSettings(discord.ui.View):
         await self.ogView.message.delete()
         newctx = self.ogView.ctx
         newctx.invoked_with = 'delete_list'
-        listID = str(interaction.message.embeds[0].footer.text).split(" ")[-1]
+        listID = str(interaction.message.embeds[0].footer.text).rsplit(' ', maxsplit=1)[-1]
         await self.ogView.bot._list.get_command('delete_list')(self.ogView.ctx, title=":" + listID) #using a weird pound to avoid people who may use it in their title
         
 class TaskSettings(discord.ui.View):

@@ -1,7 +1,8 @@
-from re import findall, MULTILINE
-from myutils.poll_class import readfromFile, writetoFile
-import discord, traceback
+import traceback
+from re import MULTILINE, findall
 from typing import List
+import discord
+from myutils.poll_class import readfromFile, writetoFile
 
 #➥ Setting up a Confirmation Menu — Want to get rid of
 class Confirm(discord.ui.View):
@@ -96,7 +97,7 @@ class PollModal(discord.ui.Modal, title='Poll Maker'):
         emojis_opts_pairs = findall(r"^(\S+)\s+(.*)", self.options.value, MULTILINE)
         self.msg, self.emojis = map(list, zip(*emojis_opts_pairs))
         self._title = self.title_input.value
-
+        
         await interaction.response.defer(thinking=False) # this satisfies the modal so it thinks it sent a response even though it didn't
         return await interaction.message.delete()
 
