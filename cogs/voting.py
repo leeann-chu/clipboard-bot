@@ -49,7 +49,7 @@ def format_toString(emojis, options):
 #* Poll View Class
 class Poll(discord.ui.View):
     def __init__(self, currentPoll):
-        super().__init__(timeout = 60) # 86400 for a day
+        super().__init__(timeout = 86400) # 86400 for a day
         self.currentPoll = currentPoll
 
         for emoji, label in zip(currentPoll.emojiList, currentPoll.optionList):
