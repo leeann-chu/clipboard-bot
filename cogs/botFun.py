@@ -360,8 +360,9 @@ expected votes per day: `{votesNeeded/daysLeft}`
 #* Replace newlines with the literal "\n"
     @commands.command()
     async def textReplace(self, ctx, *, inp:str):
+        # replaced = re.sub(r"`", r"`​", inp) # attempted using zwj
         replaced = re.sub(r"\n", r"\\n", inp)
-        # replaced = re.sub(r"`", r"``", replaced)
+        
         await ctx.send(f"```{replaced}```")
 
     #* Help with Admin Commands

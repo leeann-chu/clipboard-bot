@@ -461,12 +461,14 @@ class voting(commands.Cog):
 
     #* Clear dictionary
     @vote.command(aliases = ["reset"])
-    @commands.is_owner()
-    async def clear(self, ctx):
-        newPoll = readfromFile("storedPolls")
-        newPoll.clear()
-        writetoFile(newPoll, "storedPolls")
-        await ctx.send("Successfully cleared poll!")
+    async def clear(self, ctx): # if me or Danny resets
+        if ctx.author.id == 364536918362554368 or ctx.author.id == 231205233307549697:
+            newPoll = readfromFile("storedPolls")
+            newPoll.clear()
+            writetoFile(newPoll, "storedPolls")
+            await ctx.send("Successfully cleared poll!")
+        else:
+            await ctx.send("Nuh uh")
 
     #* Make a new Dictionary
     @vote.command()
