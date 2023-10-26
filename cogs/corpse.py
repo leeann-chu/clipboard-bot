@@ -177,7 +177,7 @@ class corpse(commands.Cog):
             if newHotSeat == "True":
                 await message.channel.send("You've reached the end of the line! I'm sure your ending was a stinger :D")
                 celebrate = ["<:Smug:1132402749619843125>", ":tada:", "<:kirby:561033037521879069>", "<:goppers:940834491730124831>"]
-                return await self.bot.get_channel(809686249999826955).send(f"Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)}! `c!deliver` to view your completed corpse!")
+                return await self.bot.get_channel(809686249999826955).send(f"## Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)} \nPlease`c!deliver` to view your completed corpse.")
             await self.bot.get_user(int(newHotSeat)).send(f"yer up! [⠀]({message.attachments[0].url})")
 
         else:
@@ -251,7 +251,7 @@ class corpse(commands.Cog):
         hotSeat = checkList["HotSeat"]
         checkList.pop("HotSeat") # don't print hotseat
         
-        if hotSeat != len(checkList):
+        if hotSeat-1 != len(checkList):
             return await ctx.send("Your corpse has not finished baking!")
         
         corpse_links = readfromFile(corpse_path)
@@ -272,12 +272,6 @@ class corpse(commands.Cog):
 
         for i in range(0, len(corpse_links), 5):
             await ctx.send(embeds=corpseEmbedList[i:i+5])
-        # # Combine every 5 strings
-        # combined_strings = [''.join([f"{self.bot.get_user(int(key)).name} [⠀]({link})\n" for (key, value), link in zip(list(checkList.items())[i:i+5], corpse_links[i:i+5])]) for i in range(0, len(corpse_links), 5)]
-
-        # # Send each combined string
-        # for combined_string in combined_strings:
-        #     await ctx.send(combined_string) 
 
     @commands.command(aliases=["ch"])
     async def corpseHelp(self, ctx):
