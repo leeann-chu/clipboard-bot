@@ -15,3 +15,7 @@ cogs/__pycache__/
 *$py.class
 *.gitignore
 *.del
+
+# Ignore running corpse
+corpse_links.json
+listofplayers.json
