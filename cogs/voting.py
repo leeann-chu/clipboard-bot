@@ -410,7 +410,7 @@ class voting(commands.Cog):
                 # Creating the large list of what everyone voted for
                 for key, values in newPoll.items():
                     member = currentPoll.ctx.guild.get_member(int(key))
-                    results.append(f"[{member.nick}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.global_name}\") voted {values}")
+                    results.append(f"[{member.nick if member.nick else member.name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
 
         #* Forming the embed
         embed.description = "\n".join(results) if results else "No one voted!"
