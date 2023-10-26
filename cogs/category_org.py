@@ -238,6 +238,6 @@ class category_org(commands.Cog):
         await ctx.send("Channel name updated!")
 
 
-async def setup(bot):
-    await bot.add_cog(category_org(bot))
+# async def setup(bot):
+#     await bot.add_cog(category_org(bot))
     

@@ -213,7 +213,7 @@ expected votes per day: `{votesNeeded/daysLeft}`
             """)
         else:
             await ctx.send(f"`{ctx.prefix}checkVotes <# of votes so far> <total votes needed> [cooldown(hrs)]`")
-##
+##  
 
 #* Emoji
     @commands.command(aliases = ["emoji"])

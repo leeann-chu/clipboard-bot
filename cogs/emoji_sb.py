@@ -124,5 +124,5 @@ class emoji_sb(commands.Cog):
         purged_dict = {key:val for key, val in emoji_count.items() if val > 1}
         writetoFile(purged_dict, "emoji_count")
 
-async def setup(bot):
-    await bot.add_cog(emoji_sb(bot))
+# async def setup(bot):
+#     await bot.add_cog(emoji_sb(bot))

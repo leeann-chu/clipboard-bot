@@ -40,7 +40,7 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "category_org", "clipboard", "error_handler", "embedBuilder", "emoji_sb", "utilities", "voting"]
+        self.cogsList = ["botFun", "corpse", "clipboard", "embedBuilder", "error_handler", "utilities", "voting"]
         self.recentExt = None
 
         # self.tree = commands.Bot.tree # used for slash commands
@@ -76,9 +76,27 @@ class clipboardBot(commands.Bot):
 bot = clipboardBot()
 bot.remove_command('help')
 
+@bot.command()
+async def help(ctx):
+    p = ctx.prefix
+
+    embed = discord.Embed(
+        title="Help Directory",
+        description = f"""
+    <:splat:860541072102916136> ➙ `{p}corpseHelp`
+    <a:Birdy:845590890240278579> ➙ `{p}chelp`
+    :notepad_spiral: ➙ `{p}list help`
+    <:voteicon:881035523102236684> ➙ `{p}chelp`/`{p}vote help`
+    :clipboard: ➙ `{p}info` (deprecated)
+    """,
+        color=randomHexGen()
+    )
+
+    await ctx.send(embed=embed)
+
 #* Help command
-@bot.command(aliases = ["chelp"])
-async def help(ctx, argument=None):
+@bot.command()
+async def chelp(ctx, argument=None):
     p = ctx.prefix
 
     if argument is None:
