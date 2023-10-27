@@ -1,3 +1,4 @@
+import copy
 import discord
 from datetime import datetime
 from random import choice, shuffle, randint
@@ -9,6 +10,7 @@ import re
 player_path = "corpse/listofplayers"
 corpse_path = "corpse/corpse_links"
 chief_executor = 364536918362554368
+home_channel = 500331376852205570
 missing_perms = ["Fetch your maid outfit first", "Nice Try", "Not feeling up to it today", "Nop.", "That was very unbased of you"]
 
 oldCorpses = ["https://discord.com/channels/370200859675721728/456508133913788436/519632182772367380",
@@ -177,7 +179,7 @@ class corpse(commands.Cog):
             if newHotSeat == "True":
                 await message.channel.send("You've reached the end of the line! I'm sure your ending was a stinger :D")
                 celebrate = ["<:Smug:1132402749619843125>", ":tada:", "<:kirby:561033037521879069>", "<:goppers:940834491730124831>"]
-                return await self.bot.get_channel(809686249999826955).send(f"## Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)} \nPlease`c!deliver` to view your completed corpse.")
+                return await self.bot.get_channel(home_channel).send(f"## Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)} \nPlease `c!deliver` to view your completed corpse.")
             await self.bot.get_user(int(newHotSeat)).send(f"yer up! [⠀]({message.attachments[0].url})")
 
         else:
@@ -189,8 +191,8 @@ class corpse(commands.Cog):
     @commands.command(aliases=["sc", "cs"])
     async def startCorpse(self, ctx):
         # corpse already started
-        # if (readfromFile(player_path)):
-        #     return await ctx.send(f"Please `{ctx.prefix}clean` up after you're finished with your corpse")
+        if (readfromFile(player_path)):
+            return await ctx.send(f"Please `{ctx.prefix}clean` up after you're finished with your corpse")
         
         view = CorpseView(self.bot)
         view.message = await ctx.send(embed = corpseViewEmbed(self.bot), view = view)
@@ -247,6 +249,9 @@ class corpse(commands.Cog):
 
     @commands.command()
     async def deliver(self, ctx):
+        if ctx.author.id != chief_executor:
+            return await ctx.send(choice(missing_perms))
+            
         checkList = readfromFile(player_path)
         hotSeat = checkList["HotSeat"]
         checkList.pop("HotSeat") # don't print hotseat
@@ -254,12 +259,14 @@ class corpse(commands.Cog):
         if hotSeat-1 != len(checkList):
             return await ctx.send("Your corpse has not finished baking!")
         
+        # no plagiarism 
+        finishedList = [key for key, value in checkList.items() if value != "<:cross:926283850882088990>"]
+                
         corpse_links = readfromFile(corpse_path)
         await ctx.send("One freshly baked corpse coming right up!")
 
-
         corpseEmbedList = []
-        for i, ((key, value), link )in enumerate(zip(list(checkList.items()), corpse_links)):
+        for i, (key, link) in enumerate(zip(finishedList, corpse_links)):
             artist = self.bot.get_user(int(key))
             corpseEmbed = discord.Embed(
                 title=f"{i+1}. {artist.name}",
