@@ -31,7 +31,7 @@ class CommandErrorHandler(commands.Cog):
                 return
             elif message.content.startswith('~~'):
                 return
-            await ctx.send(f"Unknown command: `{message.content}`. Enter `{ctx.prefix}chelp` for list of commands")
+            await ctx.send(f"Unknown command: `{message.content}`. Use `{ctx.prefix}help` for list of commands")
             return
 
         elif isinstance(error, commands.errors.NotOwner):
@@ -45,7 +45,7 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.MissingRequiredArgument):
             # print('This is a different error message {}:'.format(ctx.command), file=sys.stderr)
             # traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-            await ctx.send(f"{member.display_name} you forgot to include a parameter! Enter `{ctx.prefix}chelp` for list of commands")
+            await ctx.send(f"{member.display_name} you forgot to include a parameter! Use `{ctx.prefix}help` for list of commands")
     
         else:
             print(f'This is a different error message {ctx.command}:', file=sys.stderr)

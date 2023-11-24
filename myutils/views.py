@@ -117,8 +117,7 @@ class PrefixModal(discord.ui.Modal, title='Prefix Manager'):
         prefixes[str(interaction.guild_id)] = self.prefix.value
         writetoFile(prefixes, "prefixes")
         self.embed.description = f"Successfully changed **standard prefix** to: `{self.prefix.value}`"
-        self.view.children[0].disabled = True 
-        return await interaction.response.edit_message(embed=self.embed, view = self.view)
+        return await interaction.response.edit_message(embed=self.embed, view = None)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)

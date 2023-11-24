@@ -331,7 +331,7 @@ class RemoveView(discord.ui.View):
         db.delete(self.dupList)
         db.commit()
         
-    @discord.ui.button(emoji = "<:white_check:930021702560280596>", label="Save Changes", style=discord.ButtonStyle.primary, custom_id = "save", row=4)
+    @discord.ui.button(emoji = "✅", label="Save Changes", style=discord.ButtonStyle.primary, custom_id = "save", row=4)
     async def save(self, interaction: discord.Interaction, button: discord.ui.button):
         sel_taskList = sorted(self.selList.rel_tasks, key = lambda task: task.number)
         dup_taskList = sorted(self.dupList.rel_tasks, key = lambda task: task.number)
@@ -413,7 +413,7 @@ class clipboard(commands.Cog):
             allLists = db.query(Lists).filter_by(author = str(ctx.author.id)).all()
             if allLists:
                 titlesOnly = [lists.title for lists in allLists]
-                await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <list>` to continue \nFor more help refer to `{ctx.prefix}list help`")
+                await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <title>` to continue \nFor more help refer to `{ctx.prefix}list help`")
             else:
                 await ctx.send(f"You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`")
                
@@ -470,31 +470,32 @@ class clipboard(commands.Cog):
         view = Cancel(ctx)
     #* Checklist Creation Embed
         if title is None:
-            embed.description = "What would you like the **Title**/**Category** of your checklist to be?"
-            embed.set_footer(text=f"{member}'s list | Title cannot exceed 200 characters") 
-            titlePrompt = await ctx.send(f"> This question will time out in `3 minutes` • [{member}]", embed = embed, view = view)
-            title = await self.bot.get_command('multi_wait')(ctx, view, 180)
-            if not title:
-                embed.description = "List Creation canceled."
-                embed.remove_footer()
-                return await titlePrompt.edit(embed = embed, view = None, delete_after = 5)
-            if len(title) > 200:
-                title = False
-                return await ctx.send("Title cannot exceed 200 characters, try again.")
+            await ctx.send(f"Create your list like this:\n```{ctx.prefix}list make <Title>\n- item 1\n- item 2\n- item 3```")
+            # embed.description = "What would you like the **Title**/**Category** of your checklist to be?"
+            # embed.set_footer(text=f"{member}'s list | Title cannot exceed 200 characters") 
+            # titlePrompt = await ctx.send(f"> This question will time out in `3 minutes` • [{member}]", embed = embed, view = view)
+            # title = await self.bot.get_command('multi_wait')(ctx, view, 180)
+            # if not title:
+            #     embed.description = "List Creation canceled."
+            #     embed.remove_footer()
+            #     return await titlePrompt.edit(embed = embed, view = None, delete_after = 5)
+            # if len(title) > 200:
+            #     title = False
+            #     return await ctx.send("Title cannot exceed 200 characters, try again.")
             
-            await titlePrompt.delete()
+            # await titlePrompt.delete()
 
-        if "\n" not in title:
-            embed.description = "Enter the tasks you wish to complete separated by *new lines*"
-            embed.set_footer(text=f"{member}'s list")
-            tasksPrompt = await ctx.send(f"> This question will time out in `6 minutes` • [{member}]", embed = embed, view = view)
-            taskString = await self.bot.get_command('multi_wait')(ctx, view, 400)
-            taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', taskString)).split("\n")
-            if not taskString:
-                embed.description = "List Creation canceled."
-                embed.remove_footer()
-                return await tasksPrompt.edit(embed = embed, view = None, delete_after = 5)
-            await tasksPrompt.delete()
+        # if "\n" not in title:
+        #     embed.description = "Enter the tasks you wish to complete separated by *new lines*"
+        #     embed.set_footer(text=f"{member}'s list")
+        #     tasksPrompt = await ctx.send(f"> This question will time out in `6 minutes` • [{member}]", embed = embed, view = view)
+        #     taskString = await self.bot.get_command('multi_wait')(ctx, view, 400)
+        #     taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', taskString)).split("\n")
+        #     if not taskString:
+        #         embed.description = "List Creation canceled."
+        #         embed.remove_footer()
+        #         return await tasksPrompt.edit(embed = embed, view = None, delete_after = 5)
+        #     await tasksPrompt.delete()
 
         else:
             entireList = title
@@ -659,8 +660,15 @@ class clipboard(commands.Cog):
          
 #*  --------------------- TASK COMMANDS ---------------------------         
 #* Mark Tasks as complete
-    @tasks.command(aliases = ["checkoff", "c"])
-    async def complete(self, ctx, *, title: str, pagenum = 0):
+    @tasks.command(aliases = ["checkoff", "c", "view"])
+    async def complete(self, ctx, *, title: str = None, pagenum = 0):
+        if title is None:
+            allLists = db.query(Lists).filter_by(author = str(ctx.author.id)).all()
+            if allLists:
+                titlesOnly = [lists.title for lists in allLists]
+                return await ctx.send(f"Available lists: {', '.join(titlesOnly)} \nUse `{ctx.prefix}task <command> <title>` to continue \nFor more help refer to `{ctx.prefix}list help`")
+            else:
+                return await ctx.send(f"You have no lists! Create a list before completing tasks: `{ctx.prefix}list create`")
         member = ctx.guild.get_member(ctx.author.id)   
         selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
         if isinstance(selList, str):
@@ -674,27 +682,31 @@ class clipboard(commands.Cog):
             checkView.message = await ctx.send(content = f"> {selList.title} • [{member}]", view = checkView)
         else:
             checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
-        
+
 #* Add a Task to a List
     @tasks.command(aliases = ["a", "add"])
-    async def task_add(self, ctx, *, inp):    
+    async def task_add(self, ctx, *, inp = None):   
+        if inp is None or "\n" not in inp:
+            return await ctx.send(f"Please add tasks by using the command: ```\n{ctx.prefix}task_add <title>\n- item x\n- item y\n- item z```")
+         
         member = ctx.guild.get_member(ctx.author.id)   
         title = re.match(r"\A.*", inp).group()
-        selList = _checkOwner_Exists(self, ctx, title) #does this list exist? and are you the owner?
+        selList = _checkOwner_Exists(self, ctx, title.strip()) #does this list exist? and are you the owner?
         if isinstance(selList, str):
             return await ctx.send(selList)
-        
-        if "\n" not in inp: 
-            cancelView = Cancel(ctx) 
-            tasksPrompt = await ctx.send("Enter the tasks you wish to add separated by *new lines* \nThis question will time out in `6 minutes`", view = cancelView)
-            taskString = await self.bot.get_command('multi_wait')(ctx, cancelView, 400)
-            if not taskString:
-                await tasksPrompt.delete()
-                return await ctx.send("Adding tasks canceled.", delete_after = 5)
-            await tasksPrompt.delete()
-            taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', taskString)).split("\n")
-        else:
-            taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', inp)).split("\n")[1:] #turn into a list
+        taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', inp)).split("\n")[1:] #turn into a list
+
+        # if "\n" not in inp: 
+        #     cancelView = Cancel(ctx) 
+        #     tasksPrompt = await ctx.send("Enter the tasks you wish to add separated by *new lines* \nThis question will time out in `6 minutes`", view = cancelView)
+        #     taskString = await self.bot.get_command('multi_wait')(ctx, cancelView, 400)
+        #     if not taskString:
+        #         await tasksPrompt.delete()
+        #         return await ctx.send("Adding tasks canceled.", delete_after = 5)
+        #     await tasksPrompt.delete()
+        #     taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', taskString)).split("\n")
+        # else:
+        #     taskList = (re.sub('\n- |\n-|\n• |\n•', '\n', inp)).split("\n")[1:] #turn into a list
             
         for task in enumerate(taskList, start = len(selList.rel_tasks)+1):
             newTask = Tasks(listID = selList.id, taskItem = task[1], number = task[0])
