@@ -459,6 +459,23 @@ class voting(commands.Cog):
         writetoFile(newPoll, "storedPolls")
         await ctx.send("Dictionary inserted")
 
+    #* get last poll
+    @vote.command()
+    async def get(self, ctx):
+        with open("data/lastPoll.txt", "r") as file:
+            lastMonth = file.read()
+        await ctx.send(lastMonth)
+
+    #* save last poll
+    @vote.command()
+    async def save(self, ctx, *, poll = None):
+        if not poll:
+            return await ctx.send("Your options are c!vote save or c!vote get")
+        with open("data/lastPoll.txt", "w") as file:
+            file.write(poll)
+        await ctx.send("Poll successfully saved")
+
+
     #* Clear dictionary
     @vote.command(aliases = ["reset"])
     async def clear(self, ctx): # if me or Danny resets

@@ -9,16 +9,17 @@ import re
 
 player_path = "corpse/listofplayers"
 corpse_path = "corpse/corpse_links"
-chief_executor = 364536918362554368
-home_channel = 500331376852205570
-missing_perms = ["Fetch your maid outfit first", "Nice Try", "Not feeling up to it today", "Nop.", "That was very unbased of you"]
+missing_perms = ["Fetch your maid outfit first", "Nice Try", "Not feeling up to it today", "Nop.", "That was very unbased of you", "I don't wanna"]
 
-oldCorpses = ["https://discord.com/channels/370200859675721728/456508133913788436/519632182772367380",
-            "https://discord.com/channels/370200859675721728/456508133913788436/520423673904234497",
-            "https://discord.com/channels/370200859675721728/456508133913788436/511893556428931076",
-            "https://discord.com/channels/370200859675721728/456508133913788436/511300834412331009",
-            "https://discord.com/channels/370200859675721728/456508133913788436/502242294116646922",
-            "https://discord.com/channels/370200859675721728/456508133913788436/464996344386551818"]
+oldCorpses = ["https://discord.com/channels/370200859675721728/456508133913788436/519632182772367380", # Damn furries
+            "https://discord.com/channels/370200859675721728/456508133913788436/520423673904234497", # Bean restaurant
+            "https://discord.com/channels/370200859675721728/456508133913788436/511893556428931076", # change my mind
+            "https://discord.com/channels/370200859675721728/456508133913788436/511300834412331009", # dog on mars
+            "https://discord.com/channels/370200859675721728/456508133913788436/502242294116646922", # sans undertale
+            "https://discord.com/channels/370200859675721728/456508133913788436/464996344386551818", # salty spitoon
+            "https://discord.com/channels/370200859675721728/456508133913788436/486357985413693450", # chicken nugget
+            "https://discord.com/channels/370200859675721728/456508133913788436/491354377156558849" # narrator dick
+             ]
 
 def passingTheCorpse(marked_as:str):
     checkList = readfromFile(player_path)
@@ -41,6 +42,7 @@ def passingTheCorpse(marked_as:str):
 
 def beginCorpseEmbed(bot):
     corpseRoster = readfromFile(player_path)
+    corpseHome = readfromFile("prefixes")["corpseHome"]
 
     # Init our checklist
     checkList = { "HotSeat": 1 }
@@ -60,6 +62,7 @@ def beginCorpseEmbed(bot):
 
 def corpseViewEmbed(bot, user_id: int = None, action_type: str = None):
     corpseRoster = readfromFile(player_path) # list right now
+    corpseHome = readfromFile("prefixes")["corpseHome"]
     printList = []
     if user_id:
         if action_type == "join":
@@ -76,7 +79,7 @@ def corpseViewEmbed(bot, user_id: int = None, action_type: str = None):
 
     embed = discord.Embed(
         title = "Corpse Roster",
-        description = "\n".join(printList) if corpseRoster else "No one has joined this corpse!",
+        description = "\n".join(printList) if corpseRoster else f"No one has joined this corpse!\nHome is set to: {corpseHome}",
         color = randomHexGen(),
         url = choice(oldCorpses)
     )
@@ -91,6 +94,7 @@ def shuffleViewEmbed(bot):
         title = "Shuffled Roster",
         description = "\n".join(printList) if corpseRoster else "No one has joined this corpse!",
         color = randomHexGen(),
+        url = choice(oldCorpses)
     )
     return embed
 
@@ -120,7 +124,7 @@ class CorpseView(discord.ui.View):
 
     @discord.ui.button(label = "Start")
     async def start(self, i: discord.Interaction, button: discord.ui.Button):
-        if i.user.id != chief_executor or not readfromFile(player_path): 
+        if i.user.id != 364536918362554368 or not readfromFile(player_path): 
             return await i.response.send_message("Oi, don't touch the corpse until it's ready", ephemeral=True)
         await self.message.edit(view = None)
 
@@ -177,9 +181,16 @@ class corpse(commands.Cog):
             # mark as done - if corpse done return
             oldSeat, newHotSeat = passingTheCorpse("<:check:926281518266073088>")
             if newHotSeat == "True":
+                globalBotVars = readfromFile("prefixes")
+                globalBotVars["canDeliver"] = message.author.id
+                writetoFile(globalBotVars, "prefixes")
                 await message.channel.send("You've reached the end of the line! I'm sure your ending was a stinger :D")
+                await message.add_reaction(emoji)
+
+                # send done message
                 celebrate = ["<:Smug:1132402749619843125>", ":tada:", "<:kirby:561033037521879069>", "<:goppers:940834491730124831>"]
-                return await self.bot.get_channel(home_channel).send(f"## Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)} \nPlease `c!deliver` to view your completed corpse.")
+                corpseHome = readfromFile("prefixes")["corpseHome"]
+                return await self.bot.get_channel(int(corpseHome[2:-1])).send(f"## Corpse is done baking! It's ready to be taken out of the oven now {choice(celebrate)} \nPlease `c!deliver` to view your completed corpse.")
             await self.bot.get_user(int(newHotSeat)).send(f"yer up! [⠀]({message.attachments[0].url})")
 
         else:
@@ -194,9 +205,25 @@ class corpse(commands.Cog):
         if (readfromFile(player_path)):
             return await ctx.send(f"Please `{ctx.prefix}clean` up after you're finished with your corpse")
         
+        globalBotVars = readfromFile("prefixes")
+        globalBotVars["canDeliver"] = 364536918362554368
+        writetoFile(globalBotVars, "prefixes")
         view = CorpseView(self.bot)
         view.message = await ctx.send(embed = corpseViewEmbed(self.bot), view = view)
 
+    @commands.command()
+    async def setHome(self, ctx):
+        globalBotVars = readfromFile("prefixes")
+        globalBotVars["corpseHome"] = ctx.channel.mention
+        writetoFile(globalBotVars, "prefixes")
+
+        await ctx.send(f"{ctx.channel.mention} has been set as the corpse home!")
+    
+    @commands.command()
+    async def checkHome(self, ctx):
+        currentHome = readfromFile("prefixes")["corpseHome"]
+        await ctx.send(f"Corpse home: {currentHome}")
+    
     @commands.command()
     async def check(self, ctx):
         if (randint(0, 50) < 1):
@@ -218,6 +245,9 @@ class corpse(commands.Cog):
             oldHotSeat, newHotSeat = passingTheCorpse("<:cross:926283850882088990>")
             await ctx.invoke(self.bot.get_command("check"))
             if newHotSeat == "True":
+                globalBotVars = readfromFile("prefixes")
+                globalBotVars["canDeliver"] = {ctx.author.id}
+                writetoFile(globalBotVars, "prefixes")
                 return await ctx.send(f"You've reached the end of the line! `{ctx.prefix}deliver` to view the completed corpse!")
             corpse_list = readfromFile(corpse_path)
             try:
@@ -229,8 +259,8 @@ class corpse(commands.Cog):
 
     @commands.command()
     async def clean(self, ctx):
-        if ctx.author.id != chief_executor:
-            return await ctx.send(choice(missing_perms))
+        if ctx.author.id != 364536918362554368:
+            return await ctx.send(f"{choice(missing_perms)} (You do not have the perms for this command!)")
         oldCorpse = readfromFile(corpse_path)
         if oldCorpse == []:
             return await ctx.send("Your corpse has already been successfully disposed of")
@@ -249,11 +279,15 @@ class corpse(commands.Cog):
 
     @commands.command()
     async def deliver(self, ctx):
-        if ctx.author.id != chief_executor:
-            return await ctx.send(choice(missing_perms))
-            
+        canDeliver = readfromFile("prefixes")["canDeliver"]   
+        print(canDeliver)     
+
+        if ctx.author.id != 364536918362554368 and ctx.author.id != canDeliver:
+            return await ctx.send(f"{choice(missing_perms)} (You do not have the perms for this command!)")
+        
         checkList = readfromFile(player_path)
         hotSeat = checkList["HotSeat"]
+        
         checkList.pop("HotSeat") # don't print hotseat
         
         if hotSeat-1 != len(checkList):
