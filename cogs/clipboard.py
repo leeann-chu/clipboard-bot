@@ -458,7 +458,7 @@ class clipboard(commands.Cog):
 #* -------    List Creation   -------
     @_list.command(aliases = ["create", "new", "c", "m"])
     async def make(self, ctx, *, title=None):
-        member = ctx.guild.get_member(ctx.author.id)
+        member = ctx.guild.get_member(ctx.author.id) # fixed for pomelo
         try: pfp = member.avatar.url
         except Exception: pfp = None
 
@@ -509,10 +509,10 @@ class clipboard(commands.Cog):
             description = taskString, 
             color = 0x2F3136
         )
-        embed.set_footer(text=f"Created by {member}", icon_url=pfp if pfp else '')
+        embed.set_footer(text=f"Created by {member.name}", icon_url=pfp if pfp else '')
         embed.set_author(name="List is Public")
         view = Confirm(ctx)
-        confirmationEmbed = await ctx.send(f"> Does this look correct? • [{member}]", embed = embed, view=view)
+        confirmationEmbed = await ctx.send(f"> Does this look correct? • [{member.name}]", embed = embed, view=view)
     ##
         await view.wait() # consider one day changing this to something better view.wait == bad
         if view.value is None:
@@ -552,7 +552,7 @@ class clipboard(commands.Cog):
                     if allLists[0].author != str(ctx.author.id):
                         invoke = str(ctx.invoked_with).replace("_list", "").strip()
                         return await ctx.send(f"You may not `{invoke}` this list because it is private!") 
-                    viewListObject.message = await ctx.send(content = f"> {allLists[0].title} • [{member}]", view = viewListObject)
+                    viewListObject.message = await ctx.send(content = f"> {allLists[0].title} • [{member.name}]", view = viewListObject)
                     return
                 viewListObject.message = await ctx.send(embed = view(allLists[0]), view = viewListObject)
                 return
@@ -562,7 +562,7 @@ class clipboard(commands.Cog):
   
         # Allow to select between lists
         viewListObject = ListView(ctx, self, allListsChunked, pagenum, len(allListsChunked))
-        viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member}]", view = viewListObject)
+        viewListObject.message = await ctx.send(f"> Choose a list to view! • [{member.name}]", view = viewListObject)
 
 #* List view admin 
     @commands.is_owner()
@@ -591,7 +591,7 @@ class clipboard(commands.Cog):
 
         if override not in title:
             confirmView = Confirm(ctx)
-            confirmationEmbed = await ctx.send(f"> Are you sure you want to delete this list? • [{member}]", embed = view(selList), view = confirmView)
+            confirmationEmbed = await ctx.send(f"> Are you sure you want to delete this list? • [{member.name}]", embed = view(selList), view = confirmView)
             await confirmView.wait() # consider one day changing this to something better view.wait == bad
             if confirmView.value is None:
                 await ctx.send("Confirmation menu timed out!", delete_after = 5)
@@ -622,7 +622,7 @@ class clipboard(commands.Cog):
         
         if override not in title:
             cancelView = Cancel(ctx)
-            confirmationEmbed = await ctx.send(f"> Please enter your new title for this list • [{member}]", embed = view(selList), view = cancelView)
+            confirmationEmbed = await ctx.send(f"> Please enter your new title for this list • [{member.name}]", embed = view(selList), view = cancelView)
             newListName = await self.bot.get_command('multi_wait')(ctx, cancelView, 60)
             if not newListName:
                 await confirmationEmbed.delete()
@@ -633,7 +633,7 @@ class clipboard(commands.Cog):
         
         selList.title = newListName   
         db.commit()
-        await ctx.send(f"> List successfully renamed! • [{member}]", embed = view(selList))
+        await ctx.send(f"> List successfully renamed! • [{member.name}]", embed = view(selList))
 
 #* Hiding Lists
     @_list.command()
@@ -645,7 +645,7 @@ class clipboard(commands.Cog):
 
         selList.private = True
         db.commit()
-        await ctx.send(f"List successfully marked private! • [{member}]", delete_after = 5)
+        await ctx.send(f"List successfully marked private! • [{member.name}]", delete_after = 5)
         
     @_list.command()
     async def show(self, ctx, *, title):    
@@ -656,7 +656,7 @@ class clipboard(commands.Cog):
 
         selList.private = False
         db.commit()
-        await ctx.send(f"List successfully marked public! • [{member}]", delete_after = 5)
+        await ctx.send(f"List successfully marked public! • [{member.name}]", delete_after = 5)
          
 #*  --------------------- TASK COMMANDS ---------------------------         
 #* Mark Tasks as complete
@@ -679,7 +679,7 @@ class clipboard(commands.Cog):
         
         checkView = CompleteView(ctx, self.bot, selList, taskListChunked, pagenum, len(taskListChunked))
         if selList.private:
-            checkView.message = await ctx.send(content = f"> {selList.title} • [{member}]", view = checkView)
+            checkView.message = await ctx.send(content = f"> {selList.title} • [{member.name}]", view = checkView)
         else:
             checkView.message = await ctx.send(embed = view(selList, True), view = checkView)
 
@@ -714,7 +714,7 @@ class clipboard(commands.Cog):
             selList.rel_tasks.append(newTask)
             
         db.commit()
-        await ctx.send(f"Tasks Successfully Added! • [{member}]", embed = view(selList))
+        await ctx.send(f"Tasks Successfully Added! • [{member.name}]", embed = view(selList))
   
 #* Remove a Task from a list 
     @tasks.command(aliases = ["remove", "delete", "d"])
@@ -765,7 +765,7 @@ class clipboard(commands.Cog):
             
             if selList.private:
                 privView = PrivateView(ctx, selList)
-                privView.message = await ctx.send(f"> {selList.title} • [{member}]", view = privView)
+                privView.message = await ctx.send(f"> {selList.title} • [{member.name}]", view = privView)
                 return                
             await ctx.send(embed = view(selList))  
 
