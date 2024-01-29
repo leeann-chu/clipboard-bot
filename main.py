@@ -250,5 +250,4 @@ async def reload_error(ctx, error):
 #
 
 if __name__ == "__main__": #note to future me bot.run needs to be in name == main
-    print(BOT_TOKEN)
     bot.run(BOT_TOKEN)
