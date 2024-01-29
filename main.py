@@ -40,7 +40,7 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "corpse", "clipboard", "embedBuilder", "error_handler", "utilities", "voting"]
+        self.cogsList = ["botFun", "clipboard", "error_handler", "utilities", "voting"]
         self.recentExt = None
 
         # self.tree = commands.Bot.tree # used for slash commands
@@ -250,4 +250,5 @@ async def reload_error(ctx, error):
 #
 
 if __name__ == "__main__": #note to future me bot.run needs to be in name == main
+    print(BOT_TOKEN)
     bot.run(BOT_TOKEN)
