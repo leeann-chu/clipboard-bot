@@ -500,7 +500,7 @@ class embedBuilder(commands.Cog):
         alert_message = None
 
         if not alertInfoDict["notifiedUsers"]: # creating a new link in db 
-            alertInfoDict["chapters"] = [pieces["chapters"].split("/")[0]] # create a new one 
+            alertInfoDict["chapters"] = int(pieces["chapters"].split("/")[0]) # create a new one 
             alert_message = ":mega: You've been added to the alerts for this fic!"
         else:
             curr_chapter = alertInfoDict["chapters"]
