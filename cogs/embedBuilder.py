@@ -3,7 +3,7 @@ import json
 import re
 import copy
 import requests
-import AO3
+import ao3
 from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
