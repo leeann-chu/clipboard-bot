@@ -109,7 +109,7 @@ def fic_update_alert_embed(pieces):
         pieces["category_emoji"] = "No category" # I can't do what I did for rating because of Multi complicating things
 
     embed = discord.Embed(
-        title = f"""{pieces["lock"]}{pieces["title"]}""",
+        title = f"""{pieces["lock"]}[{pieces["title"]}]({pieces["link"]})""",
         description = pieces["author"] + "\n",
         color = ratingColors[rating])
 
@@ -497,27 +497,25 @@ class embedBuilder(commands.Cog):
         work_link = pieces["link"] # cleaned in case it's a chapter link
         alertInfoDict = alertDB.setdefault(work_link, {"chapters": 0, "notifiedUsers": []})
         sendEmbed = True
-        alert_message = None
+        alert_message = ""
 
         if not alertInfoDict["notifiedUsers"]: # creating a new link in db 
-            alertInfoDict["chapters"] = int(pieces["chapters"].split("/")[0]) # create a new one 
-        else:
+            alertInfoDict["chapters"] = int(pieces["chapters"].split("/")[0]) # save the chapters
+            alertInfoDict["notifiedUsers"].append(ctx.message.author.id) # append to list
+            await ctx.send(alert_message, embed=embed)
+
+        else: # already added to db
+            if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
+                alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
+                alert_message = ":mega: You've been added to the alerts for this fic!"
+
             curr_chapter = alertInfoDict["chapters"]
             updated_chap = int(pieces["chapters"].split("/")[0]) 
-            if curr_chapter < updated_chap: #setup to ping
-                alert_message = f"# :tada: Fic Updated! :tada: `{curr_chapter}` → `{updated_chap}`"
+            if curr_chapter < updated_chap: # check if updated? 
+                alert_message = alert_message + f"# :tada: Fic Updated! :tada: `{curr_chapter}` → `{updated_chap}`"
                 alertInfoDict["chapters"] = updated_chap
             else:
-                if not alert_message: # Fic already linked
-                    await ctx.send("No new updates on this fic :pensive:") # Nothing updated
-                    sendEmbed = False # send nothing      
-
-        if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
-            alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
-            alert_message = ":mega: You've been added to the alerts for this fic!"
-
-        if sendEmbed:
-            await ctx.send(alert_message, embed=embed)
+                await ctx.send("No new updates on this fic :pensive:") # Nothing updated
 
         alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
