@@ -513,8 +513,8 @@ class embedBuilder(commands.Cog):
                     await ctx.send("No new updates on this fic :pensive:") # Nothing updated
                     sendEmbed = False # send nothing      
 
-        if ctx.message.author.id not in alertInfoDict["usersNotified"]:
-            alertInfoDict["usersNotified"].append(ctx.message.author.id)
+        if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
+            alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
 
         if sendEmbed:
             await ctx.send(alert_message, embed=embed)
