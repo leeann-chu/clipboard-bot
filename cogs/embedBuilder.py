@@ -501,7 +501,6 @@ class embedBuilder(commands.Cog):
 
         if not alertInfoDict["notifiedUsers"]: # creating a new link in db 
             alertInfoDict["chapters"] = int(pieces["chapters"].split("/")[0]) # create a new one 
-            alert_message = ":mega: You've been added to the alerts for this fic!"
         else:
             curr_chapter = alertInfoDict["chapters"]
             updated_chap = int(pieces["chapters"].split("/")[0]) 
@@ -515,8 +514,7 @@ class embedBuilder(commands.Cog):
 
         if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
             alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
-            ctx.send(":mega: You've been added to the alerts for this fic!")
-            sendEmbed = False
+            alert_message = ":mega: You've been added to the alerts for this fic!"
 
         if sendEmbed:
             await ctx.send(alert_message, embed=embed)
