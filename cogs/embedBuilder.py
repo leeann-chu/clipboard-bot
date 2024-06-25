@@ -515,6 +515,8 @@ class embedBuilder(commands.Cog):
 
         if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
             alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
+            ctx.send(":mega: You've been added to the alerts for this fic!")
+            sendEmbed = False
 
         if sendEmbed:
             await ctx.send(alert_message, embed=embed)
