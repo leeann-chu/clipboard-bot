@@ -1,10 +1,11 @@
+from asyncio import tasks
 from datetime import datetime
 import json
 import re
 import copy
 import requests
-import ao3
-from bs4 import BeautifulSoup
+import AO3
+from bs4 import BeautifulSoup, SoupStrainer
 import discord
 from discord.ext import commands
 from myutils.views import EmbedPageView
@@ -45,8 +46,6 @@ ratingEmoji = {
     "Creator Chose Not To Use Archive Warnings": "<:exclaimquestion:1057929664133349416>",
     "Exclaim": "<:exclaim:1057929667253915648>"
 }
-
-alertDB = {} 
 
 #* ExtraInfo View for AO3
 class ExtraInfo(discord.ui.View):
@@ -109,7 +108,7 @@ def fic_update_alert_embed(pieces):
         pieces["category_emoji"] = "No category" # I can't do what I did for rating because of Multi complicating things
 
     embed = discord.Embed(
-        title = f"""{pieces["lock"]}[{pieces["title"]}]({pieces["link"]})""",
+        title = f"""{pieces["title"]}""",
         description = pieces["author"] + "\n",
         color = ratingColors[rating])
 
@@ -119,6 +118,13 @@ def fic_update_alert_embed(pieces):
     embed.add_field(name="**Chapters:**", value=pieces["chapters"])
     embed.add_field(name="**Symbols:**", value=f"""{ratingEmoji[rating]} {ratingEmoji[pieces["category_emoji"]]}\n{ratingEmoji[pieces["warnings_emoji"]]} {pieces["status_emoji"]}""") 
     return embed
+
+def find_ao3_newest_chapter(cleaned_link: str, saved_chap: int) -> str:
+    r = requests.get(cleaned_link + "/navigate", headers=HEADERS)
+    soup = BeautifulSoup(r.text, "lxml", parse_only=SoupStrainer("ol"))
+    
+    tag = soup.find(lambda tag: (tag.name == 'a'and f"{saved_chap+1}" in tag.string), href=True)
+    return f"https://archiveofourown.org{tag['href']}"
 
 def generate_ao3_work_summary(link):
     """Generate the summary of an AO3 work.
@@ -442,6 +448,11 @@ class embedBuilder(commands.Cog):
     async def on_ready(self):
         print("embedBuilder is Ready")
 
+    # Loop
+    @tasks.loop(hours=4)
+    async def watch_alerts_task(self):
+        await self.bot.get_channel(972937495476052009).send("hi this is every 4 hours")
+
     # Commands
     @commands.command()
     async def sendFic(self, ctx, link):
@@ -478,13 +489,13 @@ class embedBuilder(commands.Cog):
         pageView = EmbedPageView(eList = embed_list, pagenum = 0)
         pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
 
-    @commands.command(aliases=["alertme", "am"])
-    async def alertMe(self, ctx, link):
+    @commands.command(aliases=["alertme", "am", "checkalert"])
+    async def alertMe(self, ctx, link, sendEmbed: True):
         await ctx.channel.typing()
         pieces, error = generate_ao3_work_summary(link)
         if error:
             return await ctx.send(error)
-        
+
         embed = fic_update_alert_embed(pieces)
         embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
         embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
@@ -495,46 +506,59 @@ class embedBuilder(commands.Cog):
         # ------------- ALERT ME SCRIPT -------------- #
         alertDB = readfromFile("alertMe")
         work_link = pieces["link"] # cleaned in case it's a chapter link
-        alertInfoDict = alertDB.setdefault(work_link, {"chapters": 0, "notifiedUsers": []})
-        sendEmbed = True
+        embed.url = work_link
+        curr_chap = int(pieces["chapters"].split("/")[0])
+        # if work exists, won't change chapter from saved. if work does not exist will use curr_chap
+        alertInfoDict = alertDB.setdefault(work_link, {"chapters": curr_chap, "notifiedUsers": []})
+        update_message = "No new updates :pensive:"
         alert_message = ""
 
-        if not alertInfoDict["notifiedUsers"]: # creating a new link in db 
-            alertInfoDict["chapters"] = int(pieces["chapters"].split("/")[0]) # save the chapters
-            alertInfoDict["notifiedUsers"].append(ctx.message.author.id) # append to list
-            await ctx.send(alert_message, embed=embed)
+        saved_chap = alertInfoDict["chapters"]
 
-        else: # already added to db
-            if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
-                alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
-                alert_message = ":mega: You've been added to the alerts for this fic!"
+        if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
+            alert_message = (":mega: You've been added to the alerts for this fic!")
+            alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
 
-            curr_chapter = alertInfoDict["chapters"]
-            updated_chap = int(pieces["chapters"].split("/")[0]) 
-            if curr_chapter < updated_chap: # check if updated? 
-                alert_message = alert_message + f"# :tada: Fic Updated! :tada: `{curr_chapter}` → `{updated_chap}`"
-                alertInfoDict["chapters"] = updated_chap
-            else:
-                await ctx.send("No new updates on this fic :pensive:") # Nothing updated
+        if saved_chap < curr_chap: # check if updated? 
+            chap_delta = curr_chap - saved_chap
+            pluralized = "chapters" if chap_delta > 1 else "chapter"
+            update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` ({chap_delta} new {pluralized}!)"
+            alertInfoDict["chapters"] = curr_chap
+            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(work_link, saved_chap)})"
+        
+        if sendEmbed:
+            await ctx.send(update_message + "\n" + alert_message, embed=embed)
 
         alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
 
+    @commands.command(aliases=["removealert", "ra"])
     async def removeAlert(self, ctx, link):
         await ctx.channel.typing()
-        pieces, error = generate_ao3_work_summary(link)
+        pieces, error = generate_ao3_work_summary(link) # there's definitely an easier way without needing to generate the whole dict
         if error:
             return await ctx.send(error)
         
+        work_link = pieces["link"]
         alertDB = readfromFile("alertMe")
-        work_link = pieces["link"] # cleaned in case it's a chapter link
+        alertInfoDict = alertDB[work_link] # cleaned in case it's a chapter link
+        alertInfoDict["notifiedUsers"].remove(ctx.message.author.id)
+        alertDB[work_link] = alertInfoDict
 
-
-
-        del alertDB[work_link]
         writetoFile(alertDB, "alertMe")
         await ctx.send("Alert removed from database!")
 
+    @commands.command()
+    async def begin_watching(self, ctx, enabled):
+        if enabled == "start":
+            if not self.watch_alerts_task.is_running():
+                print("Beginning watch")
+                self.watch_alerts_task.start()
+        elif enabled == "stop":
+            if self.watch_alerts_task.is_running():
+                print("Ending watch")
+                self.watch_alerts_task.cancel()
+                await ctx.send("No longer watching alerts")
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))
