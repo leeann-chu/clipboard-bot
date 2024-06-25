@@ -499,14 +499,14 @@ class embedBuilder(commands.Cog):
         sendEmbed = True
         alert_message = None
 
-        if not alertInfoDict: # creating a new link in db 
+        if not alertInfoDict["notifiedUsers"]: # creating a new link in db 
             alertInfoDict["chapters"] = [pieces["chapters"].split("/")[0]] # create a new one 
             alert_message = ":mega: You've been added to the alerts for this fic!"
         else:
             curr_chapter = alertInfoDict["chapters"]
             updated_chap = int(pieces["chapters"].split("/")[0]) 
             if curr_chapter < updated_chap: #setup to ping
-                embed.add_field(name=":tada: Fic Updated! :tada:", value=f"""{curr_chapter} → {updated_chap}""", inline=False)
+                alert_message = f"# :tada: Fic Updated! :tada: `{curr_chapter}` → `{updated_chap}`"
                 alertInfoDict["chapters"] = updated_chap
             else:
                 if not alert_message: # Fic already linked
