@@ -484,40 +484,59 @@ class embedBuilder(commands.Cog):
         pieces, error = generate_ao3_work_summary(link)
         if error:
             return await ctx.send(error)
+        
         embed = fic_update_alert_embed(pieces)
         embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
         embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         # Fic is already completed, return early
         if pieces["status"] == "Completed" or pieces["status"] == "Published":
-            return await ctx.send("This fic is <:Completed:1057962897017421884>", embed=embed)
-        # ------------- ALERTME SCRIPT -------------- #
+            return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
+        
+        # ------------- ALERT ME SCRIPT -------------- #
         alertDB = readfromFile("alertMe")
         work_link = pieces["link"] # cleaned in case it's a chapter link
-        alert_info = alertDB.setdefault(work_link, [])
+        alertInfoDict = alertDB.setdefault(work_link, {})
         sendEmbed = True
         alert_message = None
 
-        if not alert_info: # creating a new link in db 
-            alert_info = [pieces["chapters"].split("/")[0]] # create a new one 
+        if not alertInfoDict: # creating a new link in db 
+            alertInfoDict["chapters"] = [pieces["chapters"].split("/")[0]] # create a new one 
             alert_message = ":mega: You've been added to the alerts for this fic!"
         else:
+            curr_chapter = alertInfoDict["chapters"]
             updated_chap = int(pieces["chapters"].split("/")[0]) 
-            if int(alert_info[0]) < updated_chap: #setup to ping
-                embed.add_field(name=":tada: Fic Updated! :tada:", value=f"""{alert_info[0]} → {updated_chap}""", inline=False)
+            if int(curr_chapter) < updated_chap: #setup to ping
+                embed.add_field(name=":tada: Fic Updated! :tada:", value=f"""{curr_chapter} → {updated_chap}""", inline=False)
+                alertInfoDict["chapters"] = updated_chap
             else:
                 if not alert_message: # Fic already linked
                     await ctx.send("No new updates on this fic :pensive:") # Nothing updated
                     sendEmbed = False # send nothing      
 
-            if ctx.message.author.id not in alert_info:
-                alert_info.append(ctx.message.author.id)
+        if ctx.message.author.id not in alertInfoDict["usersNotified"]:
+            alertInfoDict["usersNotified"].append(ctx.message.author.id)
 
         if sendEmbed:
             await ctx.send(alert_message, embed=embed)
 
-        print(alert_info)
-        alertDB[work_link] = alert_info # save updates
+        alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
+
+    async def removeAlert(self, ctx, link):
+        await ctx.channel.typing()
+        pieces, error = generate_ao3_work_summary(link)
+        if error:
+            return await ctx.send(error)
+        
+        alertDB = readfromFile("alertMe")
+        work_link = pieces["link"] # cleaned in case it's a chapter link
+
+
+
+        del alertDB[work_link]
+        writetoFile(alertDB, "alertMe")
+        await ctx.send("Alert removed from database!")
+
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))
