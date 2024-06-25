@@ -495,7 +495,7 @@ class embedBuilder(commands.Cog):
         # ------------- ALERT ME SCRIPT -------------- #
         alertDB = readfromFile("alertMe")
         work_link = pieces["link"] # cleaned in case it's a chapter link
-        alertInfoDict = alertDB.setdefault(work_link, {})
+        alertInfoDict = alertDB.setdefault(work_link, {"chapters": 0, "notifiedUsers": []})
         sendEmbed = True
         alert_message = None
 
@@ -505,7 +505,7 @@ class embedBuilder(commands.Cog):
         else:
             curr_chapter = alertInfoDict["chapters"]
             updated_chap = int(pieces["chapters"].split("/")[0]) 
-            if int(curr_chapter) < updated_chap: #setup to ping
+            if curr_chapter < updated_chap: #setup to ping
                 embed.add_field(name=":tada: Fic Updated! :tada:", value=f"""{curr_chapter} → {updated_chap}""", inline=False)
                 alertInfoDict["chapters"] = updated_chap
             else:
