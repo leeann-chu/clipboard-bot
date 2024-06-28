@@ -457,8 +457,17 @@ class embedBuilder(commands.Cog):
             await self.bot.get_command('alertMe')(ctx, key, True)
 
     # Commands
-    @commands.command()
+    @commands.command(aliases=["genfic", "sendfic"])
     async def sendFic(self, ctx, link):
+        if "fanfiction" in link: 
+            await self.bot.get_command('sendFFN')(ctx, link)
+        elif "archiveofourown" in link:
+            await self.bot.get_command('sendAO3')(ctx, link)
+        else: 
+            await ctx.send("Invalid fic link, make sure your link is either for ffn or ao3.")
+    
+    @commands.command(aliases=["genao3", "sendao3"])
+    async def sendAO3(self, ctx, link):
         await ctx.channel.typing()
         pieces, error = generate_ao3_work_summary(link)
         if error:
@@ -470,7 +479,7 @@ class embedBuilder(commands.Cog):
         # extraInfo = ExtraInfo(pieces["summary"], pieces["tags"])
         # extraInfo.message = await ctx.send(embed=embed, view=extraInfo)
 
-    @commands.command()
+    @commands.command(aliases=["genffn", "sendffn"])
     async def sendFFN(self, ctx, link):
         await ctx.channel.typing()
         pieces, error = generate_ffn_work_summary(link)
@@ -481,7 +490,7 @@ class embedBuilder(commands.Cog):
         embed.set_footer(text=f"Linked by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["genseries", "sendseries"])
     async def sendSeries(self, ctx, link):
         embed_list, error = generate_ao3_series_summary(link)
         if error:
@@ -492,7 +501,32 @@ class embedBuilder(commands.Cog):
         pageView = EmbedPageView(eList = embed_list, pagenum = 0)
         pageView.message = await ctx.send(embed=embed_list[0], view = pageView)
 
-    @commands.command(aliases=["alertme", "am", "checkalert"])
+    @commands.command(aliases=["ffhelp"])
+    async def fanfichelp(self, ctx):
+        embed = discord.Embed(title=":books: Fanfic Abstractor Lite Help Page",
+                            url="https://reactormag.com/wikihistory/",
+                            description="Hello! Welcome to the help page for my fanfic abstractor rip-off made by Elf",
+                            timestamp=datetime.now())
+
+        embed.add_field(name=f"`{ctx.prefix}genfic <link>`",
+                        value=">must be a fic link, generates embed with summary and tags",
+                        inline=False)
+        embed.add_field(name=f"`{ctx.prefix}genseries <link>`",
+                        value=">must be an ao3 series link, generates pageable embed with series info",
+                        inline=False)
+        embed.add_field(name=f"`{ctx.prefix}ffhelp`",
+                        value=">prints this message",
+                        inline=False)
+        embed.add_field(name=f"`{ctx.prefix}subscribe <link>`",
+                        value=">adds fic to list to be checked once per hour \n- you may also use this if you would like to manually check a fic for updates",
+                        inline=False)
+        embed.add_field(name=f"`{ctx.prefix}unsubscribe <link>`",
+                        value=">remove yourself from alert list",
+                        inline=False)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["alertme", "am", "checkalert", "subscribe"])
     async def alertMe(self, ctx, link, automated=None):
         if automated == None:
             await ctx.channel.typing()
@@ -541,7 +575,7 @@ class embedBuilder(commands.Cog):
         alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
 
-    @commands.command(aliases=["removealert", "ra"])
+    @commands.command(aliases=["removealert", "ra", "unsubscribe"])
     async def removeAlert(self, ctx, link):
         await ctx.channel.typing()
         pieces, error = generate_ao3_work_summary(link) # there's definitely an easier way without needing to generate the whole dict
