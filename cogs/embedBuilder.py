@@ -450,7 +450,7 @@ class embedBuilder(commands.Cog):
         print("embedBuilder is Ready")
 
     # Loop
-    @tasks.loop(hour=1)
+    @tasks.loop(minutes=50)
     async def watch_alerts_task(self, ctx):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
@@ -517,6 +517,7 @@ class embedBuilder(commands.Cog):
         alert_message = ""
         ficUpdated = False
         newAlert = False
+        notifiedUsers = ""
 
         saved_chap = alertInfoDict["chapters"]
 
@@ -530,13 +531,12 @@ class embedBuilder(commands.Cog):
             pluralized = "chapters" if chap_delta > 1 else "chapter"
             update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` ({chap_delta} new {pluralized}!)"
             alertInfoDict["chapters"] = curr_chap
-            notifyUsers = alertInfoDict["notifiedUsers"]
-            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(pieces, saved_chap)})" \
-                                        + f"""\n{' '.join([f"<@{user}>" for user in notifyUsers])}"""
+            notifiedUsers = alertInfoDict["notifiedUsers"]
+            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(pieces, saved_chap)})"
             ficUpdated = True
         
-        if ficUpdated or newAlert: # if empty not automated and was triggered manually
-            await ctx.send(update_message + "\n" + alert_message, embed=embed)
+        if ficUpdated or newAlert or automated == None: # if empty not automated and was triggered manually
+            await ctx.send(update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}""", embed=embed)
 
         alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
@@ -558,10 +558,11 @@ class embedBuilder(commands.Cog):
         await ctx.send("Alert removed from database!")
 
     @commands.command()
+    @commands.is_owner()
     async def begin_watching(self, ctx, enabled):
         if enabled == "start":
             if not self.watch_alerts_task.is_running():
-                print("Beginning watch")
+                await ctx.send("Begining watch")
                 self.watch_alerts_task.start(ctx)
         elif enabled == "stop":
             if self.watch_alerts_task.is_running():
