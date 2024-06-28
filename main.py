@@ -40,7 +40,8 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "clipboard", "embedBuilder", "error_handler", "utilities", "voting"]
+        self.cogsList = ["botFun", "embedBuilder", "error_handler", "utilities", "voting"]
+        # corpse, clipboard, category_org, emoji_sb
         self.recentExt = None
 
         # self.tree = commands.Bot.tree # used for slash commands
@@ -76,18 +77,21 @@ class clipboardBot(commands.Bot):
 bot = clipboardBot()
 bot.remove_command('help')
 
+def setOnlineIndicator(cog: str) -> str:
+    return "( <:check:926281518266073088> )" if cog in bot.cogsList else "( <:cross:926283850882088990> )"
+
 @bot.command()
 async def help(ctx):
-    p = ctx.prefix
 
     embed = discord.Embed(
-        title="Help Directory",
+        title="Help Directory | Online",
         description = f"""
-    <:splat:860541072102916136> ➙ `{p}corpseHelp`
-    <a:Birdy:845590890240278579> ➙ `{p}chelp`
-    :notepad_spiral: ➙ `{p}list help`
-    <:voteicon:881035523102236684> ➙ `{p}chelp`/`{p}vote help`
-    :clipboard: ➙ `{p}info` (deprecated)
+    <a:Birdy:845590890240278579> ➙ `{ctx.prefix}chelp`
+    <:splat:860541072102916136> ➙ `{ctx.prefix}corpseHelp` {setOnlineIndicator("corpse")}
+    <:exclaimquestion:1057929664133349416> ➙ `{ctx.prefix}ffhelp` {setOnlineIndicator("embedBuilder")} 
+    :notepad_spiral: ➙ `{ctx.prefix}list help` {setOnlineIndicator("clipboard")}
+    <:voteicon:881035523102236684> ➙ `{ctx.prefix}chelp`/`{ctx.prefix}vote help` {setOnlineIndicator("voting")}
+    :clipboard: ➙ `{ctx.prefix}info` (deprecated)
     """,
         color=randomHexGen()
     )
