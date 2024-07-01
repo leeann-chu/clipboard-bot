@@ -118,6 +118,14 @@ class extraCommands(commands.Cog):
                 await ctx.send("You forgot to give me input to repeat!")
 ##
 
+    @commands.hybrid_command(name="say", aliases=["speak"], description="repeats phrase verbatim and removes prompt")
+    async def say(self, ctx, *, inp: str):
+        await ctx.send(inp)
+        if (ctx.message.attachments): 
+            for pic in ctx.message.attachments:
+                await ctx.send(pic)
+        await ctx.message.delete()
+
 #➥ Easteregg
     @commands.command(aliases=['egg', 'secret'])
     async def easteregg(self, ctx):
