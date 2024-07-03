@@ -538,7 +538,7 @@ class embedBuilder(commands.Cog):
         embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
         embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
         # Fic is already completed, return early
-        if pieces["status"] == "Completed" or pieces["status"] == "Published":
+        if (pieces["status"] == "Completed" or pieces["status"] == "Published") and not automated:
             return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
         
         # ------------- ALERT ME SCRIPT -------------- #
