@@ -620,13 +620,15 @@ class embedBuilder(commands.Cog):
         writetoFile(alertDB, "alertMe")
         await ctx.send("Fic removed from database!")
 
-    @commands.command()
+    @commands.command(aliases=["begin_watching"])
     @commands.is_owner()
-    async def begin_watching(self, ctx, enabled):
+    async def fic_watch(self, ctx, enabled):
         if enabled == "start":
             if not self.watch_alerts_task.is_running():
                 await ctx.send("Begining watch")
                 self.watch_alerts_task.start(ctx)
+            else:
+                await ctx.send("No need silly! Already have my eye on it ;)")
         elif enabled == "stop":
             if self.watch_alerts_task.is_running():
                 print("Ending watch")
