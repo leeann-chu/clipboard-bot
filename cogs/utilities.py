@@ -1,11 +1,16 @@
 import json
 import os
+import sys
 import asyncio
 # from myutils.poll_class import readfromFile, writetoFile
 from discord.ext import commands
 import discord, traceback
 from main import randomHexGen, get_prefix
 from myutils.views import Confirm, ResponseView, PrefixModal
+
+def restart_program():
+    python = sys.executable
+    os.execl(python, python, * sys.argv)
 
 class utilities(commands.Cog):
     def __init__(self, bot):
@@ -156,6 +161,13 @@ class utilities(commands.Cog):
         for future in pending:
             future.cancel()
     ##
+
+    @commands.command()
+    @commands.is_owner()
+    async def restart(self, ctx):
+        await ctx.message.delete()
+        message = await ctx.send("Restarting... Allow up to 20 seconds")
+        restart_program()
 
 async def setup(bot):
     await bot.add_cog(utilities(bot))
