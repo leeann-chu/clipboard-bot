@@ -397,6 +397,10 @@ Don't need to put `@` in front
 {"CLIBOPBOPRD":📋^13}
 {ctx.prefix}list @view
 ```
+
+```
+{ctx.prefix}restart
+```
 """)
 
     @commands.hybrid_command(name="hello", description="says hello")
