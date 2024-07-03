@@ -443,6 +443,7 @@ def makeEmbed(pieces):
 class embedBuilder(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.recentlySubbed = ""
 
     # Events
     @commands.Cog.listener()
@@ -450,7 +451,7 @@ class embedBuilder(commands.Cog):
         print("embedBuilder is Ready")
 
     # Loop
-    @tasks.loop(minutes=50)
+    @tasks.loop(minutes=25)
     async def watch_alerts_task(self, ctx):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
@@ -520,11 +521,25 @@ class embedBuilder(commands.Cog):
         embed.add_field(name=f"`{ctx.prefix}subscribe <link>`",
                         value=">adds fic to list to be checked once per hour \n- you may also use this if you would like to manually check a fic for updates",
                         inline=False)
+        embed.add_field(name=f"`{ctx.prefix}check`",
+                        value=f">reruns most recent `{ctx.prefix}subscribe <link>` command",
+                        inline=False)
         embed.add_field(name=f"`{ctx.prefix}unsubscribe <link>`",
                         value=">remove yourself from alert list",
                         inline=False)
-
+        embed.add_field(name=f"`{ctx.prefix}removeFic <link>`",
+                        value=">remove fic from database",
+                        inline=False)
+   
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=["ch"])
+    async def check(self, ctx):
+        work_link = self.recentlySubbed
+        if work_link:
+            await self.bot.get_command('alertMe')(ctx, work_link)
+        else:
+            await ctx.send("Please run a subscribe command before the check command")
 
     @commands.command(aliases=["alertme", "am", "checkalert", "subscribe"])
     async def alertMe(self, ctx, link, automated=None):
@@ -570,6 +585,7 @@ class embedBuilder(commands.Cog):
             ficUpdated = True
         
         if ficUpdated or newAlert or automated == None: # if empty not automated and was triggered manually
+            self.recentlySubbed = work_link
             await ctx.send(update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}""", embed=embed)
 
         alertDB[work_link] = alertInfoDict # save updates
@@ -590,6 +606,19 @@ class embedBuilder(commands.Cog):
 
         writetoFile(alertDB, "alertMe")
         await ctx.send("Alert removed from database!")
+
+    @commands.command()
+    async def removeFic(self, ctx, link):
+        alertDB = readfromFile("alertMe")
+        pieces, error = generate_ao3_work_summary(link) # there's definitely an easier way without needing to generate the whole dict
+        if error:
+            return await ctx.send(error)
+        
+        work_link = pieces["link"]
+        del alertDB[work_link]
+
+        writetoFile(alertDB, "alertMe")
+        await ctx.send("Fic removed from database!")
 
     @commands.command()
     @commands.is_owner()
