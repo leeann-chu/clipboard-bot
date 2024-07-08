@@ -1,7 +1,9 @@
+from discord.ext import tasks
 import json
 import os
 import sys
 import asyncio
+import psutil
 # from myutils.poll_class import readfromFile, writetoFile
 from discord.ext import commands
 import discord, traceback
@@ -20,6 +22,13 @@ class utilities(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("utilities is Ready")
+
+    # never full implemented, not fully sure how to pass ctx without triggering the command
+    # manually. would like to auto start this when bot starts but not sure how to achieve that
+    @tasks.loop(hours=3)
+    async def watch_battery_task(self):
+        battery = psutil.sensors_battery()
+        await self.bot.get_channel(809686249999826955).send(battery.percent)
 
     #➥ Server prefix set command
     @commands.command()
@@ -168,6 +177,21 @@ class utilities(commands.Cog):
         await ctx.message.delete()
         message = await ctx.send("Restarting... Allow up to 20 seconds")
         restart_program()
+
+    @commands.command()
+    @commands.is_owner()
+    async def battery_watch(self, ctx, enabled):
+        if enabled == "start":
+            if not self.watch_battery_task.is_running():
+                await ctx.send("Begining watch")
+                self.watch_battery_task.start()
+            else:
+                await ctx.send("No need silly! Already have my eye on it ;)")
+        elif enabled == "stop":
+            if self.watch_battery_task.is_running():
+                print("Ending watch")
+                self.watch_battery_task.cancel()
+                await ctx.send("No longer watching battery")
 
 async def setup(bot):
     await bot.add_cog(utilities(bot))

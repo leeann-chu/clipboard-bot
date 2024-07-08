@@ -5,7 +5,7 @@ import re
 import copy
 import requests
 import AO3
-from bs4 import BeautifulSoup, SoupStrainer
+from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 from myutils.views import EmbedPageView
@@ -452,7 +452,7 @@ class embedBuilder(commands.Cog):
 
     # Loop
     @tasks.loop(minutes=25)
-    async def watch_alerts_task(self, ctx):
+    async def watch_fic_task(self, ctx):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
             await self.bot.get_command('alertMe')(ctx, key, True)
@@ -577,8 +577,8 @@ class embedBuilder(commands.Cog):
 
         if saved_chap < curr_chap: # check if updated? 
             chap_delta = curr_chap - saved_chap
-            pluralized = "chapters" if chap_delta > 1 else "chapter"
-            update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` ({chap_delta} new {pluralized}!)"
+            pluralized = f"({chap_delta} new chapters!)" if chap_delta > 1 else ""
+            update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` {pluralized}"
             alertInfoDict["chapters"] = curr_chap
             notifiedUsers = alertInfoDict["notifiedUsers"]
             embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(pieces, saved_chap)})"
@@ -624,15 +624,15 @@ class embedBuilder(commands.Cog):
     @commands.is_owner()
     async def fic_watch(self, ctx, enabled):
         if enabled == "start":
-            if not self.watch_alerts_task.is_running():
+            if not self.watch_fic_task.is_running():
                 await ctx.send("Begining watch")
-                self.watch_alerts_task.start(ctx)
+                self.watch_fic_task.start(ctx)
             else:
                 await ctx.send("No need silly! Already have my eye on it ;)")
         elif enabled == "stop":
-            if self.watch_alerts_task.is_running():
+            if self.watch_fic_task.is_running():
                 print("Ending watch")
-                self.watch_alerts_task.cancel()
+                self.watch_fic_task.cancel()
                 await ctx.send("No longer watching alerts")
 
 async def setup(bot):
