@@ -1,5 +1,6 @@
 # Ignore where bot token is kept
 myutils/API_KEYS.py
+.env
 utils/__pycache__/
 utils/db.py
 data/error.txt
@@ -19,3 +20,4 @@ cogs/__pycache__/
 # Ignore running corpse
 corpse_links.json
 listofplayers.json
+

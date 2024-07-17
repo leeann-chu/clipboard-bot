@@ -67,6 +67,13 @@ class ExtraInfo(discord.ui.View):
     async def on_timeout(self) -> None:
         await self.message.edit(view = None)
 
+async def alert_embed_gen(link, channel_id, ctx = None):
+    # pieces, error = generate_ao3_work_summary(link)
+    # if error and ctx:
+    #     return await ctx.send(error)
+    if ctx:
+        return await ctx.send("hello")
+
 def format_date(given_date):
     return datetime.strftime(datetime.strptime(given_date, "%Y-%m-%d"), "%B %d, %Y")
 
@@ -92,33 +99,6 @@ def format_html(field):
     if len(result) > 250:
         result = result[:250] + "…"
     return result
-
-def fic_update_alert_embed(pieces):
-    # rating for ao3, rated for ffn
-    rating = "Not Rated"
-    if "rating" in pieces:
-        rating = pieces["rating"]
-    elif "rated" in pieces:
-        rating = pieces["rated"]
-
-    if "category" in pieces:
-        category = pieces["category"]
-    else: 
-        category = "No category" 
-        pieces["category_emoji"] = "No category" # I can't do what I did for rating because of Multi complicating things
-
-    embed = discord.Embed(
-        title = f"""{pieces["title"]}""",
-        description = pieces["author"] + "\n",
-        color = ratingColors[rating])
-
-    if "updated" in pieces:
-        embed.add_field(name=pieces["status"].capitalize() + ":", value=format_date(pieces["updated"]))
-
-    embed.url = pieces["link"]
-    embed.add_field(name="**Chapters:**", value=pieces["chapters"])
-    embed.add_field(name="**Symbols:**", value=f"""{ratingEmoji[rating]} {ratingEmoji[pieces["category_emoji"]]}\n{ratingEmoji[pieces["warnings_emoji"]]} {pieces["status_emoji"]}""") 
-    return embed
 
 def find_ao3_newest_chapter(pieces, saved_chap: int) -> str:
     soup = pieces["soup"]
@@ -448,14 +428,14 @@ class embedBuilder(commands.Cog):
     # Events
     @commands.Cog.listener()
     async def on_ready(self):
-        print("embedBuilder is Ready")
+        print("embedBuilder is ready")
 
     # Loop
     @tasks.loop(minutes=25)
-    async def watch_fic_task(self, ctx):
+    async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
-            await self.bot.get_command('alertMe')(ctx, key, True)
+            await self.bot.get_command('automated_fic_watch')(926431890116853770, key)
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic"])
@@ -541,55 +521,16 @@ class embedBuilder(commands.Cog):
         else:
             await ctx.send("Please run a subscribe command before the check command")
 
+    # "subscribe" command for manually being alerted 
     @commands.command(aliases=["alertme", "am", "checkalert", "subscribe"])
-    async def alertMe(self, ctx, link, automated=None):
-        if automated == None:
-            await ctx.channel.typing()
-        pieces, error = generate_ao3_work_summary(link)
-        if error:
-            return await ctx.send(error)
-
-        embed = fic_update_alert_embed(pieces)
-        embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
-        embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
-        # Fic is already completed, return early
-        if (pieces["status"] == "Completed" or pieces["status"] == "Published") and not automated:
-            return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
-        
-        # ------------- ALERT ME SCRIPT -------------- #
-        alertDB = readfromFile("alertMe")
-        work_link = pieces["link"] # cleaned in case it's a chapter link
-        curr_chap = int(pieces["chapters"].split("/")[0])
-        # if work exists, won't change chapter from saved. if work does not exist will use curr_chap
-        alertInfoDict = alertDB.setdefault(work_link, {"chapters": curr_chap, "notifiedUsers": []})
-        update_message = "No new updates :pensive:"
-        alert_message = ""
-        ficUpdated = False
-        newAlert = False
-        notifiedUsers = ""
-
-        saved_chap = alertInfoDict["chapters"]
-
-        if ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
-            alert_message = (":mega: You've been added to the alerts for this fic!")
-            alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
-            newAlert = True
-
-        if saved_chap < curr_chap: # check if updated? 
-            chap_delta = curr_chap - saved_chap
-            pluralized = f"({chap_delta} new chapters!)" if chap_delta > 1 else ""
-            update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` {pluralized}"
-            alertInfoDict["chapters"] = curr_chap
-            notifiedUsers = alertInfoDict["notifiedUsers"]
-            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(pieces, saved_chap)})"
-            ficUpdated = True
-        
-        if ficUpdated or newAlert or automated == None: # if empty not automated and was triggered manually
-            self.recentlySubbed = work_link
-            await ctx.send(update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}""", embed=embed)
-
-        alertDB[work_link] = alertInfoDict # save updates
-        writetoFile(alertDB, "alertMe")
+    async def alertMe(self, ctx, link):
+       await ctx.channel.typing()
+       await alert_embed_gen(link, ctx.channel.id, ctx)
+ 
+    # automated command ran every x minutes (needs await)
+    @commands.command()
+    async def automated_fic_watch(self, channel_id, link):
+        await alert_embed_gen(link, channel_id)
 
     @commands.command(aliases=["removealert", "ra", "unsubscribe"])
     async def removeAlert(self, ctx, link):
@@ -625,8 +566,8 @@ class embedBuilder(commands.Cog):
     async def fic_watch(self, ctx, enabled):
         if enabled == "start":
             if not self.watch_fic_task.is_running():
-                await ctx.send("Begining watch")
-                self.watch_fic_task.start(ctx)
+                await ctx.send("Beginning watch")
+                self.watch_fic_task.start()
             else:
                 await ctx.send("No need silly! Already have my eye on it ;)")
         elif enabled == "stop":
