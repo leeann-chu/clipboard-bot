@@ -453,7 +453,7 @@ class embedBuilder(commands.Cog):
 
     # Loop
     @tasks.loop(minutes=23)
-    async def watch_fic_task(self, ctx): # ctx is required by discord.py
+    async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
             # replace with correct channel id (1256258937414619156 for ficwatch channel)
@@ -640,7 +640,7 @@ class embedBuilder(commands.Cog):
         if enabled == "start":
             if not self.watch_fic_task.is_running():
                 await ctx.send("Beginning watch")
-                self.watch_fic_task.start(ctx)
+                self.watch_fic_task.start()
             else:
                 await ctx.send("No need silly! Already have my eye on it ;)")
         elif enabled == "stop":
