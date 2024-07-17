@@ -143,7 +143,10 @@ def generate_ao3_work_summary(link):
         soup = ao3_session.request(link)
         ficPieces["lock"] = ":lock: "
 
-    # if chapter link, replace with work link
+    # if chapter link (https://archiveofourown.org/chapters/145185796), replace with work link
+    # if no share button, cry. (chances are very slim)
+    # quihi's bot doesn't pickup on anything past works b/c of her epic regex string
+    # AO3_MATCH = re.compile("(^|[^!])https?:\\/\\/(www\\.)?archiveofourown.org(\\/collections\\/\\w+)?\\/(works|series|chapters)\\/\\d+")
     if "/chapters/" in link:
         share = soup.find(class_="share")
         work_id = share.a["href"].strip("/works/").strip("/share")
