@@ -118,6 +118,7 @@ def fic_update_alert_embed(pieces):
     embed.url = pieces["link"]
     embed.add_field(name="**Chapters:**", value=pieces["chapters"])
     embed.add_field(name="**Symbols:**", value=f"""{ratingEmoji[rating]} {ratingEmoji[pieces["category_emoji"]]}\n{ratingEmoji[pieces["warnings_emoji"]]} {pieces["status_emoji"]}""") 
+    embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
     return embed
 
 def find_ao3_newest_chapter(pieces, saved_chap: int) -> str:
@@ -125,6 +126,10 @@ def find_ao3_newest_chapter(pieces, saved_chap: int) -> str:
     chapter_index = soup.find(id="chapter_index").find_all("option")
     chapter_link = chapter_index[saved_chap]["value"]
     return f"""{pieces["link"]}/chapters/{chapter_link}"""
+
+def save_last_checked(alertDB):
+    alertDB["lastChecked"] = datetime.now().timestamp()
+    writetoFile(alertDB, "alertMe")
 
 def generate_ao3_work_summary(link):
     """Generate the summary of an AO3 work.
@@ -455,13 +460,17 @@ class embedBuilder(commands.Cog):
         self.watch_fic_task.start()
 
     # Loop
-    @tasks.loop(minutes=23)
+    @tasks.loop(minutes=3)
     async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
+        print("before checking")
         for key in alertDB:
             # replace with correct channel id (1256258937414619156 for ficwatch channel)
             # (926431890116853770 for testing channel)
-            await self.automated_fic_watch(1256258937414619156, key)
+            # await self.automated_fic_watch(1256258937414619156, key)
+            print(key)
+        save_last_checked(alertDB)
+        print("after checking")
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic"])
@@ -556,39 +565,44 @@ class embedBuilder(commands.Cog):
 
         # Create the embed 
         embed = fic_update_alert_embed(pieces)
-        embed.set_author(name="Archive of Our Own", icon_url="https://archiveofourown.org/images/ao3_logos/logo_42.png")
-        if ctx:
+        alertDB = readfromFile("alertMe")
+        
+        if ctx: # things only done when manually subscribing
             embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
+            save_last_checked(alertDB)
         # Fic is already completed, return early
         if (pieces["status"] == "Completed" or pieces["status"] == "Published") and ctx:
             return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
          
          # ------------- ALERT ME SCRIPT -------------- #
-        alertDB = readfromFile("alertMe")
         work_link = pieces["link"] # cleaned in case it's a chapter link
         curr_chap = int(pieces["chapters"].split("/")[0])
         # if work exists, won't change chapter from saved. if work does not exist will use curr_chap
         alertInfoDict = alertDB.setdefault(work_link, {"chapters": curr_chap, "notifiedUsers": []})
+        
         update_message = "No new updates :pensive:"
         alert_message = ""
-        ficUpdated = False
-        newAlert = False
+        ficUpdated = False # has the fic been updated? 
+        newAlert = False # is this a new user being added to the database? 
         notifiedUsers = ""
 
         saved_chap = alertInfoDict["chapters"]
 
+        # If this is a manual check and a new user
         if ctx and ctx.message.author.id not in alertInfoDict["notifiedUsers"]:
             alert_message = (":mega: You've been added to the alerts for this fic!")
             alertInfoDict["notifiedUsers"].append(ctx.message.author.id)
             newAlert = True
-
+        
         if saved_chap < curr_chap: # check if updated? 
             chap_delta = curr_chap - saved_chap
             pluralized = f"({chap_delta} new chapters!)" if chap_delta > 1 else ""
             update_message = f"# :tada: Fic Updated! :tada: `{saved_chap}` → `{curr_chap}` {pluralized}"
             alertInfoDict["chapters"] = curr_chap
             notifiedUsers = alertInfoDict["notifiedUsers"]
-            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({find_ao3_newest_chapter(pieces, saved_chap)})"
+            new_chap_url = find_ao3_newest_chapter(pieces, saved_chap)
+            embed.description = f"Next: [**Chapter {saved_chap + 1}**]({new_chap_url})"
+            embed.url = new_chap_url
             ficUpdated = True
         
         if ficUpdated or newAlert or ctx: # if empty not automated and was triggered manually
