@@ -151,13 +151,12 @@ def generate_ao3_work_summary(link):
     if "/chapters/" in link and "/works/" not in link:
         share = soup.find(class_="share")
         work_id = share.a["href"].strip("/works/").strip("/share")
-        link = f"https://archiveofourown.org/works/{work_id}"
 
     # archiveofourown.org/works/145185796
     if "/works/" in link: # removes everything after works 
         work_id = re.search(r"works/(\d+)", link).group(1)
-        link = f"https://archiveofourown.org/works/{work_id}"
-        
+    
+    link = f"https://archiveofourown.org/works/{work_id}"
     ficPieces["work_id"] = work_id
     ficPieces["link"] = link # in case it was changed if it was a chapter link
 
@@ -558,8 +557,9 @@ class embedBuilder(commands.Cog):
             await ctx.send("Please run a subscribe command before the check command")
 
     # not a command, just a helper for two other commands
-    def alert_embed_helper(self, link, ctx = None):
+    def alert_embed_helper(self, work_id, ctx = None):
         # channel_obj = self.bot.get_channel(channel_id)
+        link = f"https://archiveofourown.org/works/{work_id}"
         pieces, error = generate_ao3_work_summary(link)
         if error:
             print(error)
