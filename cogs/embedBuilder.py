@@ -127,10 +127,6 @@ def find_ao3_newest_chapter(pieces, saved_chap: int) -> str:
     chapter_link = chapter_index[saved_chap]["value"]
     return f"""{pieces["link"]}/chapters/{chapter_link}"""
 
-def save_last_checked(alertDB):
-    alertDB["lastChecked"] = datetime.now().timestamp()
-    writetoFile(alertDB, "alertMe")
-
 def generate_ao3_work_summary(link):
     """Generate the summary of an AO3 work.
     link should be a link to an AO3 fic
@@ -463,14 +459,12 @@ class embedBuilder(commands.Cog):
     @tasks.loop(minutes=3)
     async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
-        print("before checking")
         for key in alertDB:
             # replace with correct channel id (1256258937414619156 for ficwatch channel)
             # (926431890116853770 for testing channel)
-            # await self.automated_fic_watch(1256258937414619156, key)
-            print(key)
-        save_last_checked(alertDB)
-        print("after checking")
+            content, embed = self.alert_embed_helper(key)
+            if content != '':
+                await self.bot.get_channel(1256258937414619156).send(content, embed=embed)
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic"])
@@ -557,11 +551,12 @@ class embedBuilder(commands.Cog):
             await ctx.send("Please run a subscribe command before the check command")
 
     # not a command, just a helper for two other commands
-    async def alert_embed_helper(self, link, channel_id, ctx = None):
-        channel_obj = self.bot.get_channel(channel_id)
+    def alert_embed_helper(self, link, ctx = None):
+        # channel_obj = self.bot.get_channel(channel_id)
         pieces, error = generate_ao3_work_summary(link)
         if error:
-            return await channel_obj.send(error)
+            print(error)
+            return
 
         # Create the embed 
         embed = fic_update_alert_embed(pieces)
@@ -569,10 +564,10 @@ class embedBuilder(commands.Cog):
         
         if ctx: # things only done when manually subscribing
             embed.set_footer(text=f"Requested by {ctx.message.author}", icon_url=ctx.message.author.avatar.url)
-            save_last_checked(alertDB)
         # Fic is already completed, return early
         if (pieces["status"] == "Completed" or pieces["status"] == "Published") and ctx:
-            return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
+            return "This fic is Completed! <:Completed:1057962897017421884>", embed
+            # return await ctx.send("This fic is Completed! <:Completed:1057962897017421884>", embed=embed)
          
          # ------------- ALERT ME SCRIPT -------------- #
         work_link = pieces["link"] # cleaned in case it's a chapter link
@@ -585,6 +580,7 @@ class embedBuilder(commands.Cog):
         ficUpdated = False # has the fic been updated? 
         newAlert = False # is this a new user being added to the database? 
         notifiedUsers = ""
+        content = ""
 
         saved_chap = alertInfoDict["chapters"]
 
@@ -607,20 +603,18 @@ class embedBuilder(commands.Cog):
         
         if ficUpdated or newAlert or ctx: # if empty not automated and was triggered manually
             self.recentlySubbed = work_link
-            await channel_obj.send(update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}""", embed=embed)
+            content = update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}"""
 
         alertDB[work_link] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
+        return content, embed
 
     # "subscribe" command for manually being alerted 
     @commands.command(aliases=["alertme", "am", "checkalert", "subscribe"])
     async def alertMe(self, ctx, link):
        await ctx.channel.typing()
-       await self.alert_embed_helper(link, ctx.channel.id, ctx)
- 
-    # automated command ran every x minutes (needs await)
-    async def automated_fic_watch(self, channel_id, link):
-        await self.alert_embed_helper(link, channel_id)
+       content, embed = self.alert_embed_helper(link, ctx)
+       return await ctx.send(content, embed=embed)
 
     @commands.command(aliases=["removealert", "ra", "unsubscribe"])
     async def removeAlert(self, ctx, link):
@@ -649,22 +643,18 @@ class embedBuilder(commands.Cog):
         del alertDB[work_link]
 
         writetoFile(alertDB, "alertMe")
-        await ctx.send("Fic removed from database!")
+        return await ctx.send("Fic removed from database!")
 
     @commands.command(aliases=["begin_watching"])
     @commands.is_owner()
-    async def fic_watch(self, ctx, enabled):
-        if enabled == "start":
-            if not self.watch_fic_task.is_running():
-                await ctx.send("Beginning watch")
-                self.watch_fic_task.start()
-            else:
-                await ctx.send("No need silly! Already have my eye on it ;)")
-        elif enabled == "stop":
-            if self.watch_fic_task.is_running():
-                print("Ending watch")
-                self.watch_fic_task.cancel()
-                await ctx.send("No longer watching alerts")
+    async def fic_watch(self, ctx):
+        if self.watch_fic_task.is_running():
+            print("Ending watch")
+            self.watch_fic_task.cancel()
+            return await ctx.send("No longer watching alerts")
+        else:
+            self.watch_fic_task.start()
+            return await ctx.send("Beginning watch")
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))
