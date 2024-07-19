@@ -468,7 +468,8 @@ class embedBuilder(commands.Cog):
         for key in alertDB:
             # replace with correct channel id (1256258937414619156 for ficwatch channel)
             # (926431890116853770 for testing channel)
-            content, embed = self.alert_embed_helper(key)
+            link = f"https://archiveofourown.org/works/{key}"
+            content, embed = self.alert_embed_helper(link)
             if content != '':
                 await self.bot.get_channel(1256258937414619156).send(content, embed=embed)
 
@@ -557,9 +558,8 @@ class embedBuilder(commands.Cog):
             await ctx.send("Please run a subscribe command before the check command")
 
     # not a command, just a helper for two other commands
-    def alert_embed_helper(self, work_id, ctx = None):
+    def alert_embed_helper(self, link, ctx = None):
         # channel_obj = self.bot.get_channel(channel_id)
-        link = f"https://archiveofourown.org/works/{work_id}"
         pieces, error = generate_ao3_work_summary(link)
         if error:
             print(error)
