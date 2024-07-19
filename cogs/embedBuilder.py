@@ -152,6 +152,12 @@ def generate_ao3_work_summary(link):
         share = soup.find(class_="share")
         work_id = share.a["href"].strip("/works/").strip("/share")
         link = f"https://archiveofourown.org/works/{work_id}"
+
+    # archiveofourown.org/works/145185796
+    if "/works/" in link: # removes everything after works 
+        work_id = re.search(r"works/(\d+)", link).group(1)
+        link = f"https://archiveofourown.org/works/{work_id}"
+        
     ficPieces["link"] = link # in case it was changed if it was a chapter link
 
     preface = soup.find(class_="preface group")
