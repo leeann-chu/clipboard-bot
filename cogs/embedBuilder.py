@@ -158,6 +158,7 @@ def generate_ao3_work_summary(link):
         work_id = re.search(r"works/(\d+)", link).group(1)
         link = f"https://archiveofourown.org/works/{work_id}"
         
+    ficPieces["work_id"] = work_id
     ficPieces["link"] = link # in case it was changed if it was a chapter link
 
     preface = soup.find(class_="preface group")
@@ -577,9 +578,10 @@ class embedBuilder(commands.Cog):
          
          # ------------- ALERT ME SCRIPT -------------- #
         work_link = pieces["link"] # cleaned in case it's a chapter link
+        work_id = pieces["work_id"] # can't use link because some use http and some use https
         curr_chap = int(pieces["chapters"].split("/")[0])
         # if work exists, won't change chapter from saved. if work does not exist will use curr_chap
-        alertInfoDict = alertDB.setdefault(work_link, {"chapters": curr_chap, "notifiedUsers": []})
+        alertInfoDict = alertDB.setdefault(work_id, {"chapters": curr_chap, "notifiedUsers": []})
         
         update_message = "No new updates :pensive:"
         alert_message = ""
@@ -611,7 +613,7 @@ class embedBuilder(commands.Cog):
             self.recentlySubbed = work_link
             content = update_message + "\n" + alert_message + f"""\n{' '.join([f"<@{user}>" for user in notifiedUsers])}"""
 
-        alertDB[work_link] = alertInfoDict # save updates
+        alertDB[work_id] = alertInfoDict # save updates
         writetoFile(alertDB, "alertMe")
         return content, embed
 

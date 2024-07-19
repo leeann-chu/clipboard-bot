@@ -1,26 +1,27 @@
 {
-    "https://archiveofourown.org/works/41354757": {
-        "chapters": 68,
-        "notifiedUsers": [
-            364536918362554368
-        ]
-    },
-    "https://archiveofourown.org/works/57085603": {
-        "chapters": 29,
-        "notifiedUsers": [
-            270015165783736321,
-            364536918362554368
-        ]
-    },
-    "http://archiveofourown.org/works/56940886": {
+    "56940886": {
         "chapters": 5,
         "notifiedUsers": [
             364536918362554368,
             270015165783736321
         ]
     },
-    "https://archiveofourown.org/works/20144149": {
+    "57085603": {
+        "chapters": 29,
+        "notifiedUsers": [
+            364536918362554368,
+            270015165783736321
+        ]
+    },
+    "20144149": {
         "chapters": 27,
+        "notifiedUsers": [
+            364536918362554368,
+            270015165783736321
+        ]
+    },
+    "41354757": {
+        "chapters": 68,
         "notifiedUsers": [
             364536918362554368,
             270015165783736321
