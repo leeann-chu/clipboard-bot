@@ -462,7 +462,7 @@ class embedBuilder(commands.Cog):
         self.watch_fic_task.start()
 
     # Loop
-    @tasks.loop(minutes=15)
+    @tasks.loop(minutes=25)
     async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
@@ -472,6 +472,8 @@ class embedBuilder(commands.Cog):
             content, embed = self.alert_embed_helper(link)
             if content != '':
                 await self.bot.get_channel(1256258937414619156).send(content, embed=embed)
+            
+        await self.bot.get_channel(926431890116853770).send("silently running check, all systems clear")
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic"])
