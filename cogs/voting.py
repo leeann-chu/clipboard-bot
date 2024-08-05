@@ -185,7 +185,7 @@ class SettingsButton(discord.ui.Button['Settings']):
                 results = []
                 for key in currPoll:
                     member = self.ctx.guild.get_member(int(key))
-                    results.append(f"[{member.display_name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") has voted")
+                    results.append(f"[{member.name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") has voted")
                 embed = discord.Embed(title = "Here's a list of people who have voted so far!", description = "\n".join(results), color = randomHexGen())
             else:
                 embed = discord.Embed(title = "No one has voted yet!", color = randomHexGen())
@@ -303,9 +303,9 @@ class voting(commands.Cog):
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, poll = None):
-        oldPoll = readfromFile("storedPolls")
-        if oldPoll: 
-            return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
+        # oldPoll = readfromFile("storedPolls")
+        # if oldPoll: 
+        #     return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
         if poll is None: 
@@ -410,7 +410,7 @@ class voting(commands.Cog):
                 # Creating the large list of what everyone voted for
                 for key, values in newPoll.items():
                     member = currentPoll.ctx.guild.get_member(int(key))
-                    results.append(f"[{member.nick if member.nick else member.name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ \"{member.name}\") voted {values}")
+                    results.append(f"[{member.name}](https://www.youtube.com/watch?v=dQw4w9WgXcQ) voted {values}" )
 
         #* Forming the embed
         embed.description = "\n".join(results) if results else "No one voted!"
