@@ -53,6 +53,10 @@ class Poll(discord.ui.View):
         self.currentPoll = currentPoll
 
         for emoji, label in zip(currentPoll.emojiList, currentPoll.optionList):
+            if emoji == '⬜️':
+                emoji = "\U00002b1c"
+            elif emoji == '⭕':
+                emoji = "\U00002b55"
             button = PollButton(currentPoll, emoji, label)
             if str(button.emoji) == '<a:settings:845834409869180938>':
                 button.style = discord.ButtonStyle.primary
@@ -303,9 +307,9 @@ class voting(commands.Cog):
 #* ------------   Create Poll   ------------
     @vote.command(aliases = ["create", "start", "new", "c", "m", "s"])
     async def make(self, ctx, *, poll = None):
-        # oldPoll = readfromFile("storedPolls")
-        # if oldPoll: 
-        #     return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
+        oldPoll = readfromFile("storedPolls")
+        if oldPoll: 
+            return await ctx.send("Last poll has not been reset, <@364536918362554368> reset the poll pls")
 
     #* Setting up the variables for the embed
         if poll is None: 
@@ -376,7 +380,8 @@ class voting(commands.Cog):
             await pollView.stop()
         except Exception:
             print(traceback.format_exc())
-            return await ctx.send("One of your emojis is invalid! Try making the Poll again.")
+            # return await ctx.send(traceback.format_exc())
+            return await ctx.send("Something went wrong! Maybe it's one of the emojis? Try making the Poll again.")
 
     #* timeConvert
     @commands.command()
