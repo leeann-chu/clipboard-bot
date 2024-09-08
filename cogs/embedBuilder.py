@@ -2,17 +2,20 @@ from discord.ext import tasks
 from datetime import datetime
 import json
 import re
+import time
 import copy
 import requests
 import AO3
 from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
+from main import randomHexGen
 from myutils.views import EmbedPageView
 from myutils.API_KEYS import AO3_PASSWORD, AO3_USERNAME
 from myutils.poll_class import readfromFile, writetoFile
 
 HEADERS = {"User-Agent": "fanfiction-abstractor-bot"}
+ao3_session = AO3.Session(AO3_USERNAME, AO3_PASSWORD)
 
 ratingColors = {
     "Teen And Up Audiences": 0xE5D100,
@@ -140,7 +143,6 @@ def generate_ao3_work_summary(link):
     if r.status_code != requests.codes.ok:
         return ficPieces, "Request not okay :c"
     if r.url == "https://archiveofourown.org/users/login?restricted=true":
-        ao3_session = AO3.Session(AO3_USERNAME, AO3_PASSWORD)
         soup = ao3_session.request(link)
         ficPieces["lock"] = ":lock: "
 
@@ -300,7 +302,6 @@ def generate_ao3_series_summary(link):
     if r.status_code != requests.codes.ok:
         return embed_list, "Request not okay :c"
     if r.url == "https://archiveofourown.org/users/login?restricted=true":
-        ao3_session = AO3.Session(AO3_USERNAME, AO3_PASSWORD)
         soup = ao3_session.request(link)
         lockIcon = ":lock: "   
 
@@ -476,7 +477,7 @@ class embedBuilder(commands.Cog):
         await self.bot.get_channel(926431890116853770).send("silently running check, all systems clear")
 
     # Commands
-    @commands.command(aliases=["genfic", "sendfic"])
+    @commands.command(aliases=["genfic", "sendfic", "genFic"])
     async def sendFic(self, ctx, link):
         if "fanfiction" in link: 
             await self.bot.get_command('sendFFN')(ctx, link)
@@ -527,34 +528,80 @@ class embedBuilder(commands.Cog):
                             description="Hello! Welcome to the help page for my fanfic abstractor rip-off made by Elf",
                             timestamp=datetime.now())
 
+        embed.add_field(name="⠀", value="", inline=False)
+        embed.add_field(name="----------> :bell: SUBSCRIBE :bell:", value="", inline=False)
+        embed.add_field(name=f"`{ctx.prefix}subscribe <link>`",
+                        value=">adds fic to list to be checked once per hour \n- you may also use this if you would like to manually check a fic for updates",
+                        inline=False)
+        embed.add_field(name=f"`{ctx.prefix}unsubscribe <link>`",
+                        value=">remove yourself from alert list",
+                        inline=False)
+
+        embed.add_field(name="⠀", value="", inline=False)
+        embed.add_field(name="----------> <:check:926281518266073088> CHECK <:check:926281518266073088>", value="", inline=False)
+        embed.add_field(name=f"`{ctx.prefix}check`",
+                        value=f">reruns most recent `{ctx.prefix}subscribe <link>`",
+                        inline=True)
+        embed.add_field(name=f"`{ctx.prefix}check list`",
+                        value=f">lists all fic bot is currently subscribed to",
+                        inline=True)
+        embed.add_field(name=f"`{ctx.prefix}check <link>`",
+                        value=f">alias of `{ctx.prefix}subscribe <link>`",
+                        inline=True)
+        embed.add_field(name=f"`{ctx.prefix}check <number>`",
+                        value=f">checks fic by number in `{ctx.prefix}check list`",
+                        inline=True)
+        
+        embed.add_field(name="⠀", value="", inline=False)
+        embed.add_field(name="----------> :scroll: ABSTRACTOR :scroll:", value="", inline=False)
         embed.add_field(name=f"`{ctx.prefix}genfic <link>`",
                         value=">must be a fic link, generates embed with summary and tags",
                         inline=False)
         embed.add_field(name=f"`{ctx.prefix}genseries <link>`",
                         value=">must be an ao3 series link, generates pageable embed with series info",
                         inline=False)
-        embed.add_field(name=f"`{ctx.prefix}ffhelp`",
-                        value=">prints this message",
-                        inline=False)
-        embed.add_field(name=f"`{ctx.prefix}subscribe <link>`",
-                        value=">adds fic to list to be checked once per hour \n- you may also use this if you would like to manually check a fic for updates",
-                        inline=False)
-        embed.add_field(name=f"`{ctx.prefix}check`",
-                        value=f">reruns most recent `{ctx.prefix}subscribe <link>` command",
-                        inline=False)
-        embed.add_field(name=f"`{ctx.prefix}unsubscribe <link>`",
-                        value=">remove yourself from alert list",
-                        inline=False)
+
+        embed.add_field(name="⠀", value="", inline=False)
+        embed.add_field(name="----------> :gear: MISC :gear:", value="", inline=False)
         embed.add_field(name=f"`{ctx.prefix}removeFic <link>`",
                         value=">remove fic from database",
                         inline=False)
+        embed.add_field(name=f"`{ctx.prefix}ffhelp`",
+                        value=">prints this message",
+                        inline=False)
+        
    
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["ch"])
-    async def check(self, ctx):
+    async def check(self, ctx, flag = None):
         work_link = self.recentlySubbed
-        if work_link:
+        
+        if flag is not None:
+            if flag == "list":
+                await ctx.channel.typing()
+                alertDB = readfromFile("alertMe")
+                start_time = time.time()
+                ficList = "\n".join(
+                    f"{i}. {pieces['title']}"
+                    for i, work_id in enumerate(alertDB.keys())
+                    for pieces, error in [generate_ao3_work_summary(f'https://archiveofourown.org/works/{work_id}')]
+                )
+                embed = discord.Embed(
+                    title=":eyes: Fics on the Watch List :eyes:",
+                    description=ficList,
+                    color=randomHexGen())
+                embed.set_footer(text=f"This took {time.time() - start_time} seconds")
+                await ctx.send(embed=embed)
+            
+            elif flag.isdigit():
+                alertDB = readfromFile("alertMe")
+                work_id = list(alertDB)[int(flag) - 1]
+                await self.bot.get_command('alertMe')(ctx, f'https://archiveofourown.org/works/{work_id}')        
+            else:
+                await self.bot.get_command('alertMe')(ctx, flag)
+                
+        elif work_link:
             await self.bot.get_command('alertMe')(ctx, work_link)
         else:
             await ctx.send("Please run a subscribe command before the check command")
@@ -655,16 +702,19 @@ class embedBuilder(commands.Cog):
         writetoFile(alertDB, "alertMe")
         return await ctx.send("Fic removed from database!")
 
-    @commands.command(aliases=["begin_watching"])
+    @commands.command(aliases=["begin_watching", "watch_fic", "watchFic", "ficWatch"])
     @commands.is_owner()
-    async def fic_watch(self, ctx):
-        if self.watch_fic_task.is_running():
-            print("Ending watch")
-            self.watch_fic_task.cancel()
-            return await ctx.send("No longer watching alerts")
+    async def fic_watch(self, ctx, flag = None):
+        if flag == None:
+            return await ctx.send(self.watch_fic_task.is_running())
         else:
-            self.watch_fic_task.start()
-            return await ctx.send("Beginning watch")
+            if self.watch_fic_task.is_running():
+                print("Ending watch")
+                self.watch_fic_task.cancel()
+                return await ctx.send("No longer watching alerts")
+            else:
+                self.watch_fic_task.start()
+                return await ctx.send("Beginning watch")
 
 async def setup(bot):
     await bot.add_cog(embedBuilder(bot))
