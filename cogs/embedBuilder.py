@@ -462,7 +462,7 @@ class embedBuilder(commands.Cog):
         self.watch_fic_task.start()
 
     # Loop
-    @tasks.loop(hours=11)
+    @tasks.loop(minutes=30)
     async def watch_fic_task(self):
         alertDB = readfromFile("alertMe")
         for key in alertDB:
