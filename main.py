@@ -41,7 +41,7 @@ class clipboardBot(commands.Bot):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
         self.cogsList = ["botFun", "embedBuilder", "error_handler", "utilities", "voting"]
-        # corpse, clipboard, category_org, emoji_sb
+        # corpse, category_org, emoji_sb, clipboard
         self.recentExt = None
 
         # self.tree = commands.Bot.tree # used for slash commands
@@ -171,7 +171,7 @@ async def quit(ctx):
     if await bot.is_owner(ctx.author):
         await ctx.send("Bot is Closed!")
         await bot.close()
-        await db.close()
+        db.close()
     else:
         await ctx.send("You do not have the permissions to use this command!")
 ##

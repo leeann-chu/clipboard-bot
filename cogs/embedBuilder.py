@@ -138,7 +138,6 @@ def generate_ao3_work_summary(link):
     ficPieces = {}
     r = requests.get(link, headers=HEADERS)
     soup = BeautifulSoup(r.text, "lxml")
-    ficPieces["soup"] = soup
     ficPieces["lock"] = ""
     if r.status_code != requests.codes.ok:
         return ficPieces, "Request not okay :c"
@@ -146,6 +145,7 @@ def generate_ao3_work_summary(link):
         soup = ao3_session.request(link)
         ficPieces["lock"] = ":lock: "
 
+    ficPieces["soup"] = soup
     # if chapter link (https://archiveofourown.org/chapters/145185796), replace with work link
     # if no share button, cry. (chances are very slim)
     # quihi's bot doesn't pickup on anything past works b/c of her epic regex string
@@ -465,16 +465,7 @@ class embedBuilder(commands.Cog):
     # Loop
     @tasks.loop(minutes=30)
     async def watch_fic_task(self):
-        alertDB = readfromFile("alertMe")
-        for key in alertDB:
-            # replace with correct channel id (1256258937414619156 for ficwatch channel)
-            # (926431890116853770 for testing channel)
-            link = f"https://archiveofourown.org/works/{key}"
-            content, embed = self.alert_embed_helper(link)
-            if content != '':
-                await self.bot.get_channel(1256258937414619156).send(content, embed=embed)
-            
-        await self.bot.get_channel(926431890116853770).send("silently running check, all systems clear")
+        await self.bot.get_command('check')(None, 'all')
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic", "genFic"])
@@ -545,6 +536,9 @@ class embedBuilder(commands.Cog):
         embed.add_field(name=f"`{ctx.prefix}check list`",
                         value=f">lists all fic bot is currently subscribed to",
                         inline=True)
+        embed.add_field(name=f"`{ctx.prefix}check all`",
+                        value=f">checks through all fic bot is currently subscribed to",
+                        inline=True)
         embed.add_field(name=f"`{ctx.prefix}check <link>`",
                         value=f">alias of `{ctx.prefix}subscribe <link>`",
                         inline=True)
@@ -576,26 +570,45 @@ class embedBuilder(commands.Cog):
     @commands.command(aliases=["ch"])
     async def check(self, ctx, flag = None):
         work_link = self.recentlySubbed
-        
+
         if flag is not None:
+            alertDB = readfromFile("alertMe")
             if flag == "list":
                 await ctx.channel.typing()
-                alertDB = readfromFile("alertMe")
                 start_time = time.time()
                 ficList = "\n".join(
-                    f"{i}. {pieces['title']}"
+                    f"{i}. [{pieces['title']}]({pieces['link']})"
                     for i, work_id in enumerate(alertDB.keys())
                     for pieces, error in [generate_ao3_work_summary(f'https://archiveofourown.org/works/{work_id}')]
                 )
                 embed = discord.Embed(
-                    title=":eyes: Fics on the Watch List :eyes:",
+                    title=":eyes:  Watched Fic  :eyes:",
                     description=ficList,
                     color=randomHexGen())
                 embed.set_footer(text=f"This took {time.time() - start_time} seconds")
                 await ctx.send(embed=embed)
+
+            elif flag == "all":
+                # 1256258937414619156 #ficwatch channel
+                # 926431890116853770 #testing channel
+                if ctx is None:
+                    alert_channel_obj = self.bot.get_channel(1256258937414619156)
+                    testing_channel_obj = self.bot.get_channel(926431890116853770)
+                else:
+                    # If manually triggered we'd rather send it to the same channel it was triggered in
+                    alert_channel_obj = testing_channel_obj = ctx
+                    await ctx.channel.typing()
+                
+                start_time = time.time()
+                for key in alertDB:
+                    content, embed = self.alert_embed_helper(f"https://archiveofourown.org/works/{key}", None) # to not send embed each time
+                    
+                    if content != '':
+                        await alert_channel_obj.send(content, embed=embed)
+                    
+                await testing_channel_obj.send(f"Finished checking for updates. (`{round(time.time() - start_time, 2)} seconds`)")
             
             elif flag.isdigit():
-                alertDB = readfromFile("alertMe")
                 work_id = list(alertDB)[int(flag) - 1]
                 await self.bot.get_command('alertMe')(ctx, f'https://archiveofourown.org/works/{work_id}')        
             else:
@@ -689,7 +702,7 @@ class embedBuilder(commands.Cog):
         writetoFile(alertDB, "alertMe")
         await ctx.send("Alert removed from database!")
 
-    @commands.command()
+    @commands.command(aliases=["fic_remove", "removefic", "ficremove", "remove_fic"])
     async def removeFic(self, ctx, link):
         alertDB = readfromFile("alertMe")
         pieces, error = generate_ao3_work_summary(link) # there's definitely an easier way without needing to generate the whole dict
@@ -702,7 +715,7 @@ class embedBuilder(commands.Cog):
         writetoFile(alertDB, "alertMe")
         return await ctx.send("Fic removed from database!")
 
-    @commands.command(aliases=["begin_watching", "watch_fic", "watchFic", "ficWatch"])
+    @commands.command(aliases=["begin_watching", "watch_fic", "watchFic", "ficWatch", "ficwatch", "watch"])
     @commands.is_owner()
     async def fic_watch(self, ctx, flag = None):
         if flag == None:
