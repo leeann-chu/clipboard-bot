@@ -1,4 +1,3 @@
-import copy
 import discord
 from datetime import datetime
 from random import choice, shuffle, randint
@@ -9,7 +8,7 @@ import re
 
 player_path = "corpse/listofplayers"
 corpse_path = "corpse/corpse_links"
-missing_perms = ["Fetch your maid outfit first", "Nice Try", "Not feeling up to it today", "Nop.", "That was very unbased of you", "I don't wanna"]
+missing_perms = ["Fetch your maid outfit first", "You're not my boss", "Not feeling up to it today", "Nop.", "That was very unbased of you", "I don't wanna"]
 
 oldCorpses = ["https://discord.com/channels/370200859675721728/456508133913788436/519632182772367380", # Damn furries
             "https://discord.com/channels/370200859675721728/456508133913788436/520423673904234497", # Bean restaurant
@@ -19,6 +18,9 @@ oldCorpses = ["https://discord.com/channels/370200859675721728/45650813391378843
             "https://discord.com/channels/370200859675721728/456508133913788436/464996344386551818", # salty spitoon
             "https://discord.com/channels/370200859675721728/456508133913788436/486357985413693450", # chicken nugget
             "https://discord.com/channels/370200859675721728/456508133913788436/491354377156558849" # narrator dick
+            "https://discord.com/channels/370200859675721728/1156621261561139343/1176704139154161815" # suicide bunny
+            "https://discord.com/channels/370200859675721728/1156621261561139343/1166592379822821427" # skibidi
+            "https://discord.com/channels/370200859675721728/1156621261561139343/1159346456877084682" # hello kitty
              ]
 
 def passingTheCorpse(marked_as:str):
@@ -42,7 +44,7 @@ def passingTheCorpse(marked_as:str):
 
 def beginCorpseEmbed(bot):
     corpseRoster = readfromFile(player_path)
-    corpseHome = readfromFile("prefixes")["corpseHome"]
+    # corpseHome = readfromFile("prefixes")["corpseHome"]
 
     # Init our checklist
     checkList = { "HotSeat": 1 }
@@ -62,6 +64,8 @@ def beginCorpseEmbed(bot):
 
 def corpseViewEmbed(bot, user_id: int = None, action_type: str = None):
     corpseRoster = readfromFile(player_path) # list right now
+    if not corpseRoster:
+        writetoFile([], player_path)
     corpseHome = readfromFile("prefixes")["corpseHome"]
     printList = []
     if user_id:
@@ -79,14 +83,16 @@ def corpseViewEmbed(bot, user_id: int = None, action_type: str = None):
 
     embed = discord.Embed(
         title = "Corpse Roster",
-        description = "\n".join(printList) if corpseRoster else f"No one has joined this corpse!\nHome is set to: {corpseHome}",
+        description = "\n".join(printList) if corpseRoster else f"No one has joined this corpse!",
         color = randomHexGen(),
         url = choice(oldCorpses)
     )
+    embed.add_field(name="Home", value=f"{corpseHome}")
     return embed
 
 def shuffleViewEmbed(bot):
     corpseRoster = readfromFile(player_path)
+    corpseHome = readfromFile("prefixes")["corpseHome"]
     shuffle(corpseRoster)
     writetoFile(corpseRoster, player_path)
     printList = [bot.get_user(user_id).name for user_id in corpseRoster]
@@ -96,6 +102,7 @@ def shuffleViewEmbed(bot):
         color = randomHexGen(),
         url = choice(oldCorpses)
     )
+    embed.add_field(name="Home", value=f"{corpseHome}")
     return embed
 
 # Corpse Join View
@@ -182,7 +189,7 @@ class corpse(commands.Cog):
             oldSeat, newHotSeat = passingTheCorpse("<:check:926281518266073088>")
             if newHotSeat == "True":
                 globalBotVars = readfromFile("prefixes")
-                globalBotVars["canDeliver"] = message.author.id
+                globalBotVars["canDeliver"] = message.author.id # sets last to go as midwife
                 writetoFile(globalBotVars, "prefixes")
                 await message.channel.send("You've reached the end of the line! I'm sure your ending was a stinger :D")
                 await message.add_reaction(emoji)
@@ -206,7 +213,7 @@ class corpse(commands.Cog):
             return await ctx.send(f"Please `{ctx.prefix}clean` up after you're finished with your corpse")
         
         globalBotVars = readfromFile("prefixes")
-        globalBotVars["canDeliver"] = 364536918362554368
+        globalBotVars["canDeliver"] = 364536918362554368 # sets me as midwife as placeholder
         writetoFile(globalBotVars, "prefixes")
         view = CorpseView(self.bot)
         view.message = await ctx.send(embed = corpseViewEmbed(self.bot), view = view)
@@ -225,17 +232,20 @@ class corpse(commands.Cog):
         await ctx.send(f"Corpse home: {currentHome}")
     
     @commands.command()
-    async def check(self, ctx):
+    async def check(self, ctx, flag = None):
+        if (ctx.guild.id == 392514579495649292):
+            return await self.bot.get_command("fic_check")(ctx, flag)
+        
         if (randint(0, 50) < 1):
             return await ctx.send("What am I, an ATM machine?")
         
         checkList = readfromFile(player_path)
-        if (checkList):
-            checkList.pop("HotSeat") # don't print hotseat
-            prettyList = [f"{value} {self.bot.get_user(int(key)).name}" for key, value in checkList.items()]
-            await ctx.send("\n".join(prettyList))
-        else:
-            await ctx.send(f"Your corpse game is lacking, step it up with `{ctx.prefix}cs`")
+        if not checkList:
+            return await ctx.send(f"Your corpse game is lacking, step it up with `{ctx.prefix}cs`")
+        
+        checkList.pop("HotSeat") # don't print hotseat
+        prettyList = [f"{value} {self.bot.get_user(int(key)).name}" for key, value in checkList.items()]
+        await ctx.send("\n".join(prettyList))
 
     @commands.command()
     @commands.is_owner()
@@ -262,7 +272,8 @@ class corpse(commands.Cog):
         if ctx.author.id != 364536918362554368:
             return await ctx.send(f"{choice(missing_perms)} (You do not have the perms for this command!)")
         oldCorpse = readfromFile(corpse_path)
-        if oldCorpse == []:
+        playerlist = readfromFile(player_path)
+        if not oldCorpse and not playerlist:
             return await ctx.send("Your corpse has already been successfully disposed of")
         
         # clear players
@@ -274,13 +285,14 @@ class corpse(commands.Cog):
 
         responses = ["https://tenor.com/view/chores-cleaning-housework-tom-and-jerry-housewife-gif-20706096",
                      "Fear not, the bodies are buried where no one will find them now (:",
-                     "*sounds of vaccuum and whirring brooms*"]
+                     "*sounds of vaccuum and whirring brooms*",
+                     "Duck: What do you mean, we're already clean! \nTony: Scrub, scrub, scrub 'til the water's brown",
+                     "https://www.adweek.com/wp-content/uploads/files/mrclean-perspective-hed-2016.jpg?w=652"]
         await ctx.send(choice(responses))
 
     @commands.command()
     async def deliver(self, ctx):
-        canDeliver = readfromFile("prefixes")["canDeliver"]   
-        print(canDeliver)     
+        canDeliver = readfromFile("prefixes")["canDeliver"]   # in case I ever want someone else to deliver the corpse if I'm busy
 
         if ctx.author.id != 364536918362554368 and ctx.author.id != canDeliver:
             return await ctx.send(f"{choice(missing_perms)} (You do not have the perms for this command!)")
@@ -321,6 +333,7 @@ class corpse(commands.Cog):
             title = "Corpse Bot v2",
             description = f"""
             `{p}cs` ➙ Starts a new corpse 
+            `{p}setHome` ➙ Sets home for corpse
             `{p}check` ➙ Checks the status of current corpse
             `{p}skip` ➙ Skips someone (use with caution)
             
