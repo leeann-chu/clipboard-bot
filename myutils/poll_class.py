@@ -21,6 +21,9 @@ def writetoFile(data, file):
         json.dump(data, f,  indent=4)
 
 def readfromFile(file):
-    with open(f'data/{file}.json', 'r') as f:
-        data = json.load(f)
-    return data
+    try:
+        with open(f'data/{file}.json', 'r') as f:
+            data = json.load(f)
+        return data
+    except:
+        return None

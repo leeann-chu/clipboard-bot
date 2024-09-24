@@ -465,7 +465,7 @@ class embedBuilder(commands.Cog):
     # Loop
     @tasks.loop(minutes=30)
     async def watch_fic_task(self):
-        await self.bot.get_command('check')(None, 'all')
+        await self.bot.get_command('fic_check')(None, 'all')
 
     # Commands
     @commands.command(aliases=["genfic", "sendfic", "genFic"])
@@ -567,8 +567,8 @@ class embedBuilder(commands.Cog):
    
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["ch"])
-    async def check(self, ctx, flag = None):
+    @commands.command(aliases=["fcheck"])
+    async def fic_check(self, ctx, flag = None):
         work_link = self.recentlySubbed
 
         if flag is not None:
@@ -609,10 +609,16 @@ class embedBuilder(commands.Cog):
                 await testing_channel_obj.send(f"Finished checking for updates. (`{round(time.time() - start_time, 2)} seconds`)")
             
             elif flag.isdigit():
-                work_id = list(alertDB)[int(flag) - 1]
-                await self.bot.get_command('alertMe')(ctx, f'https://archiveofourown.org/works/{work_id}')        
-            else:
+                flag = int(flag)
+                if (flag > len(alertDB)):
+                    await ctx.send("Number beyond range of list, use `~check list` to view check options")
+                else:   
+                    work_id = list(alertDB)[flag - 1]
+                    await self.bot.get_command('alertMe')(ctx, f'https://archiveofourown.org/works/{work_id}')        
+            elif "https" in flag:
                 await self.bot.get_command('alertMe')(ctx, flag)
+            else:
+                await ctx.send(f"Unknown flag: `{flag}`. Use ~help for list of commands")
                 
         elif work_link:
             await self.bot.get_command('alertMe')(ctx, work_link)
