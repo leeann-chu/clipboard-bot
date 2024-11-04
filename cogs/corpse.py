@@ -244,9 +244,15 @@ class corpse(commands.Cog):
             return await ctx.send(f"Your corpse game is lacking, step it up with `{ctx.prefix}cs`")
         
         checkList.pop("HotSeat") # don't print hotseat
-        prettyList = [f"{value} {self.bot.get_member(int(key)).name}" for key, value in checkList.items()]
-        await ctx.send("\n".join(prettyList))
 
+        try:
+            prettyList = [f"{value} {self.bot.get_user(int(key)).name}" for key, value in checkList.items()]
+        except AttributeError:
+            await ctx.send("An error was detected for one of your ids. Has any of these members left your server?")
+            prettyList = [f"{value} <@{key}>" for key, value in checkList.items()] # debug
+            
+        await ctx.send("\n".join(prettyList), silent=True)
+        
     @commands.command()
     @commands.is_owner()
     async def skip(self, ctx):
