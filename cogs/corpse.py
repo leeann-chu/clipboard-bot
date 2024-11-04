@@ -244,7 +244,7 @@ class corpse(commands.Cog):
             return await ctx.send(f"Your corpse game is lacking, step it up with `{ctx.prefix}cs`")
         
         checkList.pop("HotSeat") # don't print hotseat
-        prettyList = [f"{value} {self.bot.get_user(int(key)).global_name}" for key, value in checkList.items()]
+        prettyList = [f"{value} {self.bot.get_member(int(key)).name}" for key, value in checkList.items()]
         await ctx.send("\n".join(prettyList))
 
     @commands.command()
