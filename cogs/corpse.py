@@ -244,7 +244,7 @@ class corpse(commands.Cog):
             return await ctx.send(f"Your corpse game is lacking, step it up with `{ctx.prefix}cs`")
         
         checkList.pop("HotSeat") # don't print hotseat
-        prettyList = [f"{value} {self.bot.get_user(int(key)).name}" for key, value in checkList.items()]
+        prettyList = [f"{value} {self.bot.get_user(int(key)).display_name}" for key, value in checkList.items()]
         await ctx.send("\n".join(prettyList))
 
     @commands.command()
@@ -281,7 +281,7 @@ class corpse(commands.Cog):
         # clear corpse
         writetoFile([], corpse_path)
         timestamp = datetime.today().strftime("%Y-%m-%d")
-        writetoFile(oldCorpse, f"corpse/CorpseArchive2023/oldCorpse-{timestamp}")
+        writetoFile(oldCorpse, f"corpse/CorpseArchive2024/oldCorpse-{timestamp}")
 
         responses = ["https://tenor.com/view/chores-cleaning-housework-tom-and-jerry-housewife-gif-20706096",
                      "Fear not, the bodies are buried where no one will find them now (:",
