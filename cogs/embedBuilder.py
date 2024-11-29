@@ -468,7 +468,7 @@ class embedBuilder(commands.Cog):
         await self.bot.get_command('fic_check')(None, 'all')
 
     # Commands
-    @commands.command(aliases=["genfic", "sendfic", "genFic"])
+    @commands.command(aliases=["sendfic", "ficSend", "ficsend", "genfic",  "genFic", "ficgen", "ficGen", "fg", "gf"])
     async def sendFic(self, ctx, link):
         if "fanfiction" in link: 
             await self.bot.get_command('sendFFN')(ctx, link)
