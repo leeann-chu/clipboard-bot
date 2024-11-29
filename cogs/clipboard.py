@@ -687,7 +687,7 @@ class clipboard(commands.Cog):
     @tasks.command(aliases = ["a", "add"])
     async def task_add(self, ctx, *, inp = None):   
         if inp is None or "\n" not in inp:
-            return await ctx.send(f"Please add tasks by using the command: ```\n{ctx.prefix}task_add <title>\n- item x\n- item y\n- item z```")
+            return await ctx.send(f"Please add tasks by using the command: ```\n{ctx.prefix}task add <title>\n• item x\n• item y\n• item z```")
          
         member = ctx.guild.get_member(ctx.author.id)   
         title = re.match(r"\A.*", inp).group()

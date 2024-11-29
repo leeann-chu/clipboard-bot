@@ -281,11 +281,7 @@ class corpse(commands.Cog):
         playerlist = readfromFile(player_path)
         if not oldCorpse and not playerlist:
             return await ctx.send("Your corpse has already been successfully disposed of")
-        
-        # clear players
-        writetoFile([], player_path)
-        # clear corpse
-        writetoFile([], corpse_path)
+     
         timestamp = datetime.today().strftime("%Y-%m-%d")
         writetoFile(oldCorpse, f"corpse/CorpseArchive2024/oldCorpse-{timestamp}")
 
@@ -294,6 +290,11 @@ class corpse(commands.Cog):
                      "*sounds of vaccuum and whirring brooms*",
                      "Duck: What do you mean, we're already clean! \nTony: Scrub, scrub, scrub 'til the water's brown",
                      "https://www.adweek.com/wp-content/uploads/files/mrclean-perspective-hed-2016.jpg?w=652"]
+        
+        # clear players
+        writetoFile([], player_path)
+        # clear corpse
+        writetoFile([], corpse_path)
         await ctx.send(choice(responses))
 
     @commands.command()
