@@ -1,4 +1,5 @@
 import discord
+import time
 from random import shuffle
 from discord.ext import commands
 from discord.ext.commands import TextChannelConverter, CategoryChannelConverter, RoleConverter
@@ -107,6 +108,7 @@ class category_org(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def shuffleMembers(self, ctx):
         members = [member for member in ctx.guild.members if not member.bot]
+        start_time = time.time()
 
         red, yellow, green, blue = partition(members, 4)
         #await ctx.send(f"{red}\n{yellow}\n{green}\n{blue}")
@@ -115,10 +117,10 @@ class category_org(commands.Cog):
         yellow_role = await RoleConverter().convert(ctx, "871958094899462154")
         green_role = await RoleConverter().convert(ctx, "871958129666060298")
         blue_role = await RoleConverter().convert(ctx, "871958159168782357")
-        for member in members: # for visual effect, remove all roles at once — could look cooler
+        await ctx.send("Currently shuffling members, be patient...")
+        
+        for member in members: 
             await member.remove_roles(red_role, yellow_role, green_role, blue_role)  
-
-        for member in members: # then add them back 
             if member in red:
                 await member.add_roles(red_role) # add_roles takes a long time because rate limited
                 print(member.name, "was given red_role")
@@ -132,7 +134,7 @@ class category_org(commands.Cog):
                 await member.add_roles(blue_role)
                 print(member.name, "was given blue_role")   
 
-        await ctx.send("Done with shuffling roles!")    
+        await ctx.send(f"Done with shuffling roles! This took {time.time() - start_time} seconds")    
 
     # Send list of channels to another category
     @commands.command()
