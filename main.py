@@ -40,8 +40,8 @@ class clipboardBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=get_prefix, description=description, activity=discord.Activity(
     type=discord.ActivityType.listening, name="you forget your milk"), intents=intents, db=db)
-        self.cogsList = ["botFun", "corpse", "clipboard", "embedBuilder", "error_handler", "utilities", "voting"]
-        # category_org, emoji_sb
+        self.cogsList = ["botFun", "category_org", "corpse", "clipboard", "embedBuilder", "error_handler", "utilities", "voting"]
+        # emoji_sb
         self.recentExt = None
 
         # self.tree = commands.Bot.tree # used for slash commands
