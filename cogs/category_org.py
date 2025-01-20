@@ -118,21 +118,17 @@ class category_org(commands.Cog):
         green_role = await RoleConverter().convert(ctx, "871958129666060298")
         blue_role = await RoleConverter().convert(ctx, "871958159168782357")
         await ctx.send("Currently shuffling members, be patient...")
-        
-        for member in members: 
+
+        for member in members: # one day i shall make this more efficient but for now this shall do
             await member.remove_roles(red_role, yellow_role, green_role, blue_role)  
             if member in red:
                 await member.add_roles(red_role) # add_roles takes a long time because rate limited
-                print(member.name, "was given red_role")
             elif member in yellow:
                 await member.add_roles(yellow_role)
-                print(member.name, "was given yellow_role")    
             elif member in green:
                 await member.add_roles(green_role)
-                print(member.name, "was given green_role") 
             elif member in blue:
                 await member.add_roles(blue_role)
-                print(member.name, "was given blue_role")   
 
         await ctx.send(f"Done with shuffling roles! This took {time.time() - start_time} seconds")    
 

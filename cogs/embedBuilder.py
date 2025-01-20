@@ -5,7 +5,7 @@ import re
 import time
 import copy
 import requests
-import AO3
+import AO3 as ao3
 from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
@@ -15,7 +15,7 @@ from myutils.API_KEYS import AO3_PASSWORD, AO3_USERNAME
 from myutils.poll_class import readfromFile, writetoFile
 
 HEADERS = {"User-Agent": "fanfiction-abstractor-bot"}
-ao3_session = AO3.Session(AO3_USERNAME, AO3_PASSWORD)
+ao3_session = ao3.Session(AO3_USERNAME, AO3_PASSWORD)
 
 ratingColors = {
     "Teen And Up Audiences": 0xE5D100,
@@ -567,7 +567,7 @@ class embedBuilder(commands.Cog):
    
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["fcheck"])
+    @commands.command(aliases=["fcheck", "check"])
     async def fic_check(self, ctx, flag = None):
         work_link = self.recentlySubbed
 
@@ -576,11 +576,11 @@ class embedBuilder(commands.Cog):
             if flag == "list":
                 await ctx.channel.typing()
                 start_time = time.time()
-                ficList = "\n".join(
-                    f"{i}. [{pieces['title']}]({pieces['link']})"
-                    for i, work_id in enumerate(alertDB.keys())
-                    for pieces, error in [generate_ao3_work_summary(f'https://archiveofourown.org/works/{work_id}')]
-                )
+                ficList = ""
+                for i, work_id in enumerate(alertDB.keys()):
+                    pieces, error = generate_ao3_work_summary(f'https://archiveofourown.org/works/{work_id}')
+                    ficList += f"\n{i}. [{pieces['title']}]({pieces['link']})"
+                    time.sleep(10)
                 embed = discord.Embed(
                     title=":eyes:  Watched Fic  :eyes:",
                     description=ficList,
