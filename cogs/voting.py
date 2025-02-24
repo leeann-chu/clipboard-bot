@@ -103,23 +103,22 @@ class PollButton(discord.ui.Button['Poll']):
                 currentSettings.settingsEmbed.set_field_at(0, name = "Your vote is:", value = str(currPoll.get(str(interaction.user.id))))
             return await interaction.response.send_message(embed = settingsEmbed, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
 
-        # Not in Poll yet
-        if str(interaction.user.id) not in currPoll:
-            currPoll[interaction.user.id] = f"{self.emoji.name} {self.label}"
-            writetoFile(currPoll, "storedPolls")
-            numVotes = len(currPoll)
-            self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = numVotes)
-            await interaction.response.edit_message(embed = self.pollEmbed, view = self.view)
-            self.currentPoll.pollEmbed = self.pollEmbed
-            followup = discord.Embed (title = "You have voted for option: " + str(self.emoji),
-                                      description = "If you would like to change your vote please use the :repeat: button\nFor more information use :grey_question:")
+        # Change vote
+        currPoll[str(interaction.user.id)] = f"{self.emoji.name} {self.label}"
+        writetoFile(currPoll, "storedPolls")
+        numVotes = len(currPoll)
+        self.pollEmbed.set_field_at(0, name = "Votes Recorded: ", value = numVotes)
+        await interaction.response.edit_message(embed = self.pollEmbed, view = self.view)
+        self.currentPoll.pollEmbed = self.pollEmbed
+        followup = discord.Embed (title = "You have voted for option: " + str(self.emoji),
+                                    description = ":repeat: ➙ Clear your vote \n:grey_question: ➙ For more information ")
 
-            return await interaction.followup.send(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
-        # Already in Poll
-        if str(interaction.user.id) in currPoll:
-            followup = discord.Embed (title = "You have already voted!",
-                                      description = "If you would like to see what you voted for try :grey_question:\nIf you would like to change your vote use :repeat:")
-            return await interaction.response.send_message(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
+        return await interaction.followup.send(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
+        # Already in Poll - replaced by just changing the vote when a diff button is pressed
+        # if str(interaction.user.id) in currPoll:
+        #     followup = discord.Embed (title = "You have already voted!",
+        #                               description = "If you would like to see what you voted for try :grey_question:\nIf you would like to change your vote use :repeat:")
+        #     return await interaction.response.send_message(embed = followup, view = Settings(self.currentPoll, currentSettings), ephemeral = True)
 
 #* Custom Button for Settings
 class SettingsButton(discord.ui.Button['Settings']):
