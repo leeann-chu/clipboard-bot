@@ -460,7 +460,7 @@ class embedBuilder(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("embedBuilder is ready")
-        self.watch_fic_task.start()
+        # self.watch_fic_task.start()
 
     # Loop
     @tasks.loop(minutes=30)
