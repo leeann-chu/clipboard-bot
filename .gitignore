@@ -21,3 +21,5 @@ cogs/__pycache__/
 corpse_links.json
 listofplayers.json
 
+# ignore venv
+venv/
