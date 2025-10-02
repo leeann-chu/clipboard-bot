@@ -389,7 +389,7 @@ class voting(commands.Cog):
 
             pollView = Poll(currentPoll)
             pollView.message = await ctx.send(embed = embed, view = pollView)
-            # await asyncio.sleep(86400) # override timeout - maybe this will finally fix that bug
+            await asyncio.sleep(86400) # required to keep the poll for a day - can later be customized
             await pollView.stop()
         except Exception:
             print(traceback.format_exc())
