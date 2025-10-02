@@ -384,6 +384,7 @@ Don't need to put `@` in front
 {ctx.prefix}vote insertPoll <string input formatted json>
 {ctx.prefix}vote clear (clears dictionary)
 {ctx.prefix}vote saveReset
+{ctx.prefix}vote createEmbedManually (should use saved storedPolls.json to generate formatted embed)
 ```
 ```
 Don't need to put `@` in front

@@ -202,6 +202,11 @@ class SettingsButton(discord.ui.Button['Settings']):
                 resultsEmbed = await self.clipboardBot.get_command('createResultsEmbed')(self.currentPoll)
             except Exception:
                 print(traceback.format_exc())
+                await self.ctx.send(f"""**TRACEBACK from `createResultsEmbed`**: 
+```sh
+{traceback.format_exc()[:999]}
+```                                  
+                           """)
                 return
             await self.pollMessage.edit(embed = resultsEmbed, view = None)
             return await interaction.response.edit_message(embed = self.settingsEmbed, view = None)
@@ -332,11 +337,20 @@ class voting(commands.Cog):
             title = "".join(re.findall(r"^[A-Za-z].*", poll)) # match everything not title
             emojis_options = poll.replace(title, '', 1) # remove title if it exists            
             emojis_opts_pairs = re.findall(r"^(\S+)\s+(.*)", emojis_options, re.MULTILINE)
-            emojis, opts = map(list, zip(*emojis_opts_pairs)) # lists pre-check
+            try:
+                emojis, opts = map(list, zip(*emojis_opts_pairs)) # lists pre-check
+            except Exception:
+                await ctx.send(f""" 
+```sh
+{traceback.format_exc()[:999]}
+```                                  
+                           """)
+                return await ctx.send("Something went wrong! Try making the Poll again.")
+
             emojis, opts, success = await self.bot.get_command('emoji_msg_error_check')(ctx, emojis, opts)
             
         if not success:
-            return # it failed you fked up 
+            return # it failed you fked up and hopefully printed an error message to the channel
     
     #* Forming the embed
         member_url = ctx.author.avatar.url 
@@ -375,12 +389,16 @@ class voting(commands.Cog):
 
             pollView = Poll(currentPoll)
             pollView.message = await ctx.send(embed = embed, view = pollView)
-            await asyncio.sleep(86400) # override timeout - maybe this will finally fix that bug
+            # await asyncio.sleep(86400) # override timeout - maybe this will finally fix that bug
             await pollView.stop()
         except Exception:
             print(traceback.format_exc())
-            # return await ctx.send(traceback.format_exc())
-            return await ctx.send("Something went wrong! Maybe it's one of the emojis? Try making the Poll again.")
+            await ctx.send(f"""**TRACEBACK**: 
+```sh
+{traceback.format_exc()[:999]}
+```                                  
+                           """)
+            return await ctx.send("Something went wrong! Try making the Poll again.")
 
     #* timeConvert
     @commands.command()
@@ -455,13 +473,24 @@ class voting(commands.Cog):
         await ctx.guild.get_member(ctx.bot.owner_id).send(embed = privateEmbed)
         return privateEmbed
 
-    #* Insert dictionary
+    #* Insert dictionary from inputted string
     @vote.command()
     @commands.is_owner()
     async def insertPoll(self, ctx, *, inp : str):
         newPoll = json.loads(inp.replace("'", "\""))
         writetoFile(newPoll, "storedPolls")
         await ctx.send("Dictionary inserted")
+
+    #* Load old dictionary from file
+    @vote.command()
+    @commands.is_owner()
+    async def load(self, ctx, *, pollName):
+        oldPoll = readfromFile(pollName)
+        if oldPoll == {}:
+            return await ctx.send("Poll is empty")
+        
+        writetoFile(oldPoll, "storedPolls")
+        await ctx.send("Successfully loaded poll!")
 
     #* get last poll
     @vote.command()
@@ -480,7 +509,7 @@ class voting(commands.Cog):
         await ctx.send("Poll successfully saved")
 
 
-    #* Clear dictionary
+    #* Clear dictionary no save
     @vote.command(aliases = ["reset"])
     async def clear(self, ctx): # if me or Danny resets
         if ctx.author.id == 364536918362554368 or ctx.author.id == 231205233307549697:
@@ -506,16 +535,20 @@ class voting(commands.Cog):
         writetoFile(oldPoll, "storedPolls")
         await ctx.send("Successfully reset poll!")
 
-    #* Load old dictionary
+    #* Print Results from last stored poll
     @vote.command()
     @commands.is_owner()
-    async def load(self, ctx, *, pollName):
-        oldPoll = readfromFile(pollName)
-        if oldPoll == {}:
-            return await ctx.send("Poll is empty")
-        
-        writetoFile(oldPoll, "storedPolls")
-        await ctx.send("Successfully loaded poll!")
+    async def createEmbedManually(self, ctx):
+        timestamp = discord.utils.utcnow()
+        embed = discord.Embed(
+            title = "",
+            description = "",
+            color = randomHexGen(),
+            timestamp = timestamp
+        )
+        mockPoll = PollClass(ctx, embed, [], [])
+        resultsEmbed = await self.bot.get_command('createResultsEmbed')(mockPoll)
+        await ctx.send(embed = resultsEmbed, view = None)
 
 async def setup(bot):
     await bot.add_cog(voting(bot))
