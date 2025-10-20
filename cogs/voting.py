@@ -258,11 +258,12 @@ class SettingsButton(discord.ui.Button["Settings"]):
             except Exception:
                 print(traceback.format_exc())
                 await self.ctx.send(
-                    f"""**TRACEBACK from `createResultsEmbed`**: 
-```sh
-{traceback.format_exc()[:999]}
-```                                  
-                           """
+                    (
+                        "**TRACEBACK from `createResultsEmbed`**: "
+                        "```sh"
+                        f"{traceback.format_exc()[:999]}"
+                        "```"
+                    )
                 )
                 return
             await self.pollMessage.edit(embed=resultsEmbed, view=None)
@@ -462,7 +463,7 @@ class voting(commands.Cog):
     @vote.command()
     async def help(self, ctx):
         await ctx.send(
-            f"Use the command `{ctx.prefix}poll create` or \n`{ctx.prefix}poll create <Title>` to get started!"
+            f"Use the command `{ctx.prefix}poll create [fptp | rcv]` to get started!"
         )
 
     # * ------------   Create Poll   ------------
@@ -471,16 +472,14 @@ class voting(commands.Cog):
         self,
         ctx,
         kind=None,
+        election_time=86400,
         method="kemeny",
         num_choices=4,
-        election_time=86400,
         poll=None,
     ):
         oldPoll = readfromFile("storedPolls")
         if oldPoll:
-            return await ctx.send(
-                "Last poll has not been reset, reset the poll pls"
-            )
+            return await ctx.send("Last poll has not been reset, reset the poll pls")
 
         if kind not in ["fptp", "rcv"]:
             await ctx.send("You must specify fptp or rcv for the election type.")
@@ -491,7 +490,6 @@ class voting(commands.Cog):
 
         else:  # rcv
             await self.rcv_make(
-                self,
                 ctx,
                 method=method,
                 num_choices=num_choices,

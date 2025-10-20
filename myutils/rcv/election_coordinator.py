@@ -17,6 +17,8 @@ from myutils.rcv.borda import Borda
 from myutils.rcv.instant_runoff import InstantRunoff
 from myutils.rcv.kemeny import Kemeny
 
+from myutils.poll_class import writetoFile
+
 import asyncio
 
 
@@ -233,8 +235,7 @@ class RCVElectionCoordinator:
                 return
 
             to_dump = {key[0]: value for key, value in self.ballots.items()}
-            with open("storedPolls.json", "w") as f:
-                json.dump(to_dump, f)
+            writetoFile(to_dump, "storedPolls")
 
             election_system = self.get_election_system()
             winner, result_string = election_system.tabulate()
