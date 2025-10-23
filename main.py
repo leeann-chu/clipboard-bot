@@ -34,7 +34,6 @@ def get_prefix(bot, message):
 
 intents = discord.Intents.all()  # All but the two privileged ones
 intents.members = True  # Subscribe to the Members intent
-TEST_GUILD = discord.Object(416749994163568641)
 
 class clipboardBot(commands.Bot):
     def __init__(self):
@@ -47,7 +46,6 @@ class clipboardBot(commands.Bot):
         # self.tree = commands.Bot.tree # used for slash commands
 
     async def setup_hook(self) -> None:
-        await self.tree.sync(guild=TEST_GUILD)
         for cog in self.cogsList:
             await self.load_extension(f'cogs.{cog}')
 
@@ -252,7 +250,7 @@ async def reload_error(ctx, error):
     else:
         print("\nSome other Error!")
         raise error
-#
+
 
 if __name__ == "__main__": #note to future me bot.run needs to be in name == main
     bot.run(BOT_TOKEN)
