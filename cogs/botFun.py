@@ -321,7 +321,7 @@ expected votes per day: `{votesNeeded/daysLeft}`
             else:
                 await ctx.send("Emoji not found in dictionary")
         else:
-            await ctx.send(f"Syntax: {ctx.prefix}emojify \`{emoji}\`")
+            await ctx.send(f"Syntax: {ctx.prefix}emojify \\`{emoji}\\`")
 
 ##
 
