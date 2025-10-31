@@ -22,4 +22,4 @@ corpse_links.json
 listofplayers.json
 
 # ignore venv
-venv/
+venv/*
