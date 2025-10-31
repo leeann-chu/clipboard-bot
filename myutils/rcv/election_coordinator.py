@@ -252,7 +252,7 @@ class RCVElectionCoordinator:
             embed = self.election_end_embed(winner, result_string)
             await self.poll_message.edit(embed=embed, view=None)
             await self.ctx.send(
-                content="@everyone The election has concluded. Please see the results above.",
+                content="The election has concluded. Please see the results above.",
                 reference=self.poll_message.to_reference(),
             )
 
@@ -320,6 +320,9 @@ class RCVBallotFillSelection(discord.ui.Select):
             self.current_emoji = None
         else:
             ind = self.plain_opts.index(self.current_opt)
+            print(ind)
+            print(self.current_opt)
+            print(self.current_emoji)
             self.current_emoji = self.emojis[ind]
 
         await self.view.update_options(self, interaction)
