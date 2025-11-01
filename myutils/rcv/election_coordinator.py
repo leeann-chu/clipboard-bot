@@ -234,9 +234,6 @@ class RCVElectionCoordinator:
                 await self.ctx.send(embed=embed, view=None)
                 return
 
-            to_dump = {key[0]: value for key, value in self.ballots.items()}
-            writetoFile(to_dump, "storedPolls")
-
             election_system = self.get_election_system()
             winner, result_string = election_system.tabulate()
             if winner is None:
@@ -256,11 +253,14 @@ class RCVElectionCoordinator:
                 reference=self.poll_message.to_reference(),
             )
 
+            to_dump = {key[0]: value for key, value in self.ballots.items()}
+            writetoFile(to_dump, "storedPolls")
+
 
 ### Ballot Request Objects BEGIN ###
 class RCVBallotRequestView(discord.ui.View):
     def __init__(self, coordinator, pollmaster):
-        super().__init__()
+        super().__init__(timeout=None)
         self.add_item(RCVRequestBallotButton(coordinator))
         self.add_item(RCVClosePollButton(coordinator, pollmaster))
 
@@ -338,7 +338,7 @@ class RCVBallotSubmitButton(discord.ui.Button):
 
 class RCVBallotFillView(discord.ui.View):
     def __init__(self, coordinator, ctx, title, options, emojis, num_choices=3):
-        super().__init__()
+        super().__init__(timeout=180)
 
         self.coordinator = coordinator
         self.ctx = ctx
