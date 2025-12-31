@@ -92,8 +92,8 @@ class RCVElectionCoordinator:
 
             # just use the emojis to try and avoid exceeding the embed limit
             ranking_string = " ".join([ranking.split(" ")[0] for ranking in rankings])
-            voting_string += f"{user_name} ranked "
-            voting_string += f"{ranking_string}\n"
+            voting_string += f"{ranking_string}"
+            voting_string += f"ranked by {user_name}\n"
 
         embed_title = f"The winner is {winner} !!!"
         embed_description = ""
@@ -139,6 +139,17 @@ class RCVElectionCoordinator:
 
             async with self.lock:
                 self.timer_task.cancel()
+
+    async def list_submissions_button_press(self, interaction: discord.Interaction):
+        async with self.lock:
+            result = "\n".join(
+                [f"{voter[1]}" for voter in self.ballots.keys()]
+            )
+            embed = discord.Embed(
+                title="List of Voters So Far",
+                description=result
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def hold_election(self):
         async with self.lock:
@@ -263,6 +274,7 @@ class RCVBallotRequestView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(RCVRequestBallotButton(coordinator))
         self.add_item(RCVClosePollButton(coordinator, pollmaster))
+        self.add_item(RCVListSubmissionsButton(coordinator))
 
 
 class RCVRequestBallotButton(discord.ui.Button):
@@ -287,6 +299,15 @@ class RCVClosePollButton(discord.ui.Button):
             await interaction.response.send_message(
                 "You don't have permission to close the poll.", ephemeral=True
             )
+
+
+class RCVListSubmissionsButton(discord.ui.Button):
+    def __init__(self, coordinator):
+        super().__init__(label="List Voters So Far", style=discord.ButtonStyle.secondary)
+        self.coordinator = coordinator
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.coordinator.list_submissions_button_press(interaction)
 
 
 ### Ballot Request Objects END ###
