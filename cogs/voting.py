@@ -4,7 +4,7 @@ import re
 import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
-from typing import List
+from typing import List, Optional
 import discord, traceback
 from discord.ext import commands
 from myutils.views import PollModal, ResponseView
@@ -58,18 +58,18 @@ class Poll(discord.ui.View):
     def __init__(self, currentPoll):
         super().__init__(timeout=86400)  # 86400 for a day
         self.currentPoll = currentPoll
+        self.message: Optional[discord.Message] = None # placeholder for errors
 
         for emoji, label in zip(currentPoll.emojiList, currentPoll.optionList):
-            if emoji == "⬜️":
-                emoji = "\U00002b1c"
-            elif emoji == "⭕":
-                emoji = "\U00002b55"
             button = PollButton(currentPoll, emoji, label)
             if str(button.emoji) == "<a:settings:845834409869180938>":
                 button.style = discord.ButtonStyle.primary
             self.add_item(button)
 
     async def stop(self) -> None:
+        if self.message is None:
+            return  # to avoid a type None message
+        
         resultsEmbed = await self.currentPoll.ctx.bot.get_command("createResultsEmbed")(
             self.currentPoll
         )
@@ -412,12 +412,8 @@ class voting(commands.Cog):
         )
 
         if not success:
-            raise Exception(
-                (
-                    "Failed emoji check. Does the number of options match the number"
-                    " of emojis? Or did you put too many options?"
-                )
-            )
+            raise ValueError(
+                ("Failed emoji check. Does the number of options match the number of emojis?"))
 
         if len(opts) < min_choices:
             raise Exception(
@@ -430,22 +426,21 @@ class voting(commands.Cog):
         title = "".join(re.findall(r"^[A-Za-z].*", poll))  # match everything not title
         emojis_options = poll.replace(title, "", 1)  # remove title if it exists
         emojis_opts_pairs = re.findall(r"^(\S+)\s+(.*)", emojis_options, re.MULTILINE)
+
         try:
             emojis, opts = map(list, zip(*emojis_opts_pairs))  # lists pre-check
-        except Exception:
-            await ctx.send(("```sh\n" f"{traceback.format_exc()[:999]}\n" "```"))
-            return await ctx.send("Something went wrong! Try making the Poll again.")
+            emojis = [emoji.replace("\uFE0F", "") for emoji in emojis] # normalizes emojis — https://support.discord.com/hc/en-us/community/posts/19767127482519
 
-        emojis, opts, success = await self.bot.get_command("emoji_msg_error_check")(
-            ctx, emojis, opts
-        )
+        except Exception:
+            raise ValueError("Failed to parse emojis and options from poll")
+        
+        emojis, opts, success = await self.bot.get_command("emoji_msg_error_check")(ctx, emojis, opts)
+        
         if not success:
-            raise Exception(
-                (
-                    "Failed emoji check. Does the number of options match the number"
-                    " of emojis? Or did you put too many options?"
-                )
-            )
+            raise ValueError(
+                ("Failed emoji check. Does the number of options match the number of emojis?"))
+        
+        return title, opts, emojis
 
     # Events
     @commands.Cog.listener()
@@ -485,16 +480,22 @@ class voting(commands.Cog):
             await ctx.send("You must specify fptp or rcv for the election type.")
             return
 
-        if kind == "fptp":
-            await self.fptp_make(ctx, election_time=election_time, poll=poll)
+        try:
+            if kind == "fptp":
+                await self.fptp_make(ctx, election_time=election_time, poll=poll)
 
-        else:  # rcv
-            await self.rcv_make(
-                ctx,
-                method=method,
-                num_choices=num_choices,
-                election_time=election_time,
-            )
+            else:  # rcv
+                await self.rcv_make(
+                    ctx,
+                    method=method,
+                    num_choices=num_choices,
+                    election_time=election_time,
+                )
+        except Exception:
+            error = traceback.format_exc()
+            print(error)
+            await ctx.send(f"```sh\n{error[:999]}\n```")
+            await ctx.send("Something went wrong! Please ping admins to debug.")
 
     def get_fptp_embed(self, ctx, title, opts, emojis, election_time):
         member_url = ctx.author.avatar.url
@@ -545,39 +546,23 @@ class voting(commands.Cog):
 
         embed = self.get_fptp_embed(ctx, title, opts, emojis, election_time)
 
-        try:
-            fullEmojiList = emojis + ["<a:settings:845834409869180938>"]
-            fullOptionList = opts + ["Settings"]
+        fullEmojiList = emojis + ["<a:settings:845834409869180938>"]
+        fullOptionList = opts + ["Settings"]
 
-            currentPoll = PollClass(ctx, embed, fullEmojiList, fullOptionList)
+        currentPoll = PollClass(ctx, embed, fullEmojiList, fullOptionList)
 
-            pollView = Poll(currentPoll)
-            pollView.message = await ctx.send(embed=embed, view=pollView)
-            await asyncio.sleep(election_time)
-            await pollView.stop()
-        except Exception:
-            print(traceback.format_exc())
-            await ctx.send(
-                (
-                    "**TRACEBACK**:\n"
-                    "```sh\n"
-                    f"{traceback.format_exc()[:999]}\n"
-                    "```\n"
-                )
-            )
-            return await ctx.send("Something went wrong! Try making the Poll again.")
+        pollView = Poll(currentPoll)
+        pollView.message = await ctx.send(embed=embed, view=pollView)
+        await asyncio.sleep(election_time)
+        await pollView.stop()
 
     async def rcv_make(self, ctx, method="kemeny", num_choices=4, election_time=86400):
         print("Initializing Ranked Choice Election")
-        try:
-            title, opts, emojis = await self.initialize_poll(ctx, num_choices)
-            coordinator = RCVElectionCoordinator(
-                ctx, title, opts, emojis, election_time, num_choices, method
-            )
-            await coordinator.hold_election()
-        except Exception as e:
-            print(e)
-            await ctx.send(e)
+        title, opts, emojis = await self.initialize_poll(ctx, num_choices)
+        coordinator = RCVElectionCoordinator(
+            ctx, title, opts, emojis, election_time, num_choices, method
+        )
+        await coordinator.hold_election()
 
     #* timeConvert
     @commands.command()
@@ -665,6 +650,27 @@ class voting(commands.Cog):
     @vote.command()
     async def example(self, ctx):
         await ctx.guild.get_member(ctx.author.id).send("https://imgur.com/a/wq6swYo")
+
+    # Debug vote make command
+    @vote.command(aliases = ["@make"])
+    async def debugMakeVote(self, ctx, *, poll):
+        try:
+            title, opts, emojis = await self.load_poll(ctx, poll)
+            
+            embed = self.get_fptp_embed(ctx, title, opts, emojis, 86400)
+
+            fullEmojiList = emojis + ["<a:settings:845834409869180938>"]
+            fullOptionList = opts + ["Settings"]
+
+            currentPoll = PollClass(ctx, embed, fullEmojiList, fullOptionList)
+
+            pollView = Poll(currentPoll)
+            pollView.message = await ctx.send(embed=embed, view=pollView)
+            await asyncio.sleep(86400)
+            await pollView.stop()
+        except Exception:
+            await ctx.send(("```sh\n" f"{traceback.format_exc()[:999]}\n" "```"))
+            return await ctx.send("Something went wrong! Try making the Poll again.") 
 
     @vote.command()
     @commands.is_owner()

@@ -342,8 +342,6 @@ class RCVBallotFillSelection(discord.ui.Select):
         else:
             ind = self.plain_opts.index(self.current_opt)
             print(ind)
-            print(self.current_opt)
-            print(self.current_emoji)
             self.current_emoji = self.emojis[ind]
 
         await self.view.update_options(self, interaction)

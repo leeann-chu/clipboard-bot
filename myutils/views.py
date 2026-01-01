@@ -94,8 +94,10 @@ class PollModal(discord.ui.Modal, title='Poll Maker'):
         self._title = _title
     
     async def on_submit(self, interaction: discord.Interaction):
+        # to-do: make a source of truth for this code instead of duplicating load_poll (made this hard to debug lol)
         emojis_opts_pairs = findall(r"^(\S+)\s+(.*)", self.options.value, MULTILINE)
         self.emojis, self.msg  = map(list, zip(*emojis_opts_pairs))
+        self.emojis = [emoji.replace("\uFE0F", "") for emoji in self.emojis] # normalizes emojis
         self._title = self.title_input.value
         
         await interaction.response.defer(thinking=False) # this satisfies the modal so it thinks it sent a response even though it didn't
